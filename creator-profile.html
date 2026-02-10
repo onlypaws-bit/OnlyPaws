@@ -491,7 +491,7 @@
     async function loadCreatorByUsername(username){
       const { data, error } = await onlypawsClient
         .from("profiles")
-        .select("user_id, username, display_name, bio, avatar_url, role, stripe_onboarding_status, charges_enabled")
+        .select("user_id, username, display_name, bio, avatar_url, role, stripe_onboarding_status, charges_enabled, stripe_connect_account_id")
         .eq("username", username)
         .maybeSingle();
 
@@ -505,7 +505,7 @@
     async function loadCreatorByUserId(userId){
       const { data, error } = await onlypawsClient
         .from("profiles")
-        .select("user_id, username, display_name, bio, avatar_url, role, stripe_onboarding_status, charges_enabled")
+        .select("user_id, username, display_name, bio, avatar_url, role, stripe_onboarding_status, charges_enabled, stripe_connect_account_id")
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -653,13 +653,20 @@
           setTopHint("");
         }
 
-        // creator eligibility useful for tooltip only
-        const creatorEligible = (creator.role === "creator"
-          && creator.stripe_onboarding_status === "completed"
-          && creator.charges_enabled === true);
+                // creator eligibility useful for tooltip only
+        const status = (creator.stripe_onboarding_status || "").toString().trim().toLowerCase();
+        // Accept both 'complete' and 'completed' (DB may store either)
+        const statusOk = (status === "completed" || status === "complete");
+        const creatorEligible = (
+          creator.role === "creator" &&
+          statusOk &&
+          creator.charges_enabled === true &&
+          !!(creator.stripe_connect_account_id || "").toString().trim()
+        );
 
         if(!creatorEligible){
-          premiumBtn.title = "Creator not ready yet (Stripe setup). You can still open the subscription page.";
+          premiumBtn.title = "Creator not ready yet (Stripe setup). Missing completion, charges_enabled, or Connect ID.";
+          // Note: in demo we block subscribe until ready to avoid failed checkouts.
         }else{
           premiumBtn.title = "";
         }
