@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>OnlyPaws — Fan Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root{
+      --bg1:#6B4EFF;
+      --bg2:#8B6CFF;
+      --text:#ffffff;
+      --muted:rgba(255,255,255,.85);
+      --stroke:rgba(255,255,255,.16);
+      --card:rgba(0,0,0,.16);
+      --btn:#ffffff;
+      --btnText:#6B4EFF;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 20% 10%, rgba(255,255,255,.18), transparent 55%),
+        radial-gradient(1000px 650px at 90% 30%, rgba(0,0,0,.22), transparent 55%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
+      min-height:100vh;
+    }
+    .wrap{max-width:1040px;margin:0 auto;padding:28px 18px 70px;}
+
+    .nav{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:28px;flex-wrap:wrap;}
+    .brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:white;font-weight:900;}
+    .brandLogo{
+      width:62px;height:62px;border-radius:14px;
+      background: rgba(255,255,255,.16);
+      border:1px solid rgba(255,255,255,.18);
+      display:flex;align-items:center;justify-content:center;
+    }
+    .brandLogo img{width:46px;height:46px;object-fit:contain;}
+    .brandText{font-size:1.1rem;}
+
+    .navRight{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
+
+    .pill{
+      padding:8px 14px;border-radius:999px;
+      background: rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      font-size:13px;color:rgba(255,255,255,.85);
+      white-space:nowrap;
+    }
+
+    .navBtn{
+      display:inline-flex;align-items:center;justify-content:center;
+      padding:10px 14px;border-radius:999px;
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      color:white;text-decoration:none;font-weight:900;
+      cursor:pointer;font-size:13px;white-space:nowrap;
+      transition:transform .16s ease, background .16s ease;
+      user-select:none;
+    }
+    .navBtn:hover{transform:translateY(-1px);background:rgba(255,255,255,.14)}
+
+    .grid{display:grid;grid-template-columns: 1fr 1fr;gap:16px;}
+    @media (max-width: 920px){ .grid{grid-template-columns:1fr;} }
+
+    .panel{
+      border-radius:22px;padding:22px;
+      background: var(--card);
+      border:1px solid var(--stroke);
+      backdrop-filter: blur(10px);
+      box-shadow:0 20px 45px rgba(0,0,0,.25);
+    }
+    h1{margin:0 0 6px;font-size: clamp(2rem, 4vw, 2.4rem);letter-spacing:-0.6px;}
+    .sub{margin:0;color:var(--muted);line-height:1.55}
+
+    .list{margin-top:14px;display:grid;gap:10px;}
+    .item{
+      background: rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.16);
+      border-radius:16px;
+      padding:12px 14px;
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+    }
+    .left{min-width:0;display:flex;gap:12px;align-items:center;}
+    .avatar{
+      width:40px;height:40px;border-radius:14px;
+      background: rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.14);
+      overflow:hidden;flex:0 0 auto;
+      display:flex;align-items:center;justify-content:center;
+      font-size:16px;
+    }
+    .avatar img{width:100%;height:100%;object-fit:cover;display:block;}
+    .title{font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:420px;}
+    .meta{font-size:13px;color:rgba(255,255,255,.82);margin-top:4px}
+
+    .btnRow{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;}
+    .ghost{
+      padding:12px 16px;border-radius:999px;
+      background: rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      color:white;text-decoration:none;font-weight:800;
+      cursor:pointer;
+      display:inline-flex;align-items:center;justify-content:center;
+    }
+    .badge{
+      font-size:12px;padding:6px 10px;border-radius:999px;
+      border:1px solid rgba(255,255,255,.18);
+      background: rgba(0,0,0,.14);
+      white-space:nowrap;
+    }
+    .msg{margin-top:10px;font-size:13px;color:rgba(255,255,255,.85);min-height:18px}
+
+    footer{
+      margin-top:32px;
+      padding-bottom:22px;
+      color:rgba(255,255,255,.75);
+      font-size:13px;
+      text-align:center;
+      line-height:1.5;
+    }
+    .smallLegal{display:inline-block;margin-top:6px;opacity:.85;font-size:12px;}
+  </style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <div class="nav">
+    <a href="feed.html" class="brand">
+      <div class="brandLogo"><img src="logo.png" alt="OnlyPaws logo"></div>
+      <span class="brandText">OnlyPaws</span>
+    </a>
+
+    <div class="navRight">
+      <div class="pill" id="userPill">…</div>
+      <a class="navBtn" href="profile.html">Profile</a>
+      <button class="navBtn" id="logoutBtn" type="button">Log out</button>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-bottom:16px;">
+    <h1>Fan Dashboard</h1>
+    <p class="sub">Manage your subscriptions, follows, and access.</p>
+    <div class="msg" id="topMsg"></div>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <div class="pill">My Subscriptions</div>
+      <p class="sub" style="margin-top:10px;">
+        Cancel anytime. Access remains active until the end of the billing period.
+      </p>
+      <div class="list" id="subsList"></div>
+      <div class="msg" id="subsMsg"></div>
+    </div>
+
+    <div class="panel">
+      <div class="pill">Following</div>
+      <p class="sub" style="margin-top:10px;">Creators you follow.</p>
+      <div class="list" id="followsList"></div>
+      <div class="msg" id="followsMsg"></div>
+    </div>
+
+    <div class="panel" style="grid-column:1/-1;">
+      <div class="pill">My Access</div>
+      <p class="sub" style="margin-top:10px;">Shortcuts to what you can view.</p>
+      <div class="btnRow">
+        <a class="ghost" href="purchased-posts.html?scope=purchased">View purchased posts</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  © 2026 OnlyPaws • Built with toe beans energy 🐾<br/>
+  <span class="smallLegal">OnlyPaws is an independent digital platform. Features may evolve over time.</span>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+
+<script>
+  const userPill = document.getElementById("userPill");
+  const topMsg = document.getElementById("topMsg");
+
+  const subsList = document.getElementById("subsList");
+  const subsMsg  = document.getElementById("subsMsg");
+
+  const followsList = document.getElementById("followsList");
+  const followsMsg  = document.getElementById("followsMsg");
+
+  function esc(s){
+    return String(s ?? "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  function emptyItem(title, meta){
+    return `
+      <div class="item">
+        <div class="left">
+          <div class="avatar">🐾</div>
+          <div style="min-width:0;">
+            <div class="title">${esc(title)}</div>
+            <div class="meta">${esc(meta || "")}</div>
+          </div>
+        </div>
+        <span class="badge">—</span>
+      </div>
+    `;
+  }
+
+  function symbolForCurrency(cur){
+    const c = String(cur || "").toLowerCase();
+    if(c === "eur") return "€";
+    if(c === "usd") return "$";
+    if(c === "gbp") return "£";
+    return (cur || "").toUpperCase() + " ";
+  }
+
+  function periodShort(p){
+    const x = String(p || "").toLowerCase();
+    if(x === "monthly") return "/mo";
+    if(x === "yearly") return "/yr";
+    return "";
+  }
+
+  function formatPlan(plan){
+    if(!plan) return null;
+    const cents = Number(plan.price_cents);
+    const ok = Number.isFinite(cents);
+    const sym = symbolForCurrency(plan.currency);
+    const per = periodShort(plan.billing_period);
+    const price = ok ? `${sym}${(cents/100).toFixed(2)}${per}` : null;
+    const name = (plan.name || "Plan").toString();
+    return { name, price };
+  }
+
+  async function requireSession(){
+    const { data } = await onlypawsClient.auth.getSession();
+    if(!data?.session){
+      window.location.href = "fans.html?next=fan-dash.html";
+      return null;
+    }
+    return data.session;
+  }
+
+  async function hydrateUserPill(){
+    try{
+      const { data: sessData } = await onlypawsClient.auth.getSession();
+      const session = sessData?.session;
+      if(!session){ userPill.textContent = "Guest"; return; }
+
+      const uid = session.user.id;
+      const email = session.user.email || "";
+
+      const { data: prof } = await onlypawsClient
+        .from("profiles")
+        .select("username, display_name")
+        .eq("user_id", uid)
+        .maybeSingle();
+
+      const uname = (prof?.username || "").trim();
+      const dname = (prof?.display_name || "").trim();
+
+      if(uname) userPill.textContent = "@" + uname;
+      else if(dname) userPill.textContent = dname;
+      else if(email) userPill.textContent = email.split("@")[0];
+      else userPill.textContent = "User";
+    }catch(e){}
+  }
+
+  function creatorLink(username){
+    const u = (username || "").replace(/^@/,"").trim();
+    return `creator-profile.html?u=${encodeURIComponent(u)}`;
+  }
+
+  async function loadFollowing(userId){
+    followsMsg.textContent = "Loading…";
+    followsList.innerHTML = "";
+
+    const { data, error } = await onlypawsClient
+      .from("followers")
+      .select(`
+        id,
+        created_at,
+        creator:creator_id (
+          user_id,
+          username,
+          display_name,
+          avatar_url
+        )
+      `)
+      .eq("fan_id", userId)
+      .order("created_at", { ascending:false });
+
+    if(error){
+      followsMsg.textContent = "❌ " + error.message;
+      followsList.innerHTML = "";
+      return;
+    }
+
+    if(!data || data.length === 0){
+      followsMsg.textContent = "";
+      followsList.innerHTML = emptyItem("No follows yet", "Follow a creator and they will appear here.");
+      return;
+    }
+
+    followsMsg.textContent = "";
+    followsList.innerHTML = "";
+
+    for(const row of data){
+      const c = row.creator;
+      const uname = (c?.username || "").trim();
+      const dname = (c?.display_name || "").trim() || uname || "Creator";
+      const avatar = (c?.avatar_url || "").trim();
+
+      const el = document.createElement("div");
+      el.className = "item";
+      el.innerHTML = `
+        <div class="left">
+          <div class="avatar">${avatar ? `<img src="${esc(avatar)}" alt="avatar">` : "🐾"}</div>
+          <div style="min-width:0;">
+            <div class="title">${esc(dname)}</div>
+            <div class="meta">${uname ? "@" + esc(uname) : ""}</div>
+          </div>
+        </div>
+        <a class="ghost" href="${creatorLink(uname)}" style="padding:10px 14px;">View</a>
+      `;
+      followsList.appendChild(el);
+    }
+  }
+
+  async function loadSubscriptions(userId){
+    subsMsg.textContent = "Loading…";
+    subsList.innerHTML = "";
+
+    const { data, error } = await onlypawsClient
+      .from("subscriptions")
+      .select(`
+        id,
+        status,
+        created_at,
+        current_period_end,
+        canceled_at,
+        creator:creator_id (
+          user_id,
+          username,
+          display_name,
+          avatar_url
+        ),
+        plan:plan_id (
+          id,
+          name,
+          price_cents,
+          currency,
+          billing_period
+        )
+      `)
+      .eq("fan_id", userId)
+      .order("created_at", { ascending:false });
+
+    if(error){
+      subsMsg.textContent = "❌ " + error.message;
+      subsList.innerHTML = "";
+      return;
+    }
+
+    if(!data || data.length === 0){
+      subsMsg.textContent = "";
+      subsList.innerHTML = emptyItem("No subscriptions yet", "When you subscribe to a creator, it will appear here.");
+      return;
+    }
+
+    subsMsg.textContent = "";
+    subsList.innerHTML = "";
+
+    for(const row of data){
+      const c = row.creator;
+      const plan = formatPlan(row.plan);
+
+      const uname = (c?.username || "").trim();
+      const dname = (c?.display_name || "").trim() || uname || "Creator";
+      const avatar = (c?.avatar_url || "").trim();
+
+      const status = (row.status || "active").toString();
+      const badgeText =
+        status === "active" ? "Active" :
+        status === "past_due" ? "Past due" :
+        status === "canceled" ? "Canceled" :
+        status === "expired" ? "Expired" :
+        status;
+
+      const until = row.current_period_end ? new Date(row.current_period_end).toLocaleDateString() : null;
+
+      const metaLine = [
+        uname ? ("@" + uname) : "",
+        plan?.name ? plan.name : "",
+        plan?.price ? plan.price : "",
+        until ? ("until " + until) : ""
+      ].filter(Boolean).join(" • ");
+
+      const el = document.createElement("div");
+      el.className = "item";
+      el.innerHTML = `
+        <div class="left">
+          <div class="avatar">${avatar ? `<img src="${esc(avatar)}" alt="avatar">` : "🐾"}</div>
+          <div style="min-width:0;">
+            <div class="title">${esc(dname)}</div>
+            <div class="meta">${esc(metaLine)}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+          <span class="badge">${esc(badgeText)}</span>
+          ${c?.user_id ? `<a class="ghost" href="subscriptions.html?creator=${encodeURIComponent(c.user_id)}" style="padding:10px 14px;">Manage</a>` : ""}
+        </div>
+      `;
+      subsList.appendChild(el);
+    }
+  }
+
+  document.getElementById("logoutBtn").addEventListener("click", async () => {
+    try{ await onlypawsClient.auth.signOut(); }catch(e){}
+    window.location.href = "index.html";
+  });
+
+  (async () => {
+    if(typeof onlypawsClient === "undefined"){
+      topMsg.textContent = "❌ onlypawsClient not found. Check supabase.js.";
+      return;
+    }
+
+    const session = await requireSession();
+    if(!session) return;
+
+    await hydrateUserPill();
+
+    await Promise.all([
+      loadFollowing(session.user.id),
+      loadSubscriptions(session.user.id),
+    ]);
+  })();
+</script>
+
+</body>
+</html>
