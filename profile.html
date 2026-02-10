@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>OnlyPaws — Profile</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    :root{
+      --bg1:#6B4EFF; --bg2:#8B6CFF; --text:#fff;
+      --muted:rgba(255,255,255,.85);
+      --stroke:rgba(255,255,255,.16);
+      --card:rgba(0,0,0,.16);
+      --btn:#fff; --btnText:#6B4EFF;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:Arial,sans-serif; color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 20% 10%, rgba(255,255,255,.18), transparent 55%),
+        radial-gradient(1000px 650px at 90% 30%, rgba(0,0,0,.22), transparent 55%),
+        linear-gradient(135deg,var(--bg1),var(--bg2));
+      min-height:100vh;
+    }
+    .wrap{max-width:900px;margin:0 auto;padding:28px 18px 70px;}
+    .nav{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px;}
+    .brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:white;font-weight:900;}
+    .brandLogo{width:62px;height:62px;border-radius:14px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;}
+    .brandLogo img{width:46px;height:46px;object-fit:contain;}
+    .pill{padding:10px 14px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);font-size:13px;}
+    .navRight{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
+    .navBtn{
+      display:inline-flex;align-items:center;justify-content:center;
+      padding:10px 14px;border-radius:999px;
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      color:white;text-decoration:none;font-weight:900;
+      cursor:pointer; user-select:none;
+      transition: transform .16s ease, background .16s ease, border-color .16s ease;
+      font-size:13px; white-space:nowrap;
+    }
+    .navBtn:hover{transform: translateY(-1px); background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.22);}
+    .navBtn:active{transform: translateY(0px) scale(.99);}
+
+    .panel{border-radius:22px;padding:22px;background:var(--card);border:1px solid var(--stroke);backdrop-filter:blur(10px);}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;}
+    h1{margin:10px 0;font-size:2.2rem;}
+    .sub{margin:0;color:var(--muted);}
+    .field{margin-top:12px;}
+    label{display:block;font-size:13px;margin-bottom:6px;}
+    input, textarea{
+      width:100%; padding:12px; border-radius:14px;
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(255,255,255,.12); color:white;
+      outline:none;
+    }
+    input[type="file"]{padding:10px 12px}
+    textarea{min-height:110px;}
+    .btnRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center;}
+    .btn{padding:12px 16px;border-radius:999px;background:#fff;color:#6B4EFF;font-weight:900;border:none;cursor:pointer;}
+    .ghost{
+      padding:12px 16px;border-radius:999px;
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      color:white;cursor:pointer;text-decoration:none;
+      display:inline-flex;align-items:center;justify-content:center;
+    }
+    .msg{margin-top:10px;min-height:18px;font-size:13px;white-space:pre-wrap;}
+    .avatarBox{margin-top:12px;padding:14px;border-radius:18px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);display:flex;gap:14px;flex-wrap:wrap;}
+    .avatarImg{width:74px;height:74px;border-radius:22px;object-fit:cover;border:1px solid rgba(255,255,255,.14);background:rgba(0,0,0,.18);}
+    .dangerZone{margin-top:16px;padding:14px;border-radius:18px;background:rgba(0,0,0,.14);border:1px solid rgba(255,120,120,.35);}
+    .dangerBtn{border-color:rgba(255,120,120,.55)!important;}
+
+    .uploadHint{
+      margin-top:8px;
+      padding:10px 12px;
+      border-radius:14px;
+      background: rgba(0,0,0,.14);
+      border:1px solid rgba(255,255,255,.14);
+      font-size:12px;
+      color: rgba(255,255,255,.82);
+      line-height:1.45;
+    }
+
+    footer{margin-top:28px;color:rgba(255,255,255,.75);font-size:13px;text-align:center;}
+    .smallLegal{display:inline-block;margin-top:6px;opacity:.85;font-size:12px;}
+  </style>
+</head>
+
+<body>
+<div class="wrap">
+  <div class="nav">
+  <a href="feed.html" class="brand">
+    <div class="brandLogo"><img src="logo.png"></div>
+    <span>OnlyPaws</span>
+  </a>
+
+  <div class="navRight">
+    <div class="pill" id="userPill">…</div>
+
+    <a class="navBtn" id="dashTopLink" href="#" style="display:none;">Dashboard</a>
+    <button class="navBtn" id="logoutBtn" type="button">Log out</button>
+  </div>
+</div>
+
+
+  <div class="panel">
+    <div class="row">
+      <div>
+        <div class="pill" id="emailPill">…</div>
+        <h1>Your profile</h1>
+        <p class="sub">Set your basics + avatar.</p>
+      </div>
+
+     
+    </div>
+
+    <div class="field">
+      <label>Email</label>
+      <input id="email" readonly />
+    </div>
+
+    <div class="avatarBox">
+      <img id="avatarImg" class="avatarImg" alt="Avatar">
+      <div style="flex:1; min-width:220px;">
+        <input id="avatarFile" type="file" accept="image/*">
+        <div class="btnRow">
+          <button class="ghost" id="uploadAvatarBtn" type="button">Upload</button>
+          <button class="ghost" id="removeAvatarBtn" type="button">Remove</button>
+        </div>
+        <div class="uploadHint" id="avatarHint"></div>
+      </div>
+    </div>
+
+    <div class="field"><label>Display name</label><input id="display_name"></div>
+    <div class="field"><label>Username</label><input id="username"></div>
+    <div class="field"><label>Bio</label><textarea id="bio"></textarea></div>
+
+    <div class="btnRow">
+      <button class="btn" id="saveBtn" type="button">Save profile</button>
+    </div>
+    <div class="msg" id="msg"></div>
+
+    <div class="dangerZone">
+      <b>Danger zone</b>
+      <div class="btnRow">
+        <button class="ghost dangerBtn" id="deleteBtn" type="button">Delete account</button>
+      </div>
+      <div class="msg" id="deleteMsg"></div>
+    </div>
+  </div>
+
+  <footer>
+    © 2026 OnlyPaws • Built with toe beans energy 🐾<br/>
+    <span class="smallLegal">OnlyPaws is an independent digital platform. Features may evolve over time.</span>
+  </footer>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+
+<script>
+  const AVATAR_BUCKET = "avatars";
+
+  const msg = document.getElementById("msg");
+  const deleteMsg = document.getElementById("deleteMsg");
+  const deleteBtn = document.getElementById("deleteBtn");
+
+  const emailPill = document.getElementById("emailPill");
+  const userPill = document.getElementById("userPill");
+
+  const emailEl = document.getElementById("email");
+  const displayNameEl = document.getElementById("display_name");
+  const usernameEl = document.getElementById("username");
+  const bioEl = document.getElementById("bio");
+
+  const saveBtn = document.getElementById("saveBtn");
+
+  const avatarImg = document.getElementById("avatarImg");
+  const avatarFile = document.getElementById("avatarFile");
+  const uploadAvatarBtn = document.getElementById("uploadAvatarBtn");
+  const removeAvatarBtn = document.getElementById("removeAvatarBtn");
+  const avatarHint = document.getElementById("avatarHint");
+
+  const logoutBtn = document.getElementById("logoutBtn");
+  const dashTopLink = document.getElementById("dashTopLink");
+
+  function setMsg(t){ msg.textContent = t || ""; }
+  function setDeleteMsg(t){ deleteMsg.textContent = t || ""; }
+  function setHint(t){ avatarHint.textContent = t || ""; }
+
+  
+
+  function hydrateUserPillFromProfile(prof, email){
+    try{
+      const uname = (prof?.username || "").trim();
+      const dname = (prof?.display_name || "").trim();
+
+      if(uname){
+        userPill.textContent = "@" + uname;
+      }else if(dname){
+        userPill.textContent = dname;
+      }else if(email){
+        userPill.textContent = email.split("@")[0];
+      }else{
+        userPill.textContent = "User";
+      }
+    }catch(e){}
+  }
+
+function goIndex(){
+    window.location.replace("index.html");
+  }
+
+  function fileExt(name){
+    const m = String(name || "").toLowerCase().match(/\.(\w+)$/);
+    return m ? m[1] : "png";
+  }
+
+  async function uploadAvatarToBucket(file, userId){
+    const ext = fileExt(file.name);
+    const safeName = `${Date.now()}-${Math.random().toString(16).slice(2)}.${ext}`;
+    const path = `${userId}/${safeName}`;
+
+    const { error: upErr } = await onlypawsClient
+      .storage
+      .from(AVATAR_BUCKET)
+      .upload(path, file, { upsert: true });
+
+    if(upErr) throw upErr;
+
+    const { data } = onlypawsClient
+      .storage
+      .from(AVATAR_BUCKET)
+      .getPublicUrl(path);
+
+    const url = data?.publicUrl;
+    if(!url) throw new Error("Could not get public URL for uploaded file.");
+    return url;
+  }
+
+  async function loadProfile(){
+    setMsg("");
+
+    const { data: sessData } = await onlypawsClient.auth.getSession();
+    const session = sessData?.session;
+
+    if(!session){ goIndex(); return; }
+
+    const email = session.user?.email || "";
+    emailEl.value = email;
+    emailPill.textContent = email || "…";
+
+    let { data: prof, error } = await onlypawsClient
+      .from("profiles")
+      .select("user_id, display_name, username, bio, role, avatar_url")
+      .eq("user_id", session.user.id)
+      .maybeSingle();
+
+    if(error){
+      setMsg("❌ Load profile error: " + error.message);
+      return;
+    }
+
+    if(!prof){
+      const { error: insErr } = await onlypawsClient
+        .from("profiles")
+        .upsert({ user_id: session.user.id, role: "fan" }, { onConflict: "user_id" });
+      if(insErr){
+        setMsg("❌ Could not create profile: " + insErr.message);
+        return;
+      }
+      const again = await onlypawsClient
+        .from("profiles")
+        .select("user_id, display_name, username, bio, role, avatar_url")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+      if(again.error){
+        setMsg("❌ Load profile error: " + again.error.message);
+        return;
+      }
+      prof = again.data;
+    }
+
+    const role = prof?.role || "fan";
+    hydrateUserPillFromProfile(prof, email);
+// Dashboard only top-right everywhere
+    dashTopLink.style.display = "inline-flex";
+    dashTopLink.href = (role === "creator") ? "creator-dash.html" : "fan-dash.html";
+
+    displayNameEl.value = prof?.display_name || "";
+    usernameEl.value = prof?.username || "";
+    bioEl.value = prof?.bio || "";
+
+    const a = (prof?.avatar_url || "").trim();
+    avatarImg.src = a ? a : "logo.png";
+
+    setHint("Upload an image to change your avatar.");
+  }
+
+  async function saveProfile(){
+    setMsg("");
+    const { data: sessData } = await onlypawsClient.auth.getSession();
+    const session = sessData?.session;
+    if(!session){ goIndex(); return; }
+
+    saveBtn.disabled = true;
+    setMsg("Saving…");
+
+    try{
+      const payload = {
+        display_name: (displayNameEl.value || "").trim(),
+        username: (usernameEl.value || "").trim(),
+        bio: (bioEl.value || "").trim()
+      };
+
+      const { error } = await onlypawsClient
+        .from("profiles")
+        .update(payload)
+        .eq("user_id", session.user.id);
+
+      if(error) throw error;
+
+      setMsg("Saved ✅");
+      await loadProfile();
+    }catch(e){
+      setMsg("❌ " + (e?.message || String(e)));
+    }finally{
+      saveBtn.disabled = false;
+    }
+  }
+
+  uploadAvatarBtn.addEventListener("click", async () => {
+    setMsg("");
+
+    const { data: sessData } = await onlypawsClient.auth.getSession();
+    const session = sessData?.session;
+    if(!session){ goIndex(); return; }
+
+    if(!avatarFile.files || !avatarFile.files[0]){
+      alert("Pick an image first.");
+      return;
+    }
+
+    uploadAvatarBtn.disabled = true;
+    uploadAvatarBtn.textContent = "Uploading…";
+    setHint("Uploading…");
+
+    try{
+      const file = avatarFile.files[0];
+      const url = await uploadAvatarToBucket(file, session.user.id);
+
+      const { error } = await onlypawsClient
+        .from("profiles")
+        .update({ avatar_url: url })
+        .eq("user_id", session.user.id);
+
+      if(error) throw error;
+
+      avatarImg.src = url;
+      avatarFile.value = "";
+      setHint("Uploaded ✅");
+      setMsg("Avatar updated ✅");
+    }catch(e){
+      setHint("Upload failed");
+      setMsg("❌ " + (e?.message || String(e)));
+    }finally{
+      uploadAvatarBtn.disabled = false;
+      uploadAvatarBtn.textContent = "Upload";
+    }
+  });
+
+  removeAvatarBtn.addEventListener("click", async () => {
+    setMsg("");
+    const { data: sessData } = await onlypawsClient.auth.getSession();
+    const session = sessData?.session;
+    if(!session){ goIndex(); return; }
+
+    try{
+      const { error } = await onlypawsClient
+        .from("profiles")
+        .update({ avatar_url: null })
+        .eq("user_id", session.user.id);
+      if(error) throw error;
+
+      avatarImg.src = "logo.png";
+      setHint("Removed ✅");
+      setMsg("Avatar removed ✅");
+    }catch(e){
+      setMsg("❌ " + (e?.message || String(e)));
+    }
+  });
+
+  async function deleteAccount(){
+    setDeleteMsg("");
+
+    if(!confirm("Delete account permanently?")) return;
+    if(prompt("Type DELETE to confirm") !== "DELETE"){
+      setDeleteMsg("Cancelled.");
+      return;
+    }
+
+    deleteBtn.disabled = true;
+    setDeleteMsg("Deleting…");
+
+    try{
+      const { error } = await onlypawsClient.functions.invoke("delete-profile", {
+        body: { confirm: true },
+      });
+      if(error) throw error;
+
+      try { await onlypawsClient.auth.signOut(); } catch(e) {}
+      goIndex();
+    }catch(e){
+      setDeleteMsg("❌ " + (e?.message || String(e)));
+      deleteBtn.disabled = false;
+    }
+  }
+
+  deleteBtn.addEventListener("click", deleteAccount);
+
+  logoutBtn.addEventListener("click", async () => {
+    try{ await onlypawsClient.auth.signOut(); }catch(e){}
+    goIndex();
+  });
+
+  saveBtn.addEventListener("click", saveProfile);
+
+  loadProfile();
+</script>
+</body>
+</html>

@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>OnlyPaws — Enable payouts</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    :root{
+      --bg1:#6B4EFF;
+      --bg2:#8B6CFF;
+      --text:#ffffff;
+      --muted:rgba(255,255,255,.85);
+      --stroke:rgba(255,255,255,.16);
+      --card:rgba(0,0,0,.16);
+      --soft:rgba(255,255,255,.10);
+      --soft2:rgba(255,255,255,.12);
+      --shadow:rgba(0,0,0,.25);
+      --btn:#ffffff;
+      --btnText:#6B4EFF;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 20% 10%, rgba(255,255,255,.18), transparent 55%),
+        radial-gradient(1000px 650px at 90% 30%, rgba(0,0,0,.22), transparent 55%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
+      min-height:100vh;
+    }
+    .wrap{max-width:1040px;margin:0 auto;padding:28px 18px 90px;}
+
+    /* NAV */
+    .nav{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px;flex-wrap:wrap;}
+    .brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:white;font-weight:900;}
+    .brandLogo{
+      width:62px;height:62px;border-radius:14px;
+      background: rgba(255,255,255,.16);
+      border:1px solid rgba(255,255,255,.18);
+      display:flex;align-items:center;justify-content:center;
+    }
+    .brandLogo img{width:46px;height:46px;object-fit:contain;}
+    .navRight{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
+    .pill{
+      padding:8px 14px;border-radius:999px;
+      background: rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      font-size:13px;color:rgba(255,255,255,.85);
+      white-space:nowrap;
+    }
+    .navBtn{
+      display:inline-flex;align-items:center;justify-content:center;
+      padding:10px 14px;border-radius:999px;
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      color:white;text-decoration:none;font-weight:900;
+      cursor:pointer;font-size:13px;white-space:nowrap;
+      transition:transform .16s ease, background .16s ease, border-color .16s ease;
+      user-select:none;
+    }
+    .navBtn:hover{transform: translateY(-1px); background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.22);}
+    .navBtn:active{transform: translateY(0px) scale(.99);}
+    .navBtn.primary{
+      background: var(--btn);
+      color: var(--btnText);
+      border-color: rgba(255,255,255,.22);
+    }
+    .navBtn.primary:hover{background: rgba(255,255,255,.95);}
+
+    /* PANEL */
+    .panel{
+      border-radius:22px;padding:22px;
+      background: var(--card);
+      border:1px solid var(--stroke);
+      backdrop-filter: blur(10px);
+      box-shadow:0 20px 45px var(--shadow);
+    }
+    h1{margin:0 0 6px;font-size: clamp(2rem, 4vw, 2.4rem);letter-spacing:-0.6px;}
+    .sub{margin:0;color:var(--muted);line-height:1.55}
+
+    .box{
+      margin-top:14px;
+      background: rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.16);
+      border-radius:18px;
+      padding:14px;
+    }
+    .statusLine{display:flex;align-items:flex-start;gap:10px;}
+    .lock{
+      width:28px;height:28px;border-radius:10px;
+      border:1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.10);
+      display:flex;align-items:center;justify-content:center;
+      flex:0 0 auto;
+    }
+    .stTitle{font-weight:900;margin-bottom:4px}
+    .stText{font-size:13px;color:rgba(255,255,255,.82);line-height:1.55}
+
+    .btnRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;}
+    .btn, .ghost{
+      display:inline-flex;align-items:center;justify-content:center;
+      padding:10px 14px;border-radius:12px;
+      font-weight:900;cursor:pointer;text-decoration:none;
+      border:1px solid rgba(255,255,255,.18);
+      transition:transform .16s ease, background .16s ease, border-color .16s ease, opacity .16s ease;
+      user-select:none;
+      font-size:13px;
+    }
+    .btn{
+      background: var(--btn);
+      color: var(--btnText);
+      border-color: rgba(255,255,255,.22);
+    }
+    .btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.95);}
+    .ghost{
+      background: rgba(255,255,255,.10);
+      color:white;
+    }
+    .ghost:hover{transform: translateY(-1px); background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.22);}
+
+    .note{
+      margin-top:10px;
+      font-size:12px;
+      color:rgba(255,255,255,.78);
+      line-height:1.5;
+    }
+    .okline{display:flex;gap:8px;align-items:center;margin-top:10px;font-size:13px;color:rgba(255,255,255,.85);}
+    footer{
+      margin-top:32px;
+      padding-bottom:22px;
+      color:rgba(255,255,255,.75);
+      font-size:13px;
+      text-align:center;
+      line-height:1.5;
+    }
+    .smallLegal{display:inline-block;margin-top:6px;opacity:.85;font-size:12px;}
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+
+    <div class="nav">
+      <a href="index.html" class="brand">
+        <div class="brandLogo"><img src="logo.png" alt="OnlyPaws logo"></div>
+        <span>OnlyPaws</span>
+      </a>
+
+      <div class="navRight">
+        <div class="pill" id="userPill">…</div>
+        <a class="navBtn" id="navDash" href="creator-dash.html">Dashboard</a>
+        <a class="navBtn" id="navProfile" href="profile.html">Profile</a>
+        <button class="navBtn" id="navLogout" type="button">Log out</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h1>Enable payouts</h1>
+      <p class="sub">
+        To withdraw earnings, you need to enable payouts (Stripe onboarding). Once completed, your dashboard will allow withdrawals.
+      </p>
+
+      <div class="box">
+        <div class="statusLine">
+          <div class="lock" id="lockIcon">🔒</div>
+          <div style="min-width:0;">
+            <div class="stTitle" id="statusTitle">Payouts not enabled</div>
+            <div class="stText" id="statusText">Start setup to enable withdrawals.</div>
+          </div>
+        </div>
+
+        <div class="btnRow">
+          <button class="btn" id="startBtn" type="button">Start payout setup</button>
+          <button class="ghost" id="refreshBtn" type="button">I've completed setup — Refresh</button>
+          <a class="ghost" href="creator-dash.html">Back to dashboard</a>
+        </div>
+
+        <div class="okline" id="submittedLine" style="display:none;">
+          <span>✅</span>
+          <span>Setup submitted. Press Refresh to re-check payout status.</span>
+        </div>
+
+        <div class="note" id="note">
+          Tip: if Stripe needs verification, payouts may take a moment to become active. Refresh again after ~1 minute.
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      © 2026 OnlyPaws • Built with toe beans energy 🐾<br/>
+      <span class="smallLegal">OnlyPaws is an independent digital platform. Features may evolve over time.</span>
+    </footer>
+
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="onlypawsClient.js"></script>
+
+  <script>
+    const userPill = document.getElementById("userPill");
+    const navLogout = document.getElementById("navLogout");
+
+    const lockIcon = document.getElementById("lockIcon");
+    const statusTitle = document.getElementById("statusTitle");
+    const statusText  = document.getElementById("statusText");
+
+    const startBtn = document.getElementById("startBtn");
+    const refreshBtn = document.getElementById("refreshBtn");
+    const submittedLine = document.getElementById("submittedLine");
+
+    function setUI({ enabled, title, text }){
+      if(enabled){
+        lockIcon.textContent = "✅";
+        statusTitle.textContent = title || "Payouts enabled";
+        statusText.textContent = text || "Stripe is ready. You can withdraw from the dashboard.";
+        startBtn.disabled = true;
+        startBtn.textContent = "Payouts already enabled";
+      }else{
+        lockIcon.textContent = "🔒";
+        statusTitle.textContent = title || "Payouts not enabled";
+        statusText.textContent = text || "Start setup to enable withdrawals.";
+        startBtn.disabled = false;
+        startBtn.textContent = "Start payout setup";
+      }
+    }
+
+    async function requireSession(){
+      const { data } = await onlypawsClient.auth.getSession();
+      if(!data?.session){
+        window.location.href = "creators.html?next=payouts-setup.html";
+        return null;
+      }
+      return data.session;
+    }
+
+    async function hydrateUserPill(){
+      try{
+        const { data: sessData } = await onlypawsClient.auth.getSession();
+        const session = sessData?.session;
+        if(!session){ userPill.textContent = "Guest"; return; }
+
+        const uid = session.user.id;
+        const email = session.user.email || "";
+
+        const { data: prof } = await onlypawsClient
+          .from("profiles")
+          .select("username, display_name")
+          .eq("user_id", uid)
+          .maybeSingle();
+
+        const uname = (prof?.username || "").trim();
+        const dname = (prof?.display_name || "").trim();
+
+        if(uname) userPill.textContent = "@" + uname;
+        else if(dname) userPill.textContent = dname;
+        else if(email) userPill.textContent = email.split("@")[0];
+        else userPill.textContent = "User";
+      }catch(e){
+        userPill.textContent = "User";
+      }
+    }
+
+    async function fetchConnectStatus(){
+      // Stripe is source of truth -> connect-status reads Stripe via the platform key
+      const { data, error } = await onlypawsClient.functions.invoke("connect-status", { body: {} });
+      if(error) throw error;
+      return data;
+    }
+
+    async function checkNow(){
+      refreshBtn.disabled = true;
+      refreshBtn.textContent = "Checking…";
+      try{
+        const st = await fetchConnectStatus();
+        console.log("connect-status", st);
+
+        if(st?.payouts_enabled){
+          setUI({
+            enabled: true,
+            title: "Payouts enabled",
+            text: "Stripe is ready. Go back to the dashboard to withdraw."
+          });
+        }else{
+          // keep it honest: show what we can
+          const reason = st?.reason || null;
+          const extra =
+            (st?.requirements?.currently_due?.length)
+              ? ("Missing: " + st.requirements.currently_due.join(", "))
+              : (reason ? ("Reason: " + reason) : null);
+
+          setUI({
+            enabled: false,
+            title: "Payouts not enabled",
+            text: extra || "Start setup to enable withdrawals."
+          });
+        }
+      }catch(e){
+        console.warn("connect-status failed:", e);
+        setUI({
+          enabled: false,
+          title: "Payouts not enabled",
+          text: "Start setup to enable withdrawals."
+        });
+      }finally{
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = "I've completed setup — Refresh";
+      }
+    }
+
+    async function startSetup(){
+      startBtn.disabled = true;
+      startBtn.textContent = "Opening Stripe…";
+
+      try{
+        const returnUrl = window.location.origin + "/payouts-setup.html?done=1";
+        const refreshUrl = window.location.origin + "/payouts-setup.html?retry=1";
+
+        // supabase-js v2 automatically includes Authorization for functions.invoke
+        const { data, error } = await onlypawsClient.functions.invoke("connect-update", {
+          body: { return_url: returnUrl, refresh_url: refreshUrl }
+        });
+
+        if(error){
+          const ctxBody = error?.context?.body;
+          const extra = ctxBody ? (typeof ctxBody === "string" ? ctxBody : JSON.stringify(ctxBody)) : "";
+          throw new Error((error.message || "Edge Function error") + (extra ? " — " + extra : ""));
+        }
+
+        if(!data?.url) throw new Error("Missing Stripe URL");
+        window.location.href = data.url;
+
+      }catch(e){
+        alert("❌ Payout setup failed: " + (e?.message || String(e)));
+        startBtn.disabled = false;
+        startBtn.textContent = "Start payout setup";
+      }
+    }
+
+    navLogout.addEventListener("click", async () => {
+      try{ await onlypawsClient.auth.signOut(); }catch(e){}
+      window.location.href = "index.html";
+    });
+
+    startBtn.addEventListener("click", startSetup);
+    refreshBtn.addEventListener("click", checkNow);
+
+    (async () => {
+      if(typeof onlypawsClient === "undefined"){
+        alert("❌ onlypawsClient not found. Check onlypawsClient.js.");
+        return;
+      }
+
+      const session = await requireSession();
+      if(!session) return;
+
+      await hydrateUserPill();
+
+      // Show the “submitted” hint if we came back from Stripe
+      const qp = new URLSearchParams(window.location.search);
+      if(qp.get("done") === "1" || qp.get("retry") === "1"){
+        submittedLine.style.display = "flex";
+      }
+
+      await checkNow();
+    })();
+  </script>
+</body>
+</html>

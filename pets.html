@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>OnlyPaws — Pets</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root{
+      --bg1:#6B4EFF;
+      --bg2:#8B6CFF;
+      --text:#ffffff;
+      --muted:rgba(255,255,255,.85);
+      --stroke:rgba(255,255,255,.16);
+      --card:rgba(0,0,0,.16);
+      --shadow: rgba(0,0,0,.25);
+      --soft: rgba(255,255,255,.10);
+      --btn:#ffffff;
+      --btnText:#6B4EFF;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 20% 10%, rgba(255,255,255,.18), transparent 55%),
+        radial-gradient(1000px 650px at 90% 30%, rgba(0,0,0,.22), transparent 55%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
+      min-height:100vh;
+    }
+    .wrap{max-width:1040px;margin:0 auto;padding:28px 18px 90px;}
+
+    .nav{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px;}
+    .brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:white;font-weight:900;letter-spacing:.2px;}
+    .brandLogo{
+      width:62px;height:62px;border-radius:14px;background:rgba(255,255,255,.16);
+      border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;overflow:hidden;
+    }
+    .brandLogo img{width:46px;height:46px;object-fit:contain;}
+    .navRight{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
+    .pill{
+      display:inline-flex;gap:8px;align-items:center;padding:10px 14px;border-radius:999px;
+      background: rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);
+      font-size:13px;color:rgba(255,255,255,.85);white-space:nowrap;
+    }
+    .navBtn{
+      display:inline-flex;align-items:center;justify-content:center;padding:10px 14px;border-radius:999px;
+      background: rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);
+      color:white;text-decoration:none;font-weight:900;cursor:pointer;font-size:13px;white-space:nowrap;
+      transition: transform .16s ease, background .16s ease, border-color .16s ease;
+    }
+    .navBtn:hover{transform: translateY(-1px); background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.22);}
+
+    .panel{
+      border-radius:22px;padding:22px;background:var(--card);
+      border:1px solid var(--stroke);backdrop-filter: blur(10px);
+      box-shadow:0 20px 45px var(--shadow);
+    }
+    h1{margin:10px 0 10px;font-size: clamp(2rem, 4vw, 2.6rem);line-height:1.05;letter-spacing:-0.6px;}
+    .sub{margin:0;color:var(--muted);font-size:1.05rem;line-height:1.55;max-width:65ch;}
+
+    .grid{margin-top:14px;display:grid;grid-template-columns: 1fr 1fr;gap:12px;}
+    @media (max-width: 920px){ .grid{grid-template-columns:1fr;} }
+
+    .card{
+      border-radius:18px;padding:16px;background: rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16);
+    }
+    .card h3{margin:0 0 8px;font-size:1.05rem;}
+    .hint{color:rgba(255,255,255,.78);font-size:13px;line-height:1.5;white-space:pre-wrap;}
+
+    .field{display:flex;flex-direction:column;gap:6px;margin-top:10px;}
+    .label{font-size:13px;color:rgba(255,255,255,.85);font-weight:900;}
+    input, textarea{
+      width:100%;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.18);
+      background:rgba(255,255,255,.12);color:white;outline:none;
+    }
+    input[type="file"]{padding:10px 12px}
+    textarea{min-height:90px;resize:vertical}
+    input::placeholder, textarea::placeholder{color: rgba(255,255,255,.65);}
+
+    .btnRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center;}
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;padding:12px 16px;border-radius:999px;
+      background: var(--btn);color: var(--btnText);text-decoration:none;font-weight:900;border:none;cursor:pointer;
+      box-shadow:0 14px 30px rgba(0,0,0,.22);
+    }
+    .ghost{
+      display:inline-flex;align-items:center;justify-content:center;padding:12px 16px;border-radius:999px;
+      background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);
+      color:white;text-decoration:none;font-weight:900;cursor:pointer;
+    }
+    .danger{background: rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.20);}
+
+    .list{margin-top:14px;display:grid;gap:10px;}
+    .rowCard{
+      border-radius:18px;padding:14px;background: rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.16);
+      display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;
+    }
+    .meta{min-width:240px;flex:1;}
+    .meta b{display:block;font-size:1rem;margin-bottom:4px;}
+    .small{color:rgba(255,255,255,.78);font-size:13px;line-height:1.45;}
+    .avatarMini{
+      width:54px;height:54px;border-radius:18px;object-fit:cover;border:1px solid rgba(255,255,255,.16);
+      background:rgba(0,0,0,.18);display:flex;align-items:center;justify-content:center;overflow:hidden;flex:0 0 auto;
+    }
+    .badge{
+      display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;
+      background: rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.16);
+      font-size:12px;font-weight:900;white-space:nowrap;
+    }
+    .divider{height:1px;background:rgba(255,255,255,.14);margin-top:12px;}
+  
+    footer{
+      margin-top:32px;
+      padding-bottom:22px;
+      color:rgba(255,255,255,.75);
+      font-size:13px;
+      text-align:center;
+      line-height:1.5;
+    }
+    .smallLegal{display:inline-block;margin-top:6px;opacity:.85;font-size:12px;}
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+
+    
+    <div class="nav">
+      <a href="feed.html" class="brand">
+        <div class="brandLogo"><img src="logo.png" alt="OnlyPaws logo"></div>
+        <span>OnlyPaws</span>
+      </a>
+
+      <div class="navRight">
+        <div class="pill" id="userPill">…</div>
+
+        <a class="navBtn" id="navProfile" href="profile.html" style="display:none;">Profile</a>
+        <a class="navBtn" id="navFanDash" href="fan-dash.html" style="display:none;">Dashboard</a>
+        <a class="navBtn" id="navCreatorDash" href="creator-dash.html" style="display:none;">Dashboard</a>
+
+        <button class="navBtn" id="navLogout" type="button" style="display:none;">Log out</button>
+      </div>
+    </div>
+
+
+      <h1>Your pets</h1>
+      <p class="sub">Add and manage the pets that appear on your creator profile.</p>
+
+      <div class="grid">
+        <!-- ADD -->
+        <div class="card">
+          <h3>Add a pet</h3>
+         
+
+          <div class="field">
+            <div class="label">Name</div>
+            <input id="fName" placeholder="" />
+          </div>
+
+          <div class="field">
+            <div class="label">Species</div>
+            <input id="fSpecies" placeholder="Dog / Cat / ..." />
+          </div>
+
+          <div class="field">
+            <div class="label">Breed</div>
+            <input id="fBreed" placeholder="Mix, Labrador, ..." />
+          </div>
+
+          <div class="field">
+            <div class="label">Birth date</div>
+            <input id="fBirth" type="date" />
+          </div>
+
+          <div class="field">
+            <div class="label">Age (years)</div>
+            <input id="fAge" type="number" min="0" step="1" placeholder="2" />
+          </div>
+
+          <div class="field">
+            <div class="label">Pet photo (upload)</div>
+            <input id="fAvatarFile" type="file" accept="image/*" />
+           
+          </div>
+
+          <div class="field">
+            <div class="label">Bio</div>
+            <textarea id="fBio" placeholder="Short bio (optional)"></textarea>
+          </div>
+
+          <div class="btnRow">
+            <button class="btn" id="addBtn" type="button">Add pet</button>
+            <button class="ghost" id="resetBtn" type="button">Reset</button>
+          </div>
+          <div class="hint" id="addHint"></div>
+        </div>
+
+        <!-- LIST -->
+        <div class="card">
+          <h3>Your list</h3>
+          <div class="hint" id="listHint">Loading…</div>
+          <div class="list" id="petsList"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+    <footer>
+      © 2026 OnlyPaws • Built with toe beans energy 🐾<br/>
+      <span class="smallLegal">OnlyPaws is an independent digital platform. Features may evolve over time.</span>
+    </footer>
+
+
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+
+  <script>
+function goIndex(){ window.location.replace("index.html"); }
+
+    
+
+    function show(el, yes){
+      if(!el) return;
+      el.style.display = yes ? "inline-flex" : "none";
+    }
+
+    async function hydrateUserPill(){
+      try{
+        const pill = document.getElementById("userPill");
+        if(!pill) return;
+
+        const { data: sessData } = await onlypawsClient.auth.getSession();
+        const session = sessData?.session;
+        if(!session){
+          pill.textContent = "Guest";
+          return;
+        }
+
+        const uid = session.user.id;
+        const email = session.user.email || "";
+
+        const { data: prof } = await onlypawsClient
+          .from("profiles")
+          .select("username, display_name, role")
+          .eq("user_id", uid)
+          .maybeSingle();
+
+        const uname = (prof?.username || "").trim();
+        const dname = (prof?.display_name || "").trim();
+
+        if(uname) pill.textContent = "@" + uname;
+        else if(dname) pill.textContent = dname;
+        else if(email) pill.textContent = email.split("@")[0];
+        else pill.textContent = "User";
+      }catch(e){}
+    }
+
+    async function hydrateNav(){
+      const profileBtn = document.getElementById("navProfile");
+      const fanDash = document.getElementById("navFanDash");
+      const creatorDash = document.getElementById("navCreatorDash");
+
+      show(profileBtn, true);
+      show(navLogout, true);
+      show(fanDash, false);
+      show(creatorDash, false);
+
+      try{
+        const { data: u } = await onlypawsClient.auth.getUser();
+        const userId = u?.user?.id;
+        if(!userId) return;
+
+        const { data: p } = await onlypawsClient
+          .from("profiles")
+          .select("role")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if(p?.role === "creator") show(creatorDash, true);
+        else show(fanDash, true);
+      }catch(e){}
+    }
+
+// ✅ separate bucket for pet photos (NOT the profile avatars bucket)
+    const PET_AVATAR_BUCKET = "pets";
+
+    const navLogout = document.getElementById("navLogout");
+const addHint = document.getElementById("addHint") || { textContent: "" };
+    const listHint = document.getElementById("listHint");
+    const petsList = document.getElementById("petsList");
+
+    const fName = document.getElementById("fName");
+    const fSpecies = document.getElementById("fSpecies");
+    const fBreed = document.getElementById("fBreed");
+    const fBirth = document.getElementById("fBirth");
+    const fAge = document.getElementById("fAge");
+    const fAvatarFile = document.getElementById("fAvatarFile");
+    const fBio = document.getElementById("fBio");
+
+    const addBtn = document.getElementById("addBtn");
+    const resetBtn = document.getElementById("resetBtn");
+
+    function esc(s){
+      return (s ?? "").toString()
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function clearForm(){
+      fName.value = "";
+      fSpecies.value = "";
+      fBreed.value = "";
+      fBirth.value = "";
+      fAge.value = "";
+      fBio.value = "";
+      if(fAvatarFile) fAvatarFile.value = "";
+    }
+
+    function getExtFromFile(file){
+      const n = (file?.name || "").toLowerCase();
+      const dot = n.lastIndexOf(".");
+      return dot >= 0 ? n.slice(dot+1) : "jpg";
+    }
+
+    async function uploadPetAvatar(ownerId, petId, file){
+      if(!file) return null;
+
+      const ext = getExtFromFile(file);
+      const path = `${ownerId}/${petId}/${Date.now()}.${ext}`;
+
+      // upload
+      const up = await onlypawsClient
+        .storage
+        .from(PET_AVATAR_BUCKET)
+        .upload(path, file, { upsert: true });
+
+      if(up.error) throw up.error;
+
+      // public url
+      const pub = onlypawsClient
+        .storage
+        .from(PET_AVATAR_BUCKET)
+        .getPublicUrl(path);
+
+      const url = pub?.data?.publicUrl;
+      if(!url) throw new Error("Could not get public URL for uploaded file");
+
+      return url;
+    }
+
+    function renderPets(list){
+      if(!list || list.length === 0){
+        petsList.innerHTML = `<div class="hint">No pets yet.</div>`;
+        return;
+      }
+
+      petsList.innerHTML = list.map(p => {
+        const avatar = p.avatar_url
+          ? `<img class="avatarMini" src="${esc(p.avatar_url)}" alt="pet avatar">`
+          : `<div class="avatarMini">🐾</div>`;
+
+        const species = p.species ? `• ${p.species}` : "";
+        const breed = p.breed ? `• ${p.breed}` : "";
+        const born = p.birth_date ? new Date(p.birth_date).toLocaleDateString() : "";
+        const age = (p.age_years != null && p.age_years !== "") ? `${p.age_years}y` : "";
+
+        const topLine = [species, breed, born ? `• born ${born}` : "", age ? `• ${age}` : ""]
+          .join(" ")
+          .replace(/\s+/g," ")
+          .trim();
+
+        return `
+          <div class="rowCard" data-id="${esc(p.id)}">
+            ${avatar}
+
+            <div class="meta">
+              <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">
+                <span class="badge">🐾 PET</span>
+                ${p.created_at ? `<span class="badge">📅 ${esc(new Date(p.created_at).toLocaleDateString())}</span>` : ``}
+              </div>
+
+              <b>${esc(p.name || "Pet")}
+                ${topLine ? `<span style="opacity:.9;font-weight:800;"> ${esc(topLine)}</span>` : ""}
+              </b>
+
+              <div class="small" style="margin-top:6px;">${esc(p.bio || "")}</div>
+
+              <div class="divider"></div>
+
+              <div class="field" style="margin-top:10px;">
+                <div class="label">Edit basics</div>
+                <input data-k="name" placeholder="Name" value="${esc(p.name || "")}">
+                <input data-k="species" placeholder="Species" value="${esc(p.species || "")}">
+                <input data-k="breed" placeholder="Breed" value="${esc(p.breed || "")}">
+                <input data-k="birth_date" type="date" value="${p.birth_date ? esc(String(p.birth_date).slice(0,10)) : ""}">
+                <input data-k="age_years" type="number" min="0" step="1" placeholder="Age years" value="${esc(p.age_years ?? "")}">
+                <textarea data-k="bio" placeholder="Bio">${esc(p.bio || "")}</textarea>
+              </div>
+
+              <div class="field">
+                <div class="label">Change pet photo (upload)</div>
+                <input data-kfile="avatar" type="file" accept="image/*">
+              </div>
+
+              <div class="btnRow">
+                <button class="ghost" data-action="save">Save</button>
+                <button class="ghost danger" data-action="delete">Delete</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      // wire actions
+      petsList.querySelectorAll('[data-action="save"]').forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const row = btn.closest(".rowCard");
+          const id = row?.getAttribute("data-id");
+          if(!id) return;
+
+          btn.disabled = true;
+          btn.textContent = "Saving…";
+          listHint.textContent = "";
+
+          try{
+            const { data: sessData } = await onlypawsClient.auth.getSession();
+            const session = sessData?.session;
+            if(!session) throw new Error("Not logged in");
+
+            const payload = {};
+            row.querySelectorAll("[data-k]").forEach(inp => {
+              const k = inp.getAttribute("data-k");
+              let v = inp.value;
+
+              // normalize
+              if(k === "age_years"){
+                v = (v === "" ? null : Number(v));
+                if(v != null && Number.isNaN(v)) v = null;
+              }else if(k === "birth_date"){
+                v = (v === "" ? null : v); // yyyy-mm-dd or null
+              }else{
+                v = (v.trim() === "" ? null : v.trim());
+              }
+
+              payload[k] = v;
+            });
+
+            // if new file selected -> upload and set avatar_url
+            const fileInp = row.querySelector("[data-kfile='avatar']");
+            const file = fileInp?.files?.[0] || null;
+            if(file){
+              const url = await uploadPetAvatar(session.user.id, id, file);
+              payload.avatar_url = url;
+            }
+
+            const { error } = await onlypawsClient
+              .from("pets")
+              .update(payload)
+              .eq("id", id)
+              .eq("owner_id", session.user.id);
+
+            if(error) throw error;
+
+            listHint.textContent = "Saved ✅";
+            // reload so new avatar shows immediately
+            await loadPets(session.user.id);
+          }catch(e){
+            alert("❌ Save failed: " + (e?.message || String(e)));
+          }finally{
+            btn.disabled = false;
+            btn.textContent = "Save";
+          }
+        });
+      });
+
+      petsList.querySelectorAll('[data-action="delete"]').forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const row = btn.closest(".rowCard");
+          const id = row?.getAttribute("data-id");
+          if(!id) return;
+
+          const ok = confirm("Delete this pet? This can’t be undone.");
+          if(!ok) return;
+
+          btn.disabled = true;
+          btn.textContent = "Deleting…";
+          listHint.textContent = "";
+
+          try{
+            const { data: sessData } = await onlypawsClient.auth.getSession();
+            const session = sessData?.session;
+            if(!session) throw new Error("Not logged in");
+
+            const { error } = await onlypawsClient
+              .from("pets")
+              .delete()
+              .eq("id", id)
+              .eq("owner_id", session.user.id);
+
+            if(error) throw error;
+
+            row.remove();
+            listHint.textContent = "Deleted ✅";
+            if(!petsList.querySelector(".rowCard")){
+              renderPets([]);
+              listHint.textContent = "No pets yet.";
+            }
+          }catch(e){
+            alert("❌ Delete failed: " + (e?.message || String(e)));
+          }finally{
+            btn.disabled = false;
+            btn.textContent = "Delete";
+          }
+        });
+      });
+    }
+
+    async function loadPets(ownerId){
+      listHint.textContent = "Loading…";
+      petsList.innerHTML = "";
+
+      const { data, error } = await onlypawsClient
+        .from("pets")
+        .select("id, name, species, breed, avatar_url, bio, created_at, owner_id, age_years, birth_date")
+        .eq("owner_id", ownerId)
+        .order("created_at", { ascending: false });
+
+      if(error){
+        listHint.textContent = "Couldn’t load pets";
+        petsList.innerHTML = `<div class="hint">${esc(error.message)}</div>`;
+        return;
+      }
+
+      renderPets(data || []);
+      listHint.textContent = (data && data.length) ? "Loaded ✅" : "No pets yet.";
+    }
+function waitForClient(timeoutMs = 8000) {
+  return Promise.race([
+    (window.onlypawsClientReady ? window.onlypawsClientReady : Promise.resolve(window.onlypawsClient)),
+    new Promise((_, reject) => setTimeout(() => reject(new Error("Supabase client init timeout")), timeoutMs)),
+  ]);
+}
+
+async function boot(){
+      const { data: sessData } = await onlypawsClient.auth.getSession();
+      const session = sessData?.session;
+
+      show(navLogout, !!session);
+      await hydrateNav();
+      await hydrateUserPill();
+
+      if(!session){
+addHint.textContent = "You must log in to manage pets.";
+        addBtn.disabled = true;
+        listHint.textContent = "Not logged in";
+        return;
+      }
+addBtn.disabled = false;
+
+      await loadPets(session.user.id);
+    }
+
+    addBtn.addEventListener("click", async () => {
+      addHint.textContent = "Adding…";
+      addBtn.disabled = true;
+
+      try{
+        const { data: sessData } = await onlypawsClient.auth.getSession();
+        const session = sessData?.session;
+        if(!session) throw new Error("Not logged in");
+
+        const name = fName.value.trim();
+        if(!name) throw new Error("Name is required");
+
+        // 1) create pet row first (so we have petId for storage path)
+        const insertPayload = {
+          owner_id: session.user.id,
+          name,
+          species: fSpecies.value.trim() || null,
+          breed: fBreed.value.trim() || null,
+          birth_date: fBirth.value ? fBirth.value : null, // yyyy-mm-dd
+          age_years: (fAge.value === "" ? null : Number(fAge.value)),
+          bio: fBio.value.trim() || null
+        };
+
+        if(insertPayload.age_years != null && Number.isNaN(insertPayload.age_years)){
+          insertPayload.age_years = null;
+        }
+
+        // insert and return id
+        const ins = await onlypawsClient
+          .from("pets")
+          .insert(insertPayload)
+          .select("id")
+          .single();
+
+        if(ins.error) throw ins.error;
+
+        const petId = ins.data?.id;
+        if(!petId) throw new Error("Missing new pet id");
+
+        // 2) if file selected -> upload to pet_avatars and update avatar_url
+        const file = fAvatarFile?.files?.[0] || null;
+        if(file){
+          const url = await uploadPetAvatar(session.user.id, petId, file);
+
+          const up = await onlypawsClient
+            .from("pets")
+            .update({ avatar_url: url })
+            .eq("id", petId)
+            .eq("owner_id", session.user.id);
+
+          if(up.error) throw up.error;
+        }
+
+        clearForm();
+        addHint.textContent = "Added ✅";
+        await loadPets(session.user.id);
+      }catch(e){
+        addHint.textContent = "❌ " + (e?.message || String(e));
+      }finally{
+        addBtn.disabled = false;
+      }
+    });
+
+    resetBtn.addEventListener("click", clearForm);
+
+    // logout → index
+    navLogout.addEventListener("click", async (ev) => {
+      ev.preventDefault();
+      navLogout.disabled = true;
+      navLogout.textContent = "Logging out…";
+      try { await onlypawsClient.auth.signOut(); } catch(e) {}
+      goIndex();
+    });
+
+    boot();
+  </script>
+</body>
+</html>
