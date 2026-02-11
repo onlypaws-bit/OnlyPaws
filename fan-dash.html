@@ -77,11 +77,14 @@
     .list{margin-top:14px;display:grid;gap:10px;}
     .item{
       background: rgba(255,255,255,.10);
+      transition: background .16s ease, transform .16s ease;
       border:1px solid rgba(255,255,255,.16);
       border-radius:16px;
       padding:12px 14px;
       display:flex;align-items:center;justify-content:space-between;gap:12px;
     }
+    .item.clickable{cursor:pointer;}
+    .item.clickable:hover{background: rgba(255,255,255,.14);transform:translateY(-1px);}
     .left{min-width:0;display:flex;gap:12px;align-items:center;}
     .avatar{
       width:40px;height:40px;border-radius:14px;
@@ -217,6 +220,8 @@
   const followsList = document.getElementById("followsList");
   const followsMsg  = document.getElementById("followsMsg");
 
+  let CURRENT_USER_ID = null;
+
   function esc(s){
     return String(s ?? "")
       .replaceAll("&","&amp;")
@@ -306,6 +311,30 @@
     return `creator-profile.html?u=${encodeURIComponent(u)}`;
   }
 
+
+async function unfollowCreator(followId, creatorLabel){
+  if(!followId) return;
+  const label = (creatorLabel || "this creator");
+  if(!confirm(`Unfollow ${label}?`)) return;
+
+  followsMsg.textContent = "Unfollowing…";
+  try{
+    const { error } = await onlypawsClient
+      .from("followers")
+      .delete()
+      .eq("id", followId);
+
+    if(error) throw error;
+
+    followsMsg.textContent = "Unfollowed.";
+    if(CURRENT_USER_ID) await loadFollowing(CURRENT_USER_ID);
+    followsMsg.textContent = "";
+  }catch(e){
+    console.error(e);
+    followsMsg.textContent = "❌ Error unfollowing. Check logs.";
+  }
+}
+
   async function loadFollowing(userId){
     followsMsg.textContent = "Loading…";
     followsList.innerHTML = "";
@@ -356,8 +385,31 @@
             <div class="meta">${uname ? "@" + esc(uname) : ""}</div>
           </div>
         </div>
-        <a class="ghost" href="${creatorLink(uname)}" style="padding:10px 14px;">View</a>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+          <button class="ghost danger" type="button" data-unfollow-id="${esc(row.id)}" data-unfollow-label="${esc(dname)}">Unfollow</button>
+        </div>
       `;
+
+// make the whole row clickable (like feed)
+const openUrl = creatorLink(uname);
+if(uname){
+  el.classList.add("clickable");
+  el.addEventListener("click", () => {
+    window.location.href = openUrl;
+  });
+}
+
+// wire unfollow button
+const ubtn = el.querySelector("[data-unfollow-id]");
+if(ubtn){
+  ubtn.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    const followId = ubtn.getAttribute("data-unfollow-id");
+    const label = ubtn.getAttribute("data-unfollow-label") || "";
+    unfollowCreator(followId, label);
+  });
+}
+
       followsList.appendChild(el);
     }
   }
@@ -481,18 +533,28 @@ else if(!row.is_active){
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
           <span class="badge">${esc(badgeText)}</span>
           ${cancelHtml}
-          ${canOpen ? `<a class="ghost" href="creator-profile.html?u=${uParam}" style="padding:10px 14px;">Open</a>` : `<span class="ghost disabled" title="Creator has no username yet" style="padding:10px 14px;">Open</span>`}
         </div>
       `;
       // wire cancel button (no inline onclick)
       const btn = el.querySelector("[data-cancel-sub]");
       if(btn){
-        btn.addEventListener("click", () => {
+        btn.addEventListener("click", (ev) => {
+          ev.stopPropagation();
           const subId = btn.getAttribute("data-cancel-sub");
           const label = btn.getAttribute("data-cancel-label") || "";
           cancelSubscription(subId, label);
         });
       }
+
+
+// make the whole row clickable (like feed)
+const openUrl = canOpen ? `creator-profile.html?u=${uParam}` : null;
+if(openUrl){
+  el.classList.add("clickable");
+  el.addEventListener("click", () => {
+    window.location.href = openUrl;
+  });
+}
 
       subsList.appendChild(el);
     }
@@ -512,6 +574,8 @@ else if(!row.is_active){
 
     const session = await requireSession();
     if(!session) return;
+
+    CURRENT_USER_ID = session.user.id;
 
     await hydrateUserPill();
 
