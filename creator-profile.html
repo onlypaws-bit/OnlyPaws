@@ -491,7 +491,7 @@
     async function loadCreatorByUsername(username){
       const { data, error } = await onlypawsClient
         .from("profiles")
-        .select("user_id, username, display_name, bio, avatar_url, role, stripe_onboarding_status, charges_enabled, stripe_connect_account_id")
+        .select("user_id, username, display_name, bio, avatar_url, role, stripe_onboarding_status, charges_enabled")
         .eq("username", username)
         .maybeSingle();
 
@@ -505,7 +505,7 @@
     async function loadCreatorByUserId(userId){
       const { data, error } = await onlypawsClient
         .from("profiles")
-        .select("user_id, username, display_name, bio, avatar_url, role, stripe_onboarding_status, charges_enabled, stripe_connect_account_id")
+        .select("user_id, username, display_name, bio, avatar_url, role, stripe_onboarding_status, charges_enabled")
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -560,19 +560,11 @@
       return data?.id || null;
     }
 
-    async function isSubscribedToCreator(creatorId, fanId){
-      if(!creatorId || !fanId) return false;
-      const { data, error } = await onlypawsClient
-        .from("creator_subscriptions")
-        .select("id, status, is_active, current_period_end")
-        .eq("creator_id", creatorId)
-        .eq("fan_id", fanId)
-        .eq("is_active", true)
-        .maybeSingle();
+    async function isSubscribedToCreator(creatorId){
+      const { data, error } = await onlypawsClient.rpc("is_subscribed_to", { p_creator_id: creatorId });
       if(error) throw error;
       return !!data;
     }
-
 
     function setupLogout(){
       const logoutBtn = document.getElementById("navLogout");
@@ -661,26 +653,19 @@
           setTopHint("");
         }
 
-                // creator eligibility useful for tooltip only
-        const status = (creator.stripe_onboarding_status || "").toString().trim().toLowerCase();
-        // Accept both 'complete' and 'completed' (DB may store either)
-        const statusOk = (status === "completed" || status === "complete");
-        const creatorEligible = (
-          creator.role === "creator" &&
-          statusOk &&
-          creator.charges_enabled === true &&
-          (String(creator.stripe_connect_account_id || "").trim().length > 0)
-        );
+        // creator eligibility useful for tooltip only
+        const creatorEligible = (creator.role === "creator"
+          && creator.stripe_onboarding_status === "completed"
+          && creator.charges_enabled === true);
 
         if(!creatorEligible){
-          premiumBtn.title = "Creator not ready yet (Stripe setup). Missing completion, charges_enabled, or Connect ID.";
-          // Note: in demo we block subscribe until ready to avoid failed checkouts.
+          premiumBtn.title = "Creator not ready yet (Stripe setup). You can still open the subscription page.";
         }else{
           premiumBtn.title = "";
         }
 
         // Initial load
-        let isSub = await isSubscribedToCreator(creator.user_id, fanId);
+        let isSub = await isSubscribedToCreator(creator.user_id);
 
         // ✅ after returning from Stripe, retry subscription check (webhook might be slightly delayed)
         if((success === "1" || session_id) && !isSub){
@@ -689,7 +674,7 @@
           for(const w of waits){
             await new Promise(r => setTimeout(r, w));
             try{
-              isSub = await isSubscribedToCreator(creator.user_id, fanId);
+              isSub = await isSubscribedToCreator(creator.user_id);
               if(isSub) break;
             }catch(e){}
           }
