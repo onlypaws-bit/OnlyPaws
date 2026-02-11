@@ -2,7 +2,10 @@
 import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1?target=deno";
 
-type Body = { creator_id: string };
+type Body = {
+  creator_id?: string;
+  stripe_subscription_id?: string;
+};
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,17 +30,18 @@ function env(...keys: string[]) {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  // CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { status: 200, headers: corsHeaders });
+  }
   if (req.method !== "POST") return json(405, { error: "Method not allowed" });
 
   try {
-    console.log("CANCEL-SUBS VERSION = 2026-02-11-1");
-
     const STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", "OP_STRIPE_SECRET_KEY");
     const SUPABASE_URL = env("SUPABASE_URL", "OP_SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = env(
       "SUPABASE_SERVICE_ROLE_KEY",
-      "OP_SUPABASE_SERVICE_ROLE_KEY"
+      "OP_SUPABASE_SERVICE_ROLE_KEY",
     );
     const SUPABASE_ANON_KEY = env("SUPABASE_ANON_KEY", "OP_SUPABASE_ANON_KEY");
 
@@ -46,45 +50,73 @@ Deno.serve(async (req) => {
       return json(500, { error: "Missing Supabase env vars" });
     }
 
-    const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2024-06-20" });
+    // ✅ EDGE-SAFE Stripe init (fetch-based HTTP client)
+    const stripe = new Stripe(STRIPE_SECRET_KEY, {
+      apiVersion: "2024-06-20",
+      httpClient: Stripe.createFetchHttpClient(),
+    });
 
     // fan auth
     const authHeader = req.headers.get("Authorization") ?? "";
     const supaUser = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false },
     });
 
     const { data: userData, error: userErr } = await supaUser.auth.getUser();
     if (userErr || !userData?.user) return json(401, { error: "Not authenticated" });
     const fanId = userData.user.id;
 
-    const body = (await req.json()) as Body;
-    const creator_id = body?.creator_id?.trim();
-    if (!creator_id) return json(400, { error: "Missing creator_id" });
-    if (creator_id === fanId) return json(400, { error: "fan_id cannot equal creator_id" });
+    // body parse (safe)
+    let body: Body = {};
+    try {
+      body = (await req.json()) as Body;
+    } catch {
+      return json(400, { error: "Invalid JSON body" });
+    }
+
+    const creator_id = (body?.creator_id || "").trim();
+    const stripeSubId = (body?.stripe_subscription_id || "").trim();
+
+    if (!creator_id && !stripeSubId) {
+      return json(400, { error: "Missing creator_id or stripe_subscription_id" });
+    }
+    if (creator_id && creator_id === fanId) {
+      return json(400, { error: "fan_id cannot equal creator_id" });
+    }
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       auth: { persistSession: false },
     });
 
-    // prendi la subscription più recente per quella coppia
-    const { data: sub, error: subErr } = await admin
+    // find subscription row for this fan (prefer by stripe_subscription_id)
+    let subQuery = admin
       .from("creator_subscriptions")
-      .select("id, status, stripe_subscription_id, current_period_end")
+      .select(
+        "id, fan_id, creator_id, status, is_active, stripe_subscription_id, current_period_end, created_at",
+      )
       .eq("fan_id", fanId)
-      .eq("creator_id", creator_id)
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+
+    if (stripeSubId) {
+      subQuery = subQuery.eq("stripe_subscription_id", stripeSubId);
+    } else {
+      subQuery = subQuery
+        .eq("creator_id", creator_id)
+        .in("status", ["active", "past_due", "canceled"]);
+    }
+
+    const { data: sub, error: subErr } = await subQuery.maybeSingle();
 
     if (subErr) return json(500, { error: "DB error", details: subErr.message });
     if (!sub?.stripe_subscription_id) {
       return json(404, { error: "No Stripe subscription found for this creator" });
     }
 
+    // stripe: idempotent cancellation-at-period-end
     const current = await stripe.subscriptions.retrieve(sub.stripe_subscription_id);
 
-    // idempotenza: se già a fine periodo -> ok
     if (current.cancel_at_period_end) {
       return json(200, {
         ok: true,
@@ -103,15 +135,19 @@ Deno.serve(async (req) => {
       ? new Date(updated.current_period_end * 1000).toISOString()
       : null;
 
-    await admin
+    // IMPORTANT:
+    // keep access until period end
+    const { error: upErr } = await admin
       .from("creator_subscriptions")
       .update({
-        status: "canceled",
-        is_active: false, // access resta fino a period end lato UI usando current_period_end
+        status: "active",
+        is_active: true,
         current_period_end: periodEndIso,
         updated_at: new Date().toISOString(),
       })
       .eq("id", sub.id);
+
+    if (upErr) return json(500, { error: "DB update error", details: upErr.message });
 
     return json(200, {
       ok: true,
@@ -121,6 +157,9 @@ Deno.serve(async (req) => {
     });
   } catch (e) {
     console.error(e);
-    return json(500, { error: "Server error", details: String((e as any)?.message ?? e) });
+    return json(500, {
+      error: "Server error",
+      details: String((e as any)?.message ?? e),
+    });
   }
 });
