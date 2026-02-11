@@ -560,17 +560,17 @@
       return data?.id || null;
     }
 
-    async function isSubscribedToCreator(creatorId, fanId){
-      if(!creatorId || !fanId) return false;
+    async function getSubscriptionState(creatorId, fanId){
+      if(!creatorId || !fanId) return null;
       const { data, error } = await onlypawsClient
         .from("creator_subscriptions")
-        .select("id, status, is_active, current_period_end")
+        .select("id, status, is_active, current_period_end, stripe_subscription_id")
         .eq("creator_id", creatorId)
         .eq("fan_id", fanId)
         .eq("is_active", true)
         .maybeSingle();
       if(error) throw error;
-      return !!data;
+      return data || null;
     }
 
 
@@ -680,7 +680,8 @@
         }
 
         // Initial load
-        let isSub = await isSubscribedToCreator(creator.user_id, fanId);
+        let subRow = await getSubscriptionState(creator.user_id, fanId);
+        let isSub = !!subRow;
 
         // ✅ after returning from Stripe, retry subscription check (webhook might be slightly delayed)
         if((success === "1" || session_id) && !isSub){
@@ -689,7 +690,8 @@
           for(const w of waits){
             await new Promise(r => setTimeout(r, w));
             try{
-              isSub = await isSubscribedToCreator(creator.user_id, fanId);
+              subRow = await getSubscriptionState(creator.user_id, fanId);
+              isSub = !!subRow;
               if(isSub) break;
             }catch(e){}
           }
@@ -755,13 +757,33 @@
           }
 
           // Normal state
-          premiumBtn.textContent = isSub ? "Subscribed" : "Subscribe";
+          if(!subRow){
+            premiumBtn.textContent = "Subscribe";
+            premiumBtn.disabled = false;
+            premiumBtn.title = "";
+            return;
+          }
+
+          // Scheduled cancellation (still active until period end)
+          if(subRow.status === "canceled" && subRow.is_active){
+            premiumBtn.textContent = "Resume subscription";
+            premiumBtn.disabled = false;
+            premiumBtn.title = "";
+            // Don't override post-checkout hint
+            if(!(success === "1" || session_id)){
+              const d = subRow.current_period_end ? new Date(subRow.current_period_end).toLocaleDateString() : "";
+              setTopHint(d ? `Cancels on ${d} — resume anytime.` : "Cancels at period end — resume anytime.");
+            }
+            return;
+          }
+
+          premiumBtn.textContent = "Subscribed";
           premiumBtn.disabled = false;
           premiumBtn.title = "";
         }
         setPremiumUi();
 
-        premiumBtn.addEventListener("click", () => {
+        premiumBtn.addEventListener("click", async () => {
           if(viewerIsCreator){
             explainCreatorCantSubscribe();
             return;
@@ -770,6 +792,48 @@
             explainCreatorNotReady();
             return;
           }
+
+          // Resume scheduled cancellation (no new checkout)
+          if(subRow && subRow.status === "canceled" && subRow.is_active){
+            if(!subRow.stripe_subscription_id){
+              setTopHint("⚠️ Missing Stripe subscription id. Can't resume automatically.");
+              return;
+            }
+
+            try{
+              setBtnBusy(premiumBtn, true, "Resuming…");
+
+              const { data: s } = await onlypawsClient.auth.getSession();
+              const token = s?.session?.access_token;
+              if(!token) throw new Error("No session");
+
+              const { error } = await onlypawsClient.functions.invoke("resume-subscription", {
+                body: { stripe_subscription_id: subRow.stripe_subscription_id },
+                headers: { Authorization: `Bearer ${token}` },
+              });
+
+              if(error) throw error;
+
+              // Update local state + unlock posts immediately
+              subRow.status = "active";
+              isSub = true;
+              setPremiumUi();
+              setTopHint("✅ Subscription resumed. Premium posts are unlocked.");
+
+              renderPosts(posts, creatorUsername || (isUUID(u) ? creatorUsername : u), {
+                isSelf,
+                isSubscribed: true
+              });
+
+            }catch(e){
+              alert(e?.message || String(e));
+            }finally{
+              setBtnBusy(premiumBtn, false);
+            }
+            return;
+          }
+
+          // Default: go to fan dash (checkout flow lives there)
           goSubscribe(creator.user_id);
         });
 
