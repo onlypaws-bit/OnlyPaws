@@ -32,6 +32,40 @@
     }
   }
 
+  function isVideoMedia(media_type, media_url) {
+    const mt = String(media_type || "").toLowerCase();
+    if (mt.startsWith("video")) return true;
+    const url = String(media_url || "").toLowerCase();
+    return url.endsWith(".mp4") || url.endsWith(".webm") || url.endsWith(".mov") || url.endsWith(".m4v");
+  }
+
+  function mediaHtml(post, locked) {
+    const url = post?.media_url;
+    if (!url) return "";
+    const isVideo = isVideoMedia(post.media_type, url);
+
+    const mediaEl = isVideo
+      ? `<video ${locked ? "" : "controls"} playsinline preload="metadata" src="${esc(url)}"></video>`
+      : `<img src="${esc(url)}" alt="Post media">`;
+
+    if (!locked) {
+      return `<div class="mediaWrap">${mediaEl}</div>`;
+    }
+
+    const creator = post.creator_username || post.creator_name || "creator";
+    const profileUrl = `creator-profile.html?u=${encodeURIComponent(creator)}`;
+
+    return `
+      <div class="mediaWrap blurred">
+        ${mediaEl}
+        <div class="lockOverlay">
+          <div class="op-badge op-badge--locked">Locked</div>
+          <a class="navBtn primary" href="${esc(profileUrl)}">Open creator</a>
+        </div>
+      </div>
+    `;
+  }
+
   function defaultPostUrl(post) {
     return `/post.html?id=${encodeURIComponent(post.id)}`;
   }
@@ -45,6 +79,7 @@
     const excerpt = esc(post.excerpt || post.content || "");
     const creator = esc(post.creator_username || post.creator_name || "");
     const locked = Boolean(post.is_locked);
+    const media = mediaHtml(post, locked);
 
     const price =
       post.price_cents != null && Number(post.price_cents) > 0
@@ -76,6 +111,7 @@
 
           <h3 class="op-title">${title}</h3>
           ${excerpt ? `<p class="op-excerpt">${excerpt}</p>` : ``}
+          ${media}
         </a>
 
         <div class="op-postBottom">
@@ -208,6 +244,35 @@
       .op-badge--locked{background: rgba(0,0,0,.30)}
       .op-title{margin:0;font-size:15px;font-weight:950;letter-spacing:.2px}
       .op-excerpt{margin:8px 0 0;font-size:13px;opacity:.9;line-height:1.35;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.mediaWrap{
+        margin-top:12px;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,.14);
+        background:rgba(0,0,0,.18);position:relative;
+      }
+      .mediaWrap img,.mediaWrap video{width:100%;display:block;max-height:460px;object-fit:cover;}
+      .lockOverlay{
+        position:absolute; inset:0;
+        display:flex; align-items:center; justify-content:center;
+        gap:10px; flex-direction:column;
+        background: rgba(0,0,0,.45);
+        backdrop-filter: blur(2px);
+        padding:18px;
+        text-align:center;
+      }
+      .blurred img, .blurred video{
+        filter: blur(18px);
+        transform: scale(1.03);
+      }
+      .navBtn{
+        display:inline-flex;align-items:center;justify-content:center;
+        gap:8px;
+        padding:10px 14px;
+        border-radius:999px;
+        font-weight:900;
+        text-decoration:none;
+        border:1px solid rgba(255,255,255,.14);
+        background: rgba(255,255,255,.92);
+        color: rgba(107,78,255,1);
+      }
       .op-postBottom{display:flex;justify-content:flex-end;padding:10px 12px;border-top:1px solid rgba(255,255,255,.10)}
       .op-likeBtn{
         display:inline-flex;align-items:center;gap:8px;

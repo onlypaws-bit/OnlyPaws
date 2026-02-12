@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1?target
 
 type Body = {
   stripe_subscription_id?: string;
-  creator_id?: string; // opzionale, fallback
+  creator_id?: string; // optional fallback
 };
 
 const corsHeaders = {
@@ -29,6 +29,16 @@ function env(...keys: string[]) {
   return "";
 }
 
+function toIsoFromStripeUnix(seconds?: number | null) {
+  if (!seconds) return null;
+  return new Date(seconds * 1000).toISOString();
+}
+
+function isStillActive(periodEndIso: string | null) {
+  if (!periodEndIso) return true;
+  return new Date(periodEndIso).getTime() > Date.now();
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { status: 200, headers: corsHeaders });
@@ -49,7 +59,6 @@ Deno.serve(async (req) => {
       return json(500, { error: "Missing Supabase env vars" });
     }
 
-    // ✅ Edge-safe Stripe init
     const stripe = new Stripe(STRIPE_SECRET_KEY, {
       apiVersion: "2024-06-20",
       httpClient: Stripe.createFetchHttpClient(),
@@ -89,14 +98,18 @@ Deno.serve(async (req) => {
     let subQuery = admin
       .from("creator_subscriptions")
       .select(
-        "id, fan_id, creator_id, status, is_active, stripe_subscription_id, current_period_end, created_at",
+        "id, fan_id, creator_id, status, is_active, cancel_at_period_end, stripe_subscription_id, current_period_end, created_at",
       )
       .eq("fan_id", fanId)
       .order("created_at", { ascending: false })
       .limit(1);
 
-    if (stripeSubId) subQuery = subQuery.eq("stripe_subscription_id", stripeSubId);
-    else subQuery = subQuery.eq("creator_id", creatorId).eq("is_active", true);
+    if (stripeSubId) {
+      subQuery = subQuery.eq("stripe_subscription_id", stripeSubId);
+    } else {
+      // IMPORTANT: do NOT depend on is_active here; row might be in a bad state
+      subQuery = subQuery.eq("creator_id", creatorId);
+    }
 
     const { data: sub, error: subErr } = await subQuery.maybeSingle();
     if (subErr) return json(500, { error: "DB error", details: subErr.message });
@@ -104,22 +117,21 @@ Deno.serve(async (req) => {
       return json(404, { error: "No Stripe subscription found for this creator" });
     }
 
-    // Stripe: retrieve current subscription
+    // Stripe current
     const current = await stripe.subscriptions.retrieve(sub.stripe_subscription_id);
 
-    // If it's already not scheduled to cancel, we're done (idempotent)
+    // If it's already not scheduled to cancel, just sync DB and return
     if (!current.cancel_at_period_end) {
-      // still sync DB to active just in case
-      const periodEndIso = current.current_period_end
-        ? new Date(current.current_period_end * 1000).toISOString()
-        : null;
+      const periodEndIso = toIsoFromStripeUnix(current.current_period_end);
+      const still = isStillActive(periodEndIso);
 
       const { error: upErr } = await admin
         .from("creator_subscriptions")
         .update({
-          status: "active",
-          is_active: true,
+          status: current.status,
+          cancel_at_period_end: false,
           current_period_end: periodEndIso,
+          is_active: still,
           updated_at: new Date().toISOString(),
         })
         .eq("id", sub.id);
@@ -130,27 +142,28 @@ Deno.serve(async (req) => {
         ok: true,
         already: true,
         stripe_subscription_id: current.id,
-        cancel_at_period_end: current.cancel_at_period_end,
+        cancel_at_period_end: false,
         current_period_end: current.current_period_end,
+        status: current.status,
       });
     }
 
-    // Resume: set cancel_at_period_end=false
+    // Resume on Stripe
     const updated = await stripe.subscriptions.update(sub.stripe_subscription_id, {
       cancel_at_period_end: false,
     });
 
-    const periodEndIso = updated.current_period_end
-      ? new Date(updated.current_period_end * 1000).toISOString()
-      : null;
+    const periodEndIso = toIsoFromStripeUnix(updated.current_period_end);
+    const still = isStillActive(periodEndIso);
 
-    // DB: mark active again
+    // Sync DB (include cancel_at_period_end!)
     const { error: upErr } = await admin
       .from("creator_subscriptions")
       .update({
-        status: "active",
-        is_active: true,
+        status: updated.status,
+        cancel_at_period_end: false,
         current_period_end: periodEndIso,
+        is_active: still,
         updated_at: new Date().toISOString(),
       })
       .eq("id", sub.id);
@@ -160,8 +173,9 @@ Deno.serve(async (req) => {
     return json(200, {
       ok: true,
       stripe_subscription_id: updated.id,
-      cancel_at_period_end: updated.cancel_at_period_end,
+      cancel_at_period_end: false,
       current_period_end: updated.current_period_end,
+      status: updated.status,
     });
   } catch (e) {
     console.error(e);

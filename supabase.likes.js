@@ -31,6 +31,19 @@
     return Boolean(data);
   }
 
+
+  async function getPostLikeCount(postId) {
+    if (!postId) throw new Error("getPostLikeCount: missing postId");
+    // Fast path: read denormalized counter from posts table
+    const { data, error } = await client
+      .from("posts")
+      .select("likes_count")
+      .eq("id", postId)
+      .maybeSingle();
+    if (error) throw error;
+    return Number(data?.likes_count ?? 0);
+  }
+
   async function togglePostLike(postId) {
     if (!postId) throw new Error("togglePostLike: missing postId");
     const { data, error } = await client.rpc("toggle_post_like", { p_post_id: postId });
@@ -42,6 +55,6 @@
     };
   }
 
-  window.onlypawsLikes = { getPostLikedByMe, togglePostLike };
+  window.onlypawsLikes = { getPostLikedByMe, getPostLikeCount, togglePostLike };
   console.log("✅ onlypawsLikes ready");
 })();

@@ -32,7 +32,6 @@ if (!SUPABASE_SERVICE_ROLE_KEY)
 
 // ---------- Helpers: Supabase REST (service role) ----------
 async function sbAdmin(path: string, init: RequestInit) {
-  // ✅ DO NOT CLOBBER Prefer (needed for upsert merge-duplicates)
   const inHeaders = (init.headers || {}) as Record<string, string>;
   const headers: Record<string, string> = { ...inHeaders };
 
@@ -141,16 +140,21 @@ function mapStatusToDb(status: string) {
   return "past_due";
 }
 
+function isAccessActive(currentPeriodEndIso: string | null) {
+  if (!currentPeriodEndIso) return true; // fallback (ma idealmente non succede)
+  return new Date(currentPeriodEndIso).getTime() > Date.now();
+}
+
 async function upsertCreatorSubscriptionRow(row: {
   fan_id: string;
   creator_id: string;
   status: string;
   is_active: boolean;
+  cancel_at_period_end: boolean;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   current_period_end: string | null;
 }) {
-  // ✅ IMPORTANT: upsert on composite unique (creator_id, fan_id)
   await sbAdmin(`creator_subscriptions?on_conflict=creator_id,fan_id`, {
     method: "POST",
     body: JSON.stringify([
@@ -159,6 +163,7 @@ async function upsertCreatorSubscriptionRow(row: {
         creator_id: row.creator_id,
         status: row.status,
         is_active: row.is_active,
+        cancel_at_period_end: row.cancel_at_period_end, // ✅ WRITE IT!
         current_period_end: row.current_period_end,
         stripe_customer_id: row.stripe_customer_id,
         stripe_subscription_id: row.stripe_subscription_id,
@@ -170,11 +175,14 @@ async function upsertCreatorSubscriptionRow(row: {
 }
 
 async function cancelByStripeSubscriptionId(stripeSubId: string) {
+  // NOTE: deleted means ended now. We can also set current_period_end=now()
   await sbAdmin(`creator_subscriptions?stripe_subscription_id=eq.${stripeSubId}`, {
     method: "PATCH",
     body: JSON.stringify({
       status: "canceled",
       is_active: false,
+      cancel_at_period_end: false,
+      current_period_end: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }),
     headers: { Prefer: "return=minimal" },
@@ -192,22 +200,27 @@ async function upsertFromStripeSubscription(sub: any) {
 
   const customerId = safeStr(sub?.customer) || safeStr(sub?.customer?.id) || null;
   const stripeStatus = String(sub?.status || "past_due");
-  const statusDbBase = mapStatusToDb(stripeStatus);
+
+  const statusDb = mapStatusToDb(stripeStatus);
+
+  // Always capture these
+  const cancelAtPeriodEnd = !!sub?.cancel_at_period_end;
   const cpe = isoFromUnix(sub?.current_period_end ?? null);
 
-  const cancelAtPeriodEnd = !!sub?.cancel_at_period_end;
+  // Access rule: active until period end (and status not expired)
+  // If Stripe doesn't send current_period_end (rare), this returns true, but we try to avoid null by fetching full sub where needed.
+  const access = isAccessActive(cpe);
 
-  // ✅ Scheduled cancel: show canceled, but keep access until period end
-  const statusDb = cancelAtPeriodEnd ? "canceled" : statusDbBase;
-
-  const isActive =
-    cancelAtPeriodEnd ? true : (statusDbBase === "active" || statusDbBase === "past_due");
+  // is_active means "user has access now"
+  const isActiveNow =
+    statusDb !== "expired" && (access || statusDb === "active" || statusDb === "past_due");
 
   await upsertCreatorSubscriptionRow({
     fan_id,
     creator_id,
-    status: statusDb,
-    is_active: isActive,
+    status: statusDb, // ✅ DO NOT turn scheduled cancel into status=canceled
+    is_active: isActiveNow,
+    cancel_at_period_end: cancelAtPeriodEnd, // ✅ real flag in DB
     stripe_customer_id: customerId,
     stripe_subscription_id: safeStr(sub?.id) || null,
     current_period_end: cpe,
@@ -325,11 +338,16 @@ Deno.serve(async (req) => {
 
     // customer.subscription.created / updated
     if (type === "customer.subscription.created" || type === "customer.subscription.updated") {
-      await upsertFromStripeSubscription(obj);
+      // sometimes obj is partial; if current_period_end missing, fetch full sub
+      const subId = safeStr(obj?.id);
+      const hasCpe = obj?.current_period_end != null;
+      const sub = (subId && !hasCpe) ? await stripeGET(`subscriptions/${subId}`) : obj;
+
+      await upsertFromStripeSubscription(sub);
       return new Response("ok", { status: 200, headers: corsHeaders });
     }
 
-    // invoice events (Stripe may send different names)
+    // invoice events
     if (
       type === "invoice_payment.paid" ||
       type === "invoice.payment_succeeded" ||

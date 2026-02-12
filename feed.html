@@ -247,6 +247,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
+  <script src="supabase.likes.js"></script>
+  <script src="post-card.js"></script>
 
   <script>
     let creatorsAll = [];
@@ -354,6 +356,32 @@
         return;
       }
 
+      // Prefer reusable post-card renderer (adds Like button etc.)
+      if(window.OnlyPawsPostCard?.renderPostCard){
+        postsEl.innerHTML = list.map(p => {
+          const uname = p?.profiles?.username || "creator";
+          const locked = Boolean(p.is_locked);
+          return window.OnlyPawsPostCard.renderPostCard({
+            id: p.id,
+            creator_username: uname,
+            title: p.title || "Post",
+            excerpt: locked ? (p.preview || "Locked content.") : (p.preview || p.content || ""),
+            price_cents: p.price_cents ?? null,
+            currency: p.currency || "eur",
+            is_locked: locked,
+
+            // media
+            media_url: p.media_url || null,
+            media_type: p.media_type || null,
+          });
+        }).join("");
+
+        // Bind like buttons after render
+        window.OnlyPawsPostCard.initPostCards(postsEl);
+        return;
+      }
+
+      // Fallback (no post-card.js loaded)
       postsEl.innerHTML = list.map(p => {
         const uname = p?.profiles?.username || "creator";
         const who = `@${uname}`;
@@ -469,7 +497,7 @@
       hint.textContent = creatorsAll.length ? "" : "No creators yet.";
     }
 
-    // ✅ FIXED: premium unlock rule + creator override
+    // ✅ FINAL: premium blur depends on creator_subscriptions access until period end (like creator-profile)
     async function loadLatestPosts(){
       const hint = document.getElementById("postsHint");
       hint.textContent = "Loading posts…";
@@ -496,6 +524,7 @@
 
       const posts = data || [];
 
+      // Logged out: lock private + premium
       if(!viewerId){
         const enriched = posts.map(p => {
           const locked = (p.is_public === false) || (p.is_paid === true);
@@ -506,6 +535,7 @@
         return;
       }
 
+      // creators to check: premium public posts, not mine
       const creatorIdsToCheck = [...new Set(
         posts
           .filter(p =>
@@ -517,32 +547,51 @@
           .map(p => p.creator_id)
       )];
 
+      // Map creator_id -> hasAccess
       const subMap = new Map();
-      await Promise.all(creatorIdsToCheck.map(async (cid) => {
-        const { data: ok, error: e } = await onlypawsClient.rpc("is_subscribed_to", { p_creator_id: cid });
-        if(e){
-          console.warn("is_subscribed_to error", cid, e);
-          subMap.set(cid, false);
-          return;
+      for(const cid of creatorIdsToCheck) subMap.set(cid, false);
+
+      if(creatorIdsToCheck.length){
+        const { data: subs, error: sErr } = await onlypawsClient
+          .from("creator_subscriptions")
+          .select("creator_id, is_active, current_period_end")
+          .eq("fan_id", viewerId)
+          .in("creator_id", creatorIdsToCheck)
+          .eq("is_active", true);
+
+        if(sErr){
+          console.warn("creator_subscriptions lookup error", sErr);
+          // keep defaults false
+        }else{
+          const now = Date.now();
+          for(const r of (subs || [])){
+            const endMs = r.current_period_end ? new Date(r.current_period_end).getTime() : 0;
+            // main rule: access until period end
+            let hasAccess = !!endMs && endMs > now;
+            // legacy fallback: if no period_end but DB says active, treat as access
+            if(!hasAccess && !r.current_period_end && r.is_active === true) hasAccess = true;
+            if(hasAccess) subMap.set(r.creator_id, true);
+          }
         }
-        subMap.set(cid, !!ok);
-      }));
+      }
 
       const enriched = posts.map(p => {
         const isMine = (p.creator_id === viewerId);
 
+        // private: only creator can view
         if(p.is_public === false){
           const locked = !isMine;
           return { ...p, can_view: !locked, is_locked: locked };
         }
 
+        // free public: everyone
         if(p.is_paid !== true){
           return { ...p, can_view: true, is_locked: false };
         }
 
+        // premium public: creator OR subscriber access
         const isSub = (subMap.get(p.creator_id) === true);
         const locked = !(isMine || isSub);
-
         return { ...p, can_view: !locked, is_locked: locked };
       });
 

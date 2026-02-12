@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>OnlyPaws — Creator Profile</title>
+  <title>OnlyPaws — Fan Profile</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     :root{
@@ -184,6 +184,27 @@
     .lockedBox b{display:block;font-size:14px;margin-bottom:6px;}
     .lockedBox .small{color:rgba(255,255,255,.82);font-size:13px;line-height:1.45;}
     .ctaRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+      .miniGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+    .miniCard{
+      border-radius:18px;padding:14px 14px;background:rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.16);
+    }
+    .miniK{font-size:12px;opacity:.9;font-weight:700;}
+    .miniV{font-size:20px;font-weight:900;margin-top:4px;}
+    .list{display:flex;flex-direction:column;gap:10px;margin-top:12px;}
+    .listItem{
+      display:flex;align-items:center;gap:12px;
+      padding:12px 14px;border-radius:18px;
+      background:rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.16);
+    }
+    .listAvatar{width:38px;height:38px;border-radius:14px;background:rgba(0,0,0,.20);display:flex;align-items:center;justify-content:center;}
+    .listMeta{display:flex;flex-direction:column;min-width:0;}
+    .listMeta b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .listMeta span{opacity:.9;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    
+@media (max-width: 860px){.grid{grid-template-columns:1fr;}}
+
   </style>
 </head>
 
@@ -192,7 +213,7 @@
 
     <div class="nav">
       <a href="feed.html" class="brand">
-        <div class="brandLogo"><img src="logo.png" alt="OnlyPaws logo"></div>
+        <div class="brandLogo" aria-hidden="true">🐾</div>
         <span>OnlyPaws</span>
       </a>
       <div class="navRight">
@@ -212,40 +233,70 @@
 
     <div class="grid">
       <div class="panel">
-        <div class="pill">Creator</div>
-        <h1 id="creatorName">Creator</h1>
+        <div class="pill">Fan</div>
+        <h1 id="fanName">Fan</h1>
 
         <div class="heroRow">
-          <div class="avatar" id="creatorAvatar">🐾</div>
+          <div class="avatar" id="fanAvatar">🐾</div>
           <div class="meta">
-            <b id="creatorHandle">@username</b>
-            <span id="creatorBio"></span>
+            <b id="fanHandle">@username</b>
+            <span id="fanBio"></span>
           </div>
         </div>
 
-        <div class="btnRow" id="actionRow">
-          <button class="ghost" id="followBtn" type="button">Follow</button>
-          <button class="btn" id="premiumBtn" type="button">Subscribe</button>
+        <div class="hint" style="margin-top:10px;opacity:.9;">Public fan profile</div>
+
+                <div class="miniGrid" style="margin-top:14px;">
+          <div class="miniCard">
+            <div class="miniK">Following</div>
+            <div class="miniV" id="statFollowing">—</div>
+          </div>
+          <div class="miniCard">
+            <div class="miniK">Subscriptions</div>
+            <div class="miniV" id="statSubscriptions">—</div>
+          </div>
+          <div class="miniCard">
+            <div class="miniK">Likes</div>
+            <div class="miniV">—</div>
+            <div class="hint" style="margin-top:6px;opacity:.85;">Coming soon</div>
+          </div>
+          <div class="miniCard">
+            <div class="miniK">Collections</div>
+            <div class="miniV">—</div>
+            <div class="hint" style="margin-top:6px;opacity:.85;">Coming soon</div>
+          </div>
         </div>
+
+<div class="miniV" >—</div>
+          </div>
+          <div class="miniCard">
+            <div class="miniK">Following</div>
+            <div class="miniV" id="statFollowing">—</div>
+          </div>
+          <div class="miniCard">
+            <div class="miniK">Likes</div>
+            <div class="miniV" >—</div>
+          </div>
+          <div class="miniCard">
+            <div class="miniK">Collections</div>
+            <div class="miniV" >—</div>
+          </div>
+        </div>
+
+      </div>
 
         <div class="hint" id="creatorHint"></div>
       </div>
 
       <div class="panel">
-        <div class="pill">Pets</div>
-        <div class="petsList" id="petsList"></div>
-        <div class="hint" id="petsHint">Loading…</div>
+        <div class="pill">Following</div>
+        <div class="hint" style="margin-top:0;">Creators followed</div>
+        <div class="list" id="followingList"></div>
+        <div class="hint" id="followingHint">Loading…</div>
       </div>
     </div>
 
-    <div class="panel" style="margin-top:14px;">
-      <div class="postsHeader">
-        <h2>Posts</h2>
-        <div class="hint" style="margin-top:0;">FREE is visible • PREMIUM is locked (unless subscribed)</div>
-      </div>
-      <div class="posts" id="posts"></div>
-      <div class="hint" id="postsHint">Loading…</div>
-    </div>
+    
 
   </div>
 
@@ -562,27 +613,15 @@
 
     async function getSubscriptionState(creatorId, fanId){
       if(!creatorId || !fanId) return null;
-
       const { data, error } = await onlypawsClient
         .from("creator_subscriptions")
-        .select("id, status, is_active, current_period_end, cancel_at_period_end, stripe_subscription_id")
+        .select("id, status, is_active, current_period_end, stripe_subscription_id")
         .eq("creator_id", creatorId)
         .eq("fan_id", fanId)
+        .eq("is_active", true)
         .maybeSingle();
-
       if(error) throw error;
       return data || null;
-    }
-
-    function computeAccess(subRow){
-      const periodEndMs = subRow?.current_period_end ? new Date(subRow.current_period_end).getTime() : 0;
-      // primary rule: access until period end
-      let hasAccess = !!periodEndMs && periodEndMs > Date.now();
-      // legacy fallback: if DB doesn't have period_end but marks active, treat as access
-      if(!hasAccess && !subRow?.current_period_end && subRow?.is_active === true) hasAccess = true;
-
-      const isCanceling = !!subRow?.cancel_at_period_end && hasAccess;
-      return { hasAccess, isCanceling, periodEndMs };
     }
 
 
@@ -693,20 +732,18 @@
 
         // Initial load
         let subRow = await getSubscriptionState(creator.user_id, fanId);
-        let subState = computeAccess(subRow);
-        let hasAccess = subState.hasAccess;
+        let isSub = !!subRow;
 
         // ✅ after returning from Stripe, retry subscription check (webhook might be slightly delayed)
-        if((success === "1" || session_id) && !hasAccess){
+        if((success === "1" || session_id) && !isSub){
           // quick retries: 1.5s, 3s, 5s
           const waits = [1500, 3000, 5000];
           for(const w of waits){
             await new Promise(r => setTimeout(r, w));
             try{
               subRow = await getSubscriptionState(creator.user_id, fanId);
-              subState = computeAccess(subRow);
-              hasAccess = subState.hasAccess;
-              if(hasAccess) break;
+              isSub = !!subRow;
+              if(isSub) break;
             }catch(e){}
           }
         }
@@ -770,13 +807,8 @@
             return;
           }
 
-          // Compute access from period end (robust)
-          subState = computeAccess(subRow);
-          hasAccess = subState.hasAccess;
-          const isCanceling = subState.isCanceling;
-
-          // Not subscribed / no access
-          if(!hasAccess){
+          // Normal state
+          if(!subRow){
             premiumBtn.textContent = "Subscribe";
             premiumBtn.disabled = false;
             premiumBtn.title = "";
@@ -784,21 +816,18 @@
           }
 
           // Scheduled cancellation (still active until period end)
-          if(isCanceling){
+          if(subRow.status === "canceled" && subRow.is_active){
             premiumBtn.textContent = "Resume subscription";
             premiumBtn.disabled = false;
             premiumBtn.title = "";
-
+            // Don't override post-checkout hint
             if(!(success === "1" || session_id)){
-              const d = subRow?.current_period_end
-                ? new Date(subRow.current_period_end).toLocaleDateString()
-                : "";
+              const d = subRow.current_period_end ? new Date(subRow.current_period_end).toLocaleDateString() : "";
               setTopHint(d ? `Cancels on ${d} — resume anytime.` : "Cancels at period end — resume anytime.");
             }
             return;
           }
 
-          // Active subscription
           premiumBtn.textContent = "Subscribed";
           premiumBtn.disabled = false;
           premiumBtn.title = "";
@@ -816,8 +845,7 @@
           }
 
           // Resume scheduled cancellation (no new checkout)
-          subState = computeAccess(subRow);
-          if(subRow && subState.isCanceling){
+          if(subRow && subRow.status === "canceled" && subRow.is_active){
             if(!subRow.stripe_subscription_id){
               setTopHint("⚠️ Missing Stripe subscription id. Can't resume automatically.");
               return;
@@ -839,9 +867,7 @@
 
               // Update local state + unlock posts immediately
               subRow.status = "active";
-              subRow.cancel_at_period_end = false;
-              subState = computeAccess(subRow);
-              hasAccess = subState.hasAccess;
+              isSub = true;
               setPremiumUi();
               setTopHint("✅ Subscription resumed. Premium posts are unlocked.");
 
@@ -866,13 +892,13 @@
 
         renderPosts(posts, creatorUsername || (isUUID(u) ? creatorUsername : u), {
           isSelf,
-          isSubscribed: !!hasAccess
+          isSubscribed: !!isSub
         });
 
         document.getElementById("postsHint").textContent = posts.length ? "" : "No posts yet.";
 
         // If subscription became true, update hint + clean URL (optional)
-        if(hasAccess && (success === "1" || session_id)){
+        if(isSub && (success === "1" || session_id)){
           setTopHint("✅ Subscribed! Premium posts are now unlocked.");
           // optional: remove noisy params but keep u
           const clean = new URL(window.location.href);
@@ -893,6 +919,41 @@
     });
 
     boot();
-  </script>
+        async function initFanPublic(){
+      await hydrateUserPill();
+
+      const { u } = getParams();
+      if(!u){
+        document.getElementById("fanName").textContent = "Fan";
+        document.getElementById("fanHandle").textContent = "@username";
+        document.getElementById("followingHint").textContent = "Missing ?u=username";
+        return;
+      }
+
+      // TODO: Replace with real queries (public fields only)
+      // Suggested:
+      // - profiles: select username, display_name, bio, avatar_url where username=u
+      // - followers: count where followed_id = fan_id
+      // - following: count where fan_id = fan_id
+      // - likes/collections: your tables if public
+
+      // Placeholder data:
+      const profile = { username: u, display_name: u, bio: "" };
+
+      document.getElementById("fanName").textContent = profile.display_name || u;
+      document.getElementById("fanHandle").textContent = "@" + (profile.username || u);
+      document.getElementById("fanBio").textContent = profile.bio || "";
+
+      document.getElementById("statFollowing").textContent = "0";
+      document.getElementById("statSubscriptions").textContent = "0";
+      const list = document.getElementById("followingList");
+      const hint = document.getElementById("followingHint");
+      if(list) list.innerHTML = "";
+      if(hint) hint.textContent = "No creators yet.";
+
+      }
+
+    initFanPublic();
+</script>
 </body>
 </html>

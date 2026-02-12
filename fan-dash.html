@@ -99,6 +99,8 @@
     .meta{font-size:13px;color:rgba(255,255,255,.82);margin-top:4px}
 
     .btnRow{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;}
+
+    /* ghost */
     .ghost{
       padding:12px 16px;border-radius:999px;
       background: rgba(255,255,255,.12);
@@ -106,7 +108,12 @@
       color:white;text-decoration:none;font-weight:800;
       cursor:pointer;
       display:inline-flex;align-items:center;justify-content:center;
+      transition:transform .16s ease, background .16s ease, border-color .16s ease;
+      user-select:none;
+      white-space:nowrap;
     }
+    .ghost:hover{transform:translateY(-1px);background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.22);}
+    .ghost:active{transform:translateY(0px) scale(.99);}
     .ghost.danger{
       background: rgba(255, 80, 80, .18);
       border-color: rgba(255, 120, 120, .28);
@@ -118,11 +125,29 @@
       cursor:not-allowed;
       pointer-events:none;
     }
+
+    /* ✅ primary (coerente a creator-profile) */
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;
+      padding:12px 16px;border-radius:999px;
+      background: var(--btn);
+      color: var(--btnText);
+      text-decoration:none;font-weight:900;border:none;cursor:pointer;
+      box-shadow:0 14px 30px rgba(0,0,0,.20);
+      transition:transform .16s ease, box-shadow .16s ease;
+      user-select:none;
+      white-space:nowrap;
+    }
+    .btn:hover{transform:translateY(-1px) scale(1.01);}
+    .btn:active{transform:translateY(0px) scale(.99);}
+    .btn:disabled{opacity:.55;cursor:not-allowed;box-shadow:none;}
+
     .badge{
       font-size:12px;padding:6px 10px;border-radius:999px;
       border:1px solid rgba(255,255,255,.18);
       background: rgba(0,0,0,.14);
       white-space:nowrap;
+      font-weight:900;
     }
     .msg{margin-top:10px;font-size:13px;color:rgba(255,255,255,.85);min-height:18px}
 
@@ -135,22 +160,23 @@
       line-height:1.5;
     }
     .smallLegal{display:inline-block;margin-top:6px;opacity:.85;font-size:12px;}
-  .ghost.disabled,
-.ghost[aria-disabled="true"]{
-  opacity:.45;
-  cursor:not-allowed;
-  pointer-events:none;
-  filter:saturate(.2);
-}
-.pillSoon{
-  margin-left:10px;
-  padding:6px 10px;
-  font-size:12px;
-  font-weight:900;
-  letter-spacing:.2px;
-  opacity:.9;
-}
-</style>
+
+    .ghost.disabled,
+    .ghost[aria-disabled="true"]{
+      opacity:.45;
+      cursor:not-allowed;
+      pointer-events:none;
+      filter:saturate(.2);
+    }
+    .pillSoon{
+      margin-left:10px;
+      padding:6px 10px;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.2px;
+      opacity:.9;
+    }
+  </style>
 </head>
 
 <body>
@@ -196,7 +222,9 @@
       <div class="pill">My Access</div>
       <p class="sub" style="margin-top:10px;">Shortcuts to what you can view.</p>
       <div class="btnRow">
-        <button class="ghost disabled" type="button" disabled aria-disabled="true" title="Coming soon: Purchased posts">View purchased posts <span class="pill pillSoon">Soon</span></button>
+        <button class="ghost disabled" type="button" disabled aria-disabled="true" title="Coming soon: Purchased posts">
+          View purchased posts <span class="pill pillSoon">Soon</span>
+        </button>
       </div>
     </div>
   </div>
@@ -246,32 +274,6 @@
     `;
   }
 
-  function symbolForCurrency(cur){
-    const c = String(cur || "").toLowerCase();
-    if(c === "eur") return "€";
-    if(c === "usd") return "$";
-    if(c === "gbp") return "£";
-    return (cur || "").toUpperCase() + " ";
-  }
-
-  function periodShort(p){
-    const x = String(p || "").toLowerCase();
-    if(x === "monthly") return "/mo";
-    if(x === "yearly") return "/yr";
-    return "";
-  }
-
-  function formatPlan(plan){
-    if(!plan) return null;
-    const cents = Number(plan.price_cents);
-    const ok = Number.isFinite(cents);
-    const sym = symbolForCurrency(plan.currency);
-    const per = periodShort(plan.billing_period);
-    const price = ok ? `${sym}${(cents/100).toFixed(2)}${per}` : null;
-    const name = (plan.name || "Plan").toString();
-    return { name, price };
-  }
-
   async function requireSession(){
     const { data } = await onlypawsClient.auth.getSession();
     if(!data?.session){
@@ -311,29 +313,28 @@
     return `creator-profile.html?u=${encodeURIComponent(u)}`;
   }
 
+  async function unfollowCreator(followId, creatorLabel){
+    if(!followId) return;
+    const label = (creatorLabel || "this creator");
+    if(!confirm(`Unfollow ${label}?`)) return;
 
-async function unfollowCreator(followId, creatorLabel){
-  if(!followId) return;
-  const label = (creatorLabel || "this creator");
-  if(!confirm(`Unfollow ${label}?`)) return;
+    followsMsg.textContent = "Unfollowing…";
+    try{
+      const { error } = await onlypawsClient
+        .from("followers")
+        .delete()
+        .eq("id", followId);
 
-  followsMsg.textContent = "Unfollowing…";
-  try{
-    const { error } = await onlypawsClient
-      .from("followers")
-      .delete()
-      .eq("id", followId);
+      if(error) throw error;
 
-    if(error) throw error;
-
-    followsMsg.textContent = "Unfollowed.";
-    if(CURRENT_USER_ID) await loadFollowing(CURRENT_USER_ID);
-    followsMsg.textContent = "";
-  }catch(e){
-    console.error(e);
-    followsMsg.textContent = "❌ Error unfollowing. Check logs.";
+      followsMsg.textContent = "Unfollowed.";
+      if(CURRENT_USER_ID) await loadFollowing(CURRENT_USER_ID);
+      followsMsg.textContent = "";
+    }catch(e){
+      console.error(e);
+      followsMsg.textContent = "❌ Error unfollowing. Check logs.";
+    }
   }
-}
 
   async function loadFollowing(userId){
     followsMsg.textContent = "Loading…";
@@ -373,7 +374,7 @@ async function unfollowCreator(followId, creatorLabel){
       const c = row.creator;
       const uname = (c?.username || "").trim();
       const dname = (c?.display_name || "").trim() || uname || "Creator";
-      const avatar = (c?.avatar_url || "").trim(); 
+      const avatar = (c?.avatar_url || "").trim();
 
       const el = document.createElement("div");
       el.className = "item";
@@ -390,31 +391,30 @@ async function unfollowCreator(followId, creatorLabel){
         </div>
       `;
 
-// make the whole row clickable (like feed)
-const openUrl = creatorLink(uname);
-if(uname){
-  el.classList.add("clickable");
-  el.addEventListener("click", () => {
-    window.location.href = openUrl;
-  });
-}
+      // row clickable
+      const openUrl = creatorLink(uname);
+      if(uname){
+        el.classList.add("clickable");
+        el.addEventListener("click", () => {
+          window.location.href = openUrl;
+        });
+      }
 
-// wire unfollow button
-const ubtn = el.querySelector("[data-unfollow-id]");
-if(ubtn){
-  ubtn.addEventListener("click", (ev) => {
-    ev.stopPropagation();
-    const followId = ubtn.getAttribute("data-unfollow-id");
-    const label = ubtn.getAttribute("data-unfollow-label") || "";
-    unfollowCreator(followId, label);
-  });
-}
+      // unfollow
+      const ubtn = el.querySelector("[data-unfollow-id]");
+      if(ubtn){
+        ubtn.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          const followId = ubtn.getAttribute("data-unfollow-id");
+          const label = ubtn.getAttribute("data-unfollow-label") || "";
+          unfollowCreator(followId, label);
+        });
+      }
 
       followsList.appendChild(el);
     }
   }
 
-  
   async function cancelSubscription(stripeSubId, creatorLabel){
     if(!stripeSubId) return;
     const label = creatorLabel ? ` to ${creatorLabel}` : "";
@@ -442,13 +442,40 @@ if(ubtn){
     }
   }
 
-async function loadSubscriptions(userId){
+  async function resumeSubscription(stripeSubId, creatorLabel){
+    if(!stripeSubId) return;
+    const label = creatorLabel ? ` to ${creatorLabel}` : "";
+    if(!confirm(`Resume subscription${label}?`)) return;
+
+    subsMsg.textContent = "Resuming…";
+    try{
+      const { data: s } = await onlypawsClient.auth.getSession();
+      const token = s?.session?.access_token;
+      if(!token) throw new Error("No session");
+
+      const { error } = await onlypawsClient.functions.invoke("resume-subscription", {
+        body: { stripe_subscription_id: stripeSubId },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if(error) throw error;
+
+      subsMsg.textContent = "Subscription resumed. Updating…";
+      await loadSubscriptions(s.session.user.id);
+      subsMsg.textContent = "";
+    }catch(e){
+      console.error(e);
+      subsMsg.textContent = "❌ Error resuming subscription. Check logs.";
+    }
+  }
+
+  async function loadSubscriptions(userId){
     subsMsg.textContent = "Loading…";
     subsList.innerHTML = "";
 
     const { data: rows, error } = await onlypawsClient
       .from("creator_subscriptions")
-      .select("creator_id,status,is_active,created_at,current_period_end,stripe_subscription_id")
+      .select("creator_id,status,is_active,created_at,current_period_end,stripe_subscription_id,cancel_at_period_end")
       .eq("fan_id", userId)
       .eq("is_active", true)
       .order("created_at", { ascending:false });
@@ -480,24 +507,29 @@ async function loadSubscriptions(userId){
     subsMsg.textContent = "";
     subsList.innerHTML = "";
 
+    const now = Date.now();
+
     for(const row of rows){
       const c = pMap.get(row.creator_id) || {};
       const uname = (c?.username || "").trim();
       const dname = (c?.display_name || "").trim() || (uname ? ("@" + uname) : "") || "Creator";
       const avatar = (c?.avatar_url || "").trim();
 
-      const status = (row.status || "active").toString();
-let badgeText = "Active";
+      const status = (row.status || "active").toString().toLowerCase();
 
-if(status === "past_due"){
-  badgeText = "Past due";
-}
-else if(status === "canceled" && row.is_active){
-  badgeText = "Cancels at period end";
-}
-else if(!row.is_active){
-  badgeText = "Expired";
-}
+      const periodEndMs = row.current_period_end
+        ? new Date(row.current_period_end).getTime()
+        : 0;
+
+      const hasAccess = !!periodEndMs && periodEndMs > now;
+
+      // ✅ Stripe cancel_at_period_end is the real signal for scheduled cancellation
+      const isCanceling = hasAccess && (row.cancel_at_period_end === true);
+
+      let badgeText = "Active";
+      if(status === "past_due") badgeText = "Past due";
+      else if(isCanceling) badgeText = "Canceling";
+      else if(!hasAccess) badgeText = "Expired";
 
       const until = row.current_period_end ? new Date(row.current_period_end).toLocaleDateString() : null;
 
@@ -506,16 +538,23 @@ else if(!row.is_active){
         until ? ("until " + until) : ""
       ].filter(Boolean).join(" • ");
 
-
       const canCancel =
-  row.is_active &&
-  status === "active" &&
-  row.stripe_subscription_id;
+        hasAccess &&
+        status === "active" &&
+        (row.cancel_at_period_end !== true) &&
+        row.stripe_subscription_id;
 
+      const canResume =
+        hasAccess &&
+        (row.cancel_at_period_end === true) &&
+        row.stripe_subscription_id;
 
-      const cancelHtml = canCancel
-        ? `<button class="ghost danger" type="button" data-cancel-sub="${esc(row.stripe_subscription_id)}" data-cancel-label="${esc(dname)}">Cancel</button>`
-        : "";
+      let actionHtml = "";
+      if(canCancel){
+        actionHtml = `<button class="ghost danger" type="button" data-cancel-sub="${esc(row.stripe_subscription_id)}" data-cancel-label="${esc(dname)}">Cancel</button>`;
+      }else if(canResume){
+        actionHtml = `<button class="btn" type="button" data-resume-sub="${esc(row.stripe_subscription_id)}" data-resume-label="${esc(dname)}">Resume subscription</button>`;
+      }
 
       const canOpen = !!uname;
       const uParam = encodeURIComponent(uname || "");
@@ -532,34 +571,44 @@ else if(!row.is_active){
         </div>
         <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
           <span class="badge">${esc(badgeText)}</span>
-          ${cancelHtml}
+          ${actionHtml}
         </div>
       `;
-      // wire cancel button (no inline onclick)
-      const btn = el.querySelector("[data-cancel-sub]");
-      if(btn){
-        btn.addEventListener("click", (ev) => {
+
+      // cancel
+      const cbtn = el.querySelector("[data-cancel-sub]");
+      if(cbtn){
+        cbtn.addEventListener("click", (ev) => {
           ev.stopPropagation();
-          const subId = btn.getAttribute("data-cancel-sub");
-          const label = btn.getAttribute("data-cancel-label") || "";
+          const subId = cbtn.getAttribute("data-cancel-sub");
+          const label = cbtn.getAttribute("data-cancel-label") || "";
           cancelSubscription(subId, label);
         });
       }
 
+      // resume
+      const rbtn = el.querySelector("[data-resume-sub]");
+      if(rbtn){
+        rbtn.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          const subId = rbtn.getAttribute("data-resume-sub");
+          const label = rbtn.getAttribute("data-resume-label") || "";
+          resumeSubscription(subId, label);
+        });
+      }
 
-// make the whole row clickable (like feed)
-const openUrl = canOpen ? `creator-profile.html?u=${uParam}` : null;
-if(openUrl){
-  el.classList.add("clickable");
-  el.addEventListener("click", () => {
-    window.location.href = openUrl;
-  });
-}
+      // row clickable
+      const openUrl = canOpen ? `creator-profile.html?u=${uParam}` : null;
+      if(openUrl){
+        el.classList.add("clickable");
+        el.addEventListener("click", () => {
+          window.location.href = openUrl;
+        });
+      }
 
       subsList.appendChild(el);
     }
   }
-
 
   document.getElementById("logoutBtn").addEventListener("click", async () => {
     try{ await onlypawsClient.auth.signOut(); }catch(e){}

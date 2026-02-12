@@ -216,64 +216,10 @@
       }));
     }
 
-    function escapeHtml(s){
-      return String(s ?? "")
-        .replaceAll("&","&amp;")
-        .replaceAll("<","&lt;")
-        .replaceAll(">","&gt;")
-        .replaceAll('"',"&quot;")
-        .replaceAll("'","&#039;");
-    }
-
+    // Placeholder loader (we’ll wire to DB next)
     async function loadPurchasedPosts(){
-      msg.textContent = "Loading…";
-
-      const { data, error } = await onlypawsClient
-        .from("post_purchases")
-        .select(`
-          id,
-          status,
-          created_at,
-          posts:post_id (
-            id,
-            title,
-            preview,
-            creator_id
-          )
-        `)
-        .eq("status","paid")
-        .order("created_at", { ascending:false });
-
-      if(error){
-        msg.textContent = "❌ " + error.message;
-        list.innerHTML = "";
-        return;
-      }
-
-      if(!data || data.length === 0){
-        msg.textContent = "";
-        emptyState();
-        return;
-      }
-
-      msg.textContent = "";
-      list.innerHTML = "";
-
-      for(const row of data){
-        const p = row.posts;
-        const boughtOn = new Date(row.created_at).toLocaleDateString();
-
-        const el = document.createElement("div");
-        el.className = "item";
-        el.innerHTML = `
-          <div class="left">
-            <div class="title">${escapeHtml(p?.title || "Untitled post")}</div>
-            <div class="meta">Purchased ${escapeHtml(boughtOn)}</div>
-          </div>
-          <a class="navBtn" href="post.html?id=${encodeURIComponent(p?.id || "")}" style="padding:10px 14px;">View</a>
-        `;
-        list.appendChild(el);
-      }
+      msg.textContent = "Coming next: wire this to purchases table + join posts 🐾";
+      emptyState();
     }
 
     navLogout.addEventListener("click", async () => {
