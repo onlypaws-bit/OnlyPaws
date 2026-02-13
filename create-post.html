@@ -116,7 +116,7 @@
     <div class="panel">
       <div class="row">
         <div>
-<div class="pill" id="modePill" style="margin-top:8px;" style="display:none;;display:none;">Create Post</div>
+<div class="pill" id="modePill" style="margin-top:8px; display:none;">Create Post</div>
           <h1 id="pageTitle">Create a post</h1>
           <p class="sub" id="pageSub">Creator-only. This writes into <b>posts</b>.</p>
         </div>
@@ -260,7 +260,7 @@
     const MAX_MB = 25;
 
     const msg = document.getElementById("msg");
-    const whoPill = document.getElementById("whoPill");
+    const userPill = document.getElementById("userPill");
     const publishBtn = document.getElementById("publishBtn");
 
     const creatorLockBox = document.getElementById("creatorLockBox");
@@ -353,8 +353,7 @@
       user = session.user;
 
       profile = await fetchProfile(user.id);
-      whoPill.textContent = profile?.username ? `@${profile.username}` : (user.email || "creator");
-
+      // user pill is hydrated separately (hydrateUserPill)
       if(!profile || profile.role !== "creator"){
         window.location.href = "index.html";
         return false;
