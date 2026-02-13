@@ -478,14 +478,15 @@ and take care of our furry friends 💜
         if(!email){ setMsg("Please enter your email."); return; }
         if(password.length < 6){ setMsg("Password must be at least 6 characters."); return; }
 
-        const { data, error } = await onlypawsClient.auth.signUp({
-          email,
-          password,
-          options: {
-            data: { role: "creator" },
-            emailRedirectTo: window.location.origin + "/" + getNextPath()
-          }
-        });
+const { data, error } = await onlypawsClient.auth.signUp({
+  email,
+  password,
+  options: {
+    data: { role: "creator" },
+    emailRedirectTo: window.location.origin + "/email-confirmed.html"
+  }
+});
+
 
         if(error){
           setMsg("❌ " + error.message);
