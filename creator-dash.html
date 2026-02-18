@@ -442,6 +442,21 @@
       walletMsgText.textContent = "";
     }
 
+    // ✅ (NEW) Extract more useful error details from Supabase invoke error
+    function extractInvokeErrorDetails(e){
+      try{
+        const msg = e?.message || String(e);
+        const ctxBody = e?.context?.body;
+        const extra =
+          ctxBody
+            ? (typeof ctxBody === "string" ? ctxBody : JSON.stringify(ctxBody))
+            : "";
+        return extra ? (msg + " — " + extra) : msg;
+      }catch(_){
+        return e?.message || String(e);
+      }
+    }
+
     async function hasActiveCreatorPlan(userId){
       try{
         const { data, error } = await onlypawsClient
@@ -878,6 +893,27 @@
       if(enablePayoutBtn) enablePayoutBtn.style.display = "none";
 
       try{
+        // ✅ (FIX) If creator plan not active, don't call creator-balance (avoid useless non-2xx)
+        if(!__creatorUnlocked){
+          walletPayoutsEl.textContent = __payoutEnabled ? "YES" : "NO";
+          enable(withdrawBtn, false);
+          withdrawHint.textContent = "Creator Plan required to withdraw.";
+          walletHint.textContent = "Creator tools locked.";
+          return;
+        }
+
+        // ✅ (FIX) If payouts/connect not enabled, show onboarding instead of calling creator-balance (which can 4xx)
+        if(!__payoutEnabled){
+          walletPayoutsEl.textContent = "NO";
+          enable(withdrawBtn, false);
+          if(enablePayoutBtn) enablePayoutBtn.style.display = "inline-flex";
+          withdrawHint.textContent = "Enable payouts to withdraw.";
+          walletHint.textContent = "Action required.";
+          showWalletMsg("Action required", "Complete Stripe onboarding to activate wallet and payouts.");
+          return;
+        }
+
+        // If we get here, attempt to load balance
         const { data, error } = await onlypawsClient.functions.invoke("creator-balance", { body: {} });
         if(error) throw error;
 
@@ -886,24 +922,7 @@
 
         walletAvailableEl.textContent = fmtEUR(available);
         walletPendingEl.textContent = fmtEUR(pending);
-        walletPayoutsEl.textContent = __payoutEnabled ? "YES" : "NO";
-
-        if(!__creatorUnlocked){
-          enable(withdrawBtn, false);
-          withdrawHint.textContent = "Creator Plan required to withdraw.";
-          walletHint.textContent = "Loaded ✅";
-          return;
-        }
-
-        if(!__payoutEnabled){
-          enable(withdrawBtn, false);
-          if(enablePayoutBtn) enablePayoutBtn.style.display = "inline-flex";
-          withdrawHint.textContent = "Enable payouts to withdraw.";
-          walletHint.textContent = "Loaded ✅";
-          return;
-        }
-
-        if(enablePayoutBtn) enablePayoutBtn.style.display = "none";
+        walletPayoutsEl.textContent = "YES";
 
         if(available < MIN_WITHDRAW_CENTS){
           enable(withdrawBtn, false);
@@ -918,7 +937,15 @@
 
       }catch(e){
         walletHint.textContent = "Couldn’t load wallet";
-        showWalletMsg("Wallet error", e?.message || String(e));
+
+        // ✅ (FIX) show more details even without console
+        const details = extractInvokeErrorDetails(e);
+        showWalletMsg("Wallet error", details);
+
+        // ✅ (FIX) if wallet fails, still offer onboarding CTA (common case: not connected / onboarding incomplete)
+        if(enablePayoutBtn) enablePayoutBtn.style.display = "inline-flex";
+        enable(withdrawBtn, false);
+        withdrawHint.textContent = "Connect Stripe to enable wallet & payouts.";
       }
     }
 
