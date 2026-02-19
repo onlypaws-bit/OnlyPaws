@@ -90,19 +90,18 @@
 <body>
 <div class="wrap">
   <div class="nav">
-  <a href="feed.html" class="brand">
-    <div class="brandLogo"><img src="logo.png"></div>
-    <span>OnlyPaws</span>
-  </a>
+    <a href="feed.html" class="brand">
+      <div class="brandLogo"><img src="logo.png"></div>
+      <span>OnlyPaws</span>
+    </a>
 
-  <div class="navRight">
-    <div class="pill" id="userPill">…</div>
+    <div class="navRight">
+      <div class="pill" id="userPill">…</div>
 
-    <a class="navBtn" id="dashTopLink" href="#" style="display:none;">Dashboard</a>
-    <button class="navBtn" id="logoutBtn" type="button">Log out</button>
+      <a class="navBtn" id="dashTopLink" href="#" style="display:none;">Dashboard</a>
+      <button class="navBtn" id="logoutBtn" type="button">Log out</button>
+    </div>
   </div>
-</div>
-
 
   <div class="panel">
     <div class="row">
@@ -111,8 +110,6 @@
         <h1>Your profile</h1>
         <p class="sub">Set your basics + avatar.</p>
       </div>
-
-     
     </div>
 
     <div class="field">
@@ -190,8 +187,6 @@
   function setDeleteMsg(t){ deleteMsg.textContent = t || ""; }
   function setHint(t){ avatarHint.textContent = t || ""; }
 
-  
-
   function hydrateUserPillFromProfile(prof, email){
     try{
       const uname = (prof?.username || "").trim();
@@ -209,9 +204,43 @@
     }catch(e){}
   }
 
-function goIndex(){
+  function goIndex(){
     window.location.replace("index.html");
   }
+
+  // ✅ NEW: guard contro sessione fantasma / user eliminato
+  async function guardAuthOrRedirect(){
+    try{
+      const { data: sessData } = await onlypawsClient.auth.getSession();
+      const session = sessData?.session;
+      if(!session){
+        goIndex();
+        return null;
+      }
+
+      // Se auth user non esiste più (account eliminato) → pulisci e torna a index
+      const { data: u, error: uErr } = await onlypawsClient.auth.getUser();
+      const user = u?.user;
+      if(uErr || !user){
+        try{ await onlypawsClient.auth.signOut(); }catch(e){}
+        goIndex();
+        return null;
+      }
+
+      return user;
+    }catch(e){
+      try{ await onlypawsClient.auth.signOut(); }catch(_){}
+      goIndex();
+      return null;
+    }
+  }
+
+  // ✅ NEW: se la session cambia mentre sei dentro, butta fuori
+  try{
+    onlypawsClient.auth.onAuthStateChange((_event, session) => {
+      if(!session) goIndex();
+    });
+  }catch(e){}
 
   function fileExt(name){
     const m = String(name || "").toLowerCase().match(/\.(\w+)$/);
@@ -243,19 +272,17 @@ function goIndex(){
   async function loadProfile(){
     setMsg("");
 
-    const { data: sessData } = await onlypawsClient.auth.getSession();
-    const session = sessData?.session;
+    const user = await guardAuthOrRedirect();
+    if(!user) return;
 
-    if(!session){ goIndex(); return; }
-
-    const email = session.user?.email || "";
+    const email = user?.email || "";
     emailEl.value = email;
     emailPill.textContent = email || "…";
 
     let { data: prof, error } = await onlypawsClient
       .from("profiles")
       .select("user_id, display_name, username, bio, role, avatar_url")
-      .eq("user_id", session.user.id)
+      .eq("user_id", user.id)
       .maybeSingle();
 
     if(error){
@@ -266,16 +293,25 @@ function goIndex(){
     if(!prof){
       const { error: insErr } = await onlypawsClient
         .from("profiles")
-        .upsert({ user_id: session.user.id, role: "fan" }, { onConflict: "user_id" });
+        .upsert({ user_id: user.id, role: "fan" }, { onConflict: "user_id" });
+
       if(insErr){
+        // FK qui = user non esiste più → fuori
+        if(String(insErr.message || "").toLowerCase().includes("foreign key")){
+          try{ await onlypawsClient.auth.signOut(); }catch(e){}
+          goIndex();
+          return;
+        }
         setMsg("❌ Could not create profile: " + insErr.message);
         return;
       }
+
       const again = await onlypawsClient
         .from("profiles")
         .select("user_id, display_name, username, bio, role, avatar_url")
-        .eq("user_id", session.user.id)
+        .eq("user_id", user.id)
         .maybeSingle();
+
       if(again.error){
         setMsg("❌ Load profile error: " + again.error.message);
         return;
@@ -285,7 +321,8 @@ function goIndex(){
 
     const role = prof?.role || "fan";
     hydrateUserPillFromProfile(prof, email);
-// Dashboard only top-right everywhere
+
+    // Dashboard only top-right everywhere
     dashTopLink.style.display = "inline-flex";
     dashTopLink.href = (role === "creator") ? "creator-dash.html" : "fan-dash.html";
 
@@ -301,31 +338,38 @@ function goIndex(){
 
   async function saveProfile(){
     setMsg("");
-    const { data: sessData } = await onlypawsClient.auth.getSession();
-    const session = sessData?.session;
-    if(!session){ goIndex(); return; }
+
+    const user = await guardAuthOrRedirect();
+    if(!user) return;
 
     saveBtn.disabled = true;
     setMsg("Saving…");
 
     try{
       const payload = {
+        user_id: user.id,
         display_name: (displayNameEl.value || "").trim(),
         username: (usernameEl.value || "").trim(),
         bio: (bioEl.value || "").trim()
       };
 
+      // ✅ changed: upsert (se il profilo è stato eliminato, lo ricrea)
       const { error } = await onlypawsClient
         .from("profiles")
-        .update(payload)
-        .eq("user_id", session.user.id);
+        .upsert(payload, { onConflict: "user_id" });
 
       if(error) throw error;
 
       setMsg("Saved ✅");
       await loadProfile();
     }catch(e){
-      setMsg("❌ " + (e?.message || String(e)));
+      const m = (e?.message || String(e));
+      if(String(m).toLowerCase().includes("foreign key")){
+        try{ await onlypawsClient.auth.signOut(); }catch(_){}
+        goIndex();
+        return;
+      }
+      setMsg("❌ " + m);
     }finally{
       saveBtn.disabled = false;
     }
@@ -334,9 +378,8 @@ function goIndex(){
   uploadAvatarBtn.addEventListener("click", async () => {
     setMsg("");
 
-    const { data: sessData } = await onlypawsClient.auth.getSession();
-    const session = sessData?.session;
-    if(!session){ goIndex(); return; }
+    const user = await guardAuthOrRedirect();
+    if(!user) return;
 
     if(!avatarFile.files || !avatarFile.files[0]){
       alert("Pick an image first.");
@@ -349,12 +392,11 @@ function goIndex(){
 
     try{
       const file = avatarFile.files[0];
-      const url = await uploadAvatarToBucket(file, session.user.id);
+      const url = await uploadAvatarToBucket(file, user.id);
 
       const { error } = await onlypawsClient
         .from("profiles")
-        .update({ avatar_url: url })
-        .eq("user_id", session.user.id);
+        .upsert({ user_id: user.id, avatar_url: url }, { onConflict: "user_id" });
 
       if(error) throw error;
 
@@ -363,8 +405,14 @@ function goIndex(){
       setHint("Uploaded ✅");
       setMsg("Avatar updated ✅");
     }catch(e){
+      const m = (e?.message || String(e));
+      if(String(m).toLowerCase().includes("foreign key")){
+        try{ await onlypawsClient.auth.signOut(); }catch(_){}
+        goIndex();
+        return;
+      }
       setHint("Upload failed");
-      setMsg("❌ " + (e?.message || String(e)));
+      setMsg("❌ " + m);
     }finally{
       uploadAvatarBtn.disabled = false;
       uploadAvatarBtn.textContent = "Upload";
@@ -373,22 +421,27 @@ function goIndex(){
 
   removeAvatarBtn.addEventListener("click", async () => {
     setMsg("");
-    const { data: sessData } = await onlypawsClient.auth.getSession();
-    const session = sessData?.session;
-    if(!session){ goIndex(); return; }
+
+    const user = await guardAuthOrRedirect();
+    if(!user) return;
 
     try{
       const { error } = await onlypawsClient
         .from("profiles")
-        .update({ avatar_url: null })
-        .eq("user_id", session.user.id);
+        .upsert({ user_id: user.id, avatar_url: null }, { onConflict: "user_id" });
       if(error) throw error;
 
       avatarImg.src = "logo.png";
       setHint("Removed ✅");
       setMsg("Avatar removed ✅");
     }catch(e){
-      setMsg("❌ " + (e?.message || String(e)));
+      const m = (e?.message || String(e));
+      if(String(m).toLowerCase().includes("foreign key")){
+        try{ await onlypawsClient.auth.signOut(); }catch(_){}
+        goIndex();
+        return;
+      }
+      setMsg("❌ " + m);
     }
   });
 
@@ -405,6 +458,9 @@ function goIndex(){
     setDeleteMsg("Deleting…");
 
     try{
+      const user = await guardAuthOrRedirect();
+      if(!user) return;
+
       const { error } = await onlypawsClient.functions.invoke("delete-profile", {
         body: { confirm: true },
       });
