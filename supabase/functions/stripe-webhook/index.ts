@@ -140,6 +140,55 @@ function mapStatusToDb(status: string) {
   return "past_due";
 }
 
+// ✅ (NEW) creator plan entitlement status mapper (keeps trialing)
+function mapCreatorPlanStatusToDb(status: string) {
+  const s = (status || "").toLowerCase();
+  if (s === "active" || s === "trialing") return s; // keep trialing
+  if (s === "canceled") return "canceled";
+  if (s === "incomplete_expired" || s === "incomplete") return "expired";
+  // default conservative: no access
+  return "expired";
+}
+
+// ✅ (NEW) upsert entitlement helper (creator_plan only)
+async function upsertCreatorPlanEntitlement(row: {
+  user_id: string;
+  status: string; // active | trialing | canceled | expired
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  current_period_end: string | null;
+}) {
+  await sbAdmin(`entitlements?on_conflict=user_id,key`, {
+    method: "POST",
+    body: JSON.stringify([
+      {
+        user_id: row.user_id,
+        key: "creator_plan",
+        status: row.status,
+        stripe_customer_id: row.stripe_customer_id,
+        stripe_subscription_id: row.stripe_subscription_id,
+        current_period_end: row.current_period_end,
+        updated_at: new Date().toISOString(),
+      },
+    ]),
+    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+  });
+}
+
+// ✅ (NEW) fetch user_id from entitlements by stripe_subscription_id (for subscription.updated/deleted)
+async function findUserIdByCreatorPlanSubscriptionId(subId: string): Promise<string | null> {
+  try {
+    const rows = await sbAdmin(
+      `entitlements?select=user_id&key=eq.creator_plan&stripe_subscription_id=eq.${subId}&limit=1`,
+      { method: "GET" }
+    );
+    const r = Array.isArray(rows) ? rows[0] : null;
+    return safeStr(r?.user_id) || null;
+  } catch (_e) {
+    return null;
+  }
+}
+
 function isAccessActive(currentPeriodEndIso: string | null) {
   if (!currentPeriodEndIso) return true; // fallback (ma idealmente non succede)
   return new Date(currentPeriodEndIso).getTime() > Date.now();
@@ -322,6 +371,10 @@ Deno.serve(async (req) => {
       const fan_id = safeStr(obj?.metadata?.fan_id);
       const creator_id = safeStr(obj?.metadata?.creator_id);
 
+      // ✅ (NEW) creator plan checkout: metadata.user_id
+      const user_id = safeStr(obj?.metadata?.user_id);
+
+      // Keep your existing behavior for fan/creator metadata patch
       if (fan_id && creator_id) {
         try {
           await patchSubscriptionMetadata(subId, fan_id, creator_id);
@@ -331,6 +384,27 @@ Deno.serve(async (req) => {
       }
 
       const sub = await stripeGET(`subscriptions/${subId}`);
+
+      // ✅ (NEW) If this checkout is for creator plan, write entitlement and exit.
+      // (Does NOT affect your existing creator_subscriptions logic.)
+      if (user_id) {
+        const customerId = safeStr(sub?.customer) || safeStr(sub?.customer?.id) || null;
+        const stripeStatus = String(sub?.status || "incomplete");
+        const statusDb = mapCreatorPlanStatusToDb(stripeStatus);
+        const cpe = isoFromUnix(sub?.current_period_end ?? null);
+
+        await upsertCreatorPlanEntitlement({
+          user_id,
+          status: statusDb,
+          stripe_customer_id: customerId,
+          stripe_subscription_id: safeStr(sub?.id) || null,
+          current_period_end: cpe,
+        });
+
+        return new Response("ok", { status: 200, headers: corsHeaders });
+      }
+
+      // Existing behavior: fan subscribes to creator
       await upsertFromStripeSubscription(sub);
 
       return new Response("ok", { status: 200, headers: corsHeaders });
@@ -343,6 +417,26 @@ Deno.serve(async (req) => {
       const hasCpe = obj?.current_period_end != null;
       const sub = (subId && !hasCpe) ? await stripeGET(`subscriptions/${subId}`) : obj;
 
+      // ✅ (NEW) If this is a creator plan subscription, update entitlement (keeps everything in sync)
+      const user_id = safeStr(sub?.metadata?.user_id) || (subId ? await findUserIdByCreatorPlanSubscriptionId(subId) : null);
+      if (user_id) {
+        const customerId = safeStr(sub?.customer) || safeStr(sub?.customer?.id) || null;
+        const stripeStatus = String(sub?.status || "incomplete");
+        const statusDb = mapCreatorPlanStatusToDb(stripeStatus);
+        const cpe = isoFromUnix(sub?.current_period_end ?? null);
+
+        await upsertCreatorPlanEntitlement({
+          user_id,
+          status: statusDb,
+          stripe_customer_id: customerId,
+          stripe_subscription_id: safeStr(sub?.id) || null,
+          current_period_end: cpe,
+        });
+
+        return new Response("ok", { status: 200, headers: corsHeaders });
+      }
+
+      // Existing behavior: fan subscribes to creator
       await upsertFromStripeSubscription(sub);
       return new Response("ok", { status: 200, headers: corsHeaders });
     }
@@ -356,6 +450,27 @@ Deno.serve(async (req) => {
       const subId = safeStr(obj?.subscription);
       if (subId) {
         const sub = await stripeGET(`subscriptions/${subId}`);
+
+        // ✅ (NEW) If creator plan subscription, sync entitlement too
+        const user_id = safeStr(sub?.metadata?.user_id) || await findUserIdByCreatorPlanSubscriptionId(subId);
+        if (user_id) {
+          const customerId = safeStr(sub?.customer) || safeStr(sub?.customer?.id) || null;
+          const stripeStatus = String(sub?.status || "incomplete");
+          const statusDb = mapCreatorPlanStatusToDb(stripeStatus);
+          const cpe = isoFromUnix(sub?.current_period_end ?? null);
+
+          await upsertCreatorPlanEntitlement({
+            user_id,
+            status: statusDb,
+            stripe_customer_id: customerId,
+            stripe_subscription_id: safeStr(sub?.id) || null,
+            current_period_end: cpe,
+          });
+
+          return new Response("ok", { status: 200, headers: corsHeaders });
+        }
+
+        // Existing behavior: fan subscribes to creator
         await upsertFromStripeSubscription(sub);
       }
       return new Response("ok", { status: 200, headers: corsHeaders });
@@ -364,7 +479,24 @@ Deno.serve(async (req) => {
     // customer.subscription.deleted
     if (type === "customer.subscription.deleted") {
       const subId = safeStr(obj?.id);
-      if (subId) await cancelByStripeSubscriptionId(subId);
+      if (subId) {
+        // ✅ (NEW) If creator plan sub is deleted, mark entitlement canceled/expired
+        const user_id = safeStr(obj?.metadata?.user_id) || await findUserIdByCreatorPlanSubscriptionId(subId);
+        if (user_id) {
+          const cpe = isoFromUnix(obj?.current_period_end ?? null) || new Date().toISOString();
+          await upsertCreatorPlanEntitlement({
+            user_id,
+            status: "canceled",
+            stripe_customer_id: safeStr(obj?.customer) || safeStr(obj?.customer?.id) || null,
+            stripe_subscription_id: subId,
+            current_period_end: cpe,
+          });
+          return new Response("ok", { status: 200, headers: corsHeaders });
+        }
+
+        // Existing behavior: fan subscribes to creator
+        await cancelByStripeSubscriptionId(subId);
+      }
       return new Response("ok", { status: 200, headers: corsHeaders });
     }
 
