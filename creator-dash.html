@@ -464,7 +464,7 @@
           .select("id")
           .eq("user_id", userId)
           .eq("key", "creator_plan")
-          .eq("status", "active")
+          .in("status", ["active", "trialing"])
           .maybeSingle();
         if(error) return false;
         return !!data;
