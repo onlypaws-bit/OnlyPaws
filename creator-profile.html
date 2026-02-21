@@ -289,6 +289,13 @@
       return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v || "");
     }
 
+    function getSupabaseFunctionsUrl(){
+      const base =
+        (onlypawsClient && (onlypawsClient.supabaseUrl || onlypawsClient.url || onlypawsClient._supabaseUrl)) ||
+        "";
+      return base ? `${String(base).replace(/\/+$/,"")}/functions/v1` : "";
+    }
+
     async function hydrateUserPill(){
       try{
         const pill = document.getElementById("userPill");
@@ -420,7 +427,7 @@
     // ✅ Rules:
     // - private (is_public=false): only creator
     // - public free: everyone
-    // - public premium: creator OR subscriber
+    // - public premium: creator OR subscriber (access until period_end)
     function renderPosts(list, creatorUsername, ent){
       const postsEl = document.getElementById("posts");
 
@@ -477,7 +484,6 @@
           const pb = document.getElementById("premiumBtn");
           if(pb?.disabled){
             const hint = document.getElementById("creatorHint");
-            // If the main button is disabled, show the same reason
             if(hint){
               hint.textContent = pb.title || "Subscriptions are not available right now.";
             }
@@ -576,15 +582,23 @@
 
     function computeAccess(subRow){
       const periodEndMs = subRow?.current_period_end ? new Date(subRow.current_period_end).getTime() : 0;
+
       // primary rule: access until period end
       let hasAccess = !!periodEndMs && periodEndMs > Date.now();
+
       // legacy fallback: if DB doesn't have period_end but marks active, treat as access
       if(!hasAccess && !subRow?.current_period_end && subRow?.is_active === true) hasAccess = true;
 
-      const isCanceling = !!subRow?.cancel_at_period_end && hasAccess;
-      return { hasAccess, isCanceling, periodEndMs };
-    }
+      // ✅ semantics (same as fan-dash):
+      // Canceling = scheduled cancel (cancel_at_period_end=true) AND still has access
+      const isCanceling = (subRow?.cancel_at_period_end === true) && hasAccess;
 
+      // Canceled = status canceled/cancelled (NOT resumable)
+      const status = (subRow?.status || "").toString().toLowerCase();
+      const isCanceled = (status === "canceled" || status === "cancelled");
+
+      return { hasAccess, isCanceling, isCanceled, periodEndMs };
+    }
 
     function setupLogout(){
       const logoutBtn = document.getElementById("navLogout");
@@ -604,8 +618,8 @@
       if(txt != null) btn.textContent = txt;
     }
 
-    function goSubscribe(creatorId){
-      if(!creatorId) return alert("❌ Missing creator id (can't open subscriptions).");
+    function goSubscribe(){
+      // checkout flow lives in fan-dash for now
       window.location.href = `fan-dash.html`;
     }
 
@@ -613,6 +627,28 @@
       const el = document.getElementById("creatorHint");
       if(!el) return;
       el.textContent = msg || "";
+    }
+
+    // ✅ Resume via fetch so we can handle 409 cleanly
+    async function resumeSubscriptionFetch(stripeSubId){
+      const { data: s } = await onlypawsClient.auth.getSession();
+      const token = s?.session?.access_token;
+      if(!token) throw new Error("No session");
+
+      const fnBase = getSupabaseFunctionsUrl();
+      if(!fnBase) throw new Error("Supabase URL not available in client");
+
+      const res = await fetch(`${fnBase}/resume-subscription`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ stripe_subscription_id: stripeSubId }),
+      });
+
+      const out = await res.json().catch(() => ({}));
+      return { res, out };
     }
 
     async function boot(){
@@ -626,6 +662,7 @@
       await hydrateUserPill();
 
       const fanId = session.user.id;
+
       // Viewer role gate: creators cannot subscribe (for now)
       let viewerRole = "";
       try{
@@ -637,6 +674,7 @@
         viewerRole = (vp?.role || "").toString();
       }catch(e){}
       const viewerIsCreator = (viewerRole === "creator");
+
       const { u, success, session_id } = getParams();
       if(!u){ goIndex(); return; }
 
@@ -650,7 +688,6 @@
       function explainCreatorNotReady(){
         setTopHint("⚠️ This creator isn’t ready for subscriptions yet (Stripe setup incomplete).");
       }
-
 
       try{
         // ✅ support both username and UUID in ?u=
@@ -673,10 +710,9 @@
           setTopHint("");
         }
 
-                // creator eligibility useful for tooltip only
-        const status = (creator.stripe_onboarding_status || "").toString().trim().toLowerCase();
-        // Accept both 'complete' and 'completed' (DB may store either)
-        const statusOk = (status === "completed" || status === "complete");
+        // creator eligibility (Stripe)
+        const onboardStatus = (creator.stripe_onboarding_status || "").toString().trim().toLowerCase();
+        const statusOk = (onboardStatus === "completed" || onboardStatus === "complete");
         const creatorEligible = (
           creator.role === "creator" &&
           statusOk &&
@@ -686,7 +722,6 @@
 
         if(!creatorEligible){
           premiumBtn.title = "Creator not ready yet (Stripe setup). Missing completion, charges_enabled, or Connect ID.";
-          // Note: in demo we block subscribe until ready to avoid failed checkouts.
         }else{
           premiumBtn.title = "";
         }
@@ -698,7 +733,6 @@
 
         // ✅ after returning from Stripe, retry subscription check (webhook might be slightly delayed)
         if((success === "1" || session_id) && !hasAccess){
-          // quick retries: 1.5s, 3s, 5s
           const waits = [1500, 3000, 5000];
           for(const w of waits){
             await new Promise(r => setTimeout(r, w));
@@ -753,7 +787,7 @@
           }
         });
 
-                function setPremiumUi(){
+        function setPremiumUi(){
           // Priority 1: viewer role gate
           if(viewerIsCreator){
             premiumBtn.textContent = "Coming soon";
@@ -770,10 +804,22 @@
             return;
           }
 
-          // Compute access from period end (robust)
           subState = computeAccess(subRow);
           hasAccess = subState.hasAccess;
+
           const isCanceling = subState.isCanceling;
+          const isCanceled = subState.isCanceled;
+
+          // ✅ CANCELED: not resumable → "Subscribe again"
+          if(isCanceled){
+            premiumBtn.textContent = "Subscribe again";
+            premiumBtn.disabled = false;
+            premiumBtn.title = "";
+            if(!(success === "1" || session_id)){
+              setTopHint("⚠️ This subscription was canceled and can’t be resumed. Subscribe again to renew.");
+            }
+            return;
+          }
 
           // Not subscribed / no access
           if(!hasAccess){
@@ -783,7 +829,7 @@
             return;
           }
 
-          // Scheduled cancellation (still active until period end)
+          // Scheduled cancellation (still active until period end) → Resume
           if(isCanceling){
             premiumBtn.textContent = "Resume subscription";
             premiumBtn.disabled = false;
@@ -815,8 +861,15 @@
             return;
           }
 
-          // Resume scheduled cancellation (no new checkout)
           subState = computeAccess(subRow);
+
+          // ✅ If canceled: go re-subscribe (new checkout)
+          if(subRow && subState.isCanceled){
+            goSubscribe();
+            return;
+          }
+
+          // Resume scheduled cancellation (no new checkout)
           if(subRow && subState.isCanceling){
             if(!subRow.stripe_subscription_id){
               setTopHint("⚠️ Missing Stripe subscription id. Can't resume automatically.");
@@ -826,20 +879,30 @@
             try{
               setBtnBusy(premiumBtn, true, "Resuming…");
 
-              const { data: s } = await onlypawsClient.auth.getSession();
-              const token = s?.session?.access_token;
-              if(!token) throw new Error("No session");
+              const { res, out } = await resumeSubscriptionFetch(subRow.stripe_subscription_id);
 
-              const { error } = await onlypawsClient.functions.invoke("resume-subscription", {
-                body: { stripe_subscription_id: subRow.stripe_subscription_id },
-                headers: { Authorization: `Bearer ${token}` },
-              });
+              if(res.status === 409){
+                // not resumable -> switch to resubscribe UX
+                subRow.status = "canceled";
+                subRow.cancel_at_period_end = false;
+                setPremiumUi();
+                setTopHint(out?.error || "This subscription can’t be resumed. Please subscribe again.");
+                return;
+              }
 
-              if(error) throw error;
+              if(!res.ok){
+                throw new Error(out?.error || out?.details || `Resume failed (${res.status})`);
+              }
 
-              // Update local state + unlock posts immediately
-              subRow.status = "active";
-              subRow.cancel_at_period_end = false;
+              // Refresh from DB for truth
+              try{
+                subRow = await getSubscriptionState(creator.user_id, fanId);
+              }catch(e){
+                // fallback optimistic update
+                subRow.status = "active";
+                subRow.cancel_at_period_end = false;
+              }
+
               subState = computeAccess(subRow);
               hasAccess = subState.hasAccess;
               setPremiumUi();
@@ -847,7 +910,7 @@
 
               renderPosts(posts, creatorUsername || (isUUID(u) ? creatorUsername : u), {
                 isSelf,
-                isSubscribed: true
+                isSubscribed: !!hasAccess
               });
 
             }catch(e){
@@ -858,12 +921,13 @@
             return;
           }
 
-          // Default: go to fan dash (checkout flow lives there)
-          goSubscribe(creator.user_id);
+          // Default: subscribe (checkout flow lives in fan dash)
+          goSubscribe();
         });
 
         await loadPetsByOwner(creator.user_id);
 
+        // entitlement: access until period_end (even if canceled, if period_end is still in the future)
         renderPosts(posts, creatorUsername || (isUUID(u) ? creatorUsername : u), {
           isSelf,
           isSubscribed: !!hasAccess
@@ -871,10 +935,8 @@
 
         document.getElementById("postsHint").textContent = posts.length ? "" : "No posts yet.";
 
-        // If subscription became true, update hint + clean URL (optional)
         if(hasAccess && (success === "1" || session_id)){
           setTopHint("✅ Subscribed! Premium posts are now unlocked.");
-          // optional: remove noisy params but keep u
           const clean = new URL(window.location.href);
           clean.searchParams.delete("success");
           clean.searchParams.delete("session_id");
