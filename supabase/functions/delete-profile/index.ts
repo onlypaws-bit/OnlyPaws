@@ -16,8 +16,9 @@ function json(status: number, data: unknown) {
   });
 }
 
-const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
-const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2023-10-16" });
+const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") ?? "", {
+  apiVersion: "2023-10-16",
+});
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -49,16 +50,9 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // 1) prendi profile per stripe_customer_id (rete di sicurezza)
-    const { data: profile, error: profErr } = await admin
-      .from("profiles")
-      .select("user_id, stripe_customer_id")
-      .eq("user_id", userId)
-      .maybeSingle();
+    // 1) raccogli tutte le stripe_subscription_id legate all'utente
+    const ids = new Set<string>();
 
-    if (profErr) return json(500, { error: profErr.message });
-
-    // 2) STOP STRIPE SUBS: tutte quelle collegate all'utente via creator_subscriptions
     const { data: relSubs, error: relSubsErr } = await admin
       .from("creator_subscriptions")
       .select("stripe_subscription_id")
@@ -66,43 +60,23 @@ serve(async (req) => {
       .not("stripe_subscription_id", "is", null);
 
     if (relSubsErr) return json(500, { error: relSubsErr.message });
+    for (const r of relSubs ?? []) if (r?.stripe_subscription_id) ids.add(r.stripe_subscription_id);
 
-    const ids = new Set<string>();
-    for (const r of relSubs ?? []) {
-      if (r?.stripe_subscription_id) ids.add(r.stripe_subscription_id);
-    }
+    const { data: ents, error: entsErr } = await admin
+      .from("entitlements")
+      .select("stripe_subscription_id")
+      .eq("user_id", userId)
+      .not("stripe_subscription_id", "is", null);
 
+    if (entsErr) return json(500, { error: entsErr.message });
+    for (const e of ents ?? []) if (e?.stripe_subscription_id) ids.add(e.stripe_subscription_id);
+
+    // 2) cancel immediato su Stripe
     for (const subId of ids) {
-      try {
-        await stripe.subscriptions.cancel(subId); // ✅ immediato
-      } catch {
-        // idempotente
-      }
+      try { await stripe.subscriptions.cancel(subId); } catch {}
     }
 
-    // 2B) rete di sicurezza: se ha stripe_customer_id, cancella tutte le sub del customer
-    if (profile?.stripe_customer_id) {
-      const statuses: Stripe.SubscriptionListParams.Status[] = [
-        "active",
-        "trialing",
-        "past_due",
-        "unpaid",
-      ];
-
-      for (const st of statuses) {
-        const subs = await stripe.subscriptions.list({
-          customer: profile.stripe_customer_id,
-          status: st,
-          limit: 100,
-        });
-
-        for (const s of subs.data) {
-          try { await stripe.subscriptions.cancel(s.id); } catch {}
-        }
-      }
-    }
-
-    // 3) DB delete: basta profiles, i CASCADE fanno il resto
+    // 3) delete profile (CASCADE pulisce tutto)
     const { error: delProfErr } = await admin.from("profiles").delete().eq("user_id", userId);
     if (delProfErr) return json(500, { error: delProfErr.message });
 
@@ -110,7 +84,7 @@ serve(async (req) => {
     const { error: delAuthErr } = await admin.auth.admin.deleteUser(userId);
     if (delAuthErr) return json(500, { error: delAuthErr.message });
 
-    return json(200, { ok: true });
+    return json(200, { ok: true, canceled_subscriptions: ids.size });
   } catch (e: any) {
     return json(500, { error: e?.message || String(e) });
   }
