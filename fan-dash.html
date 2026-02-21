@@ -523,8 +523,14 @@
 
       const hasAccess = !!periodEndMs && periodEndMs > now;
 
-      // ✅ Stripe cancel_at_period_end is the real signal for scheduled cancellation
-      const isCanceling = hasAccess && (row.cancel_at_period_end === true);
+      // ✅ Robust canceling detection: scheduled cancel OR already marked canceled (but still within period)
+      const isCanceling =
+        hasAccess &&
+        (
+          row.cancel_at_period_end === true ||
+          status === "canceled" ||
+          status === "cancelled"
+        );
 
       let badgeText = "Active";
       if(status === "past_due") badgeText = "Past due";
@@ -541,12 +547,12 @@
       const canCancel =
         hasAccess &&
         status === "active" &&
-        (row.cancel_at_period_end !== true) &&
+        !isCanceling &&
         row.stripe_subscription_id;
 
       const canResume =
         hasAccess &&
-        (row.cancel_at_period_end === true) &&
+        isCanceling &&
         row.stripe_subscription_id;
 
       let actionHtml = "";
