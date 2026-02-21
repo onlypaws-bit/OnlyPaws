@@ -100,6 +100,7 @@
 
     .btnRow{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;}
 
+    /* ghost */
     .ghost{
       padding:12px 16px;border-radius:999px;
       background: rgba(255,255,255,.12);
@@ -125,6 +126,7 @@
       pointer-events:none;
     }
 
+    /* primary */
     .btn{
       display:inline-flex;align-items:center;justify-content:center;
       padding:12px 16px;border-radius:999px;
@@ -389,12 +391,16 @@
         </div>
       `;
 
+      // row clickable
       const openUrl = creatorLink(uname);
       if(uname){
         el.classList.add("clickable");
-        el.addEventListener("click", () => { window.location.href = openUrl; });
+        el.addEventListener("click", () => {
+          window.location.href = openUrl;
+        });
       }
 
+      // unfollow
       const ubtn = el.querySelector("[data-unfollow-id]");
       if(ubtn){
         ubtn.addEventListener("click", (ev) => {
@@ -407,6 +413,14 @@
 
       followsList.appendChild(el);
     }
+  }
+
+  function getSupabaseFunctionsUrl(){
+    // Works with common supabase-js v2 client builds
+    const base =
+      (onlypawsClient && (onlypawsClient.supabaseUrl || onlypawsClient.url || onlypawsClient._supabaseUrl)) ||
+      "";
+    return base ? `${String(base).replace(/\/+$/,"")}/functions/v1` : "";
   }
 
   async function cancelSubscription(stripeSubId, creatorLabel){
@@ -437,24 +451,42 @@
     }
   }
 
+  // ✅ Uses fetch so we can handle 409 cleanly
   async function resumeSubscription(stripeSubId, creatorLabel){
     if(!stripeSubId) return;
     const label = creatorLabel ? ` to ${creatorLabel}` : "";
     if(!confirm(`Resume subscription${label}?`)) return;
 
-    subsMsg.textContent = "Resuming…"; // ✅ se non vedi questo, il click non arriva qui
+    subsMsg.textContent = "Resuming…";
     try{
       const { data: s } = await onlypawsClient.auth.getSession();
       const token = s?.session?.access_token;
       if(!token) throw new Error("No session");
 
-      const { data, error } = await onlypawsClient.functions.invoke("resume-subscription", {
-        body: { stripe_subscription_id: stripeSubId },
-        headers: { Authorization: `Bearer ${token}` },
+      const fnBase = getSupabaseFunctionsUrl();
+      if(!fnBase) throw new Error("Supabase URL not available in client");
+
+      const res = await fetch(`${fnBase}/resume-subscription`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ stripe_subscription_id: stripeSubId }),
       });
 
-      if(error) throw error;
-      if(data && data.ok === false) throw new Error(data.error || "Resume failed");
+      const out = await res.json().catch(() => ({}));
+
+      if(res.status === 409){
+        subsMsg.textContent = out?.error || "This subscription can’t be resumed. Please subscribe again.";
+        // refresh (DB might have been synced)
+        await loadSubscriptions(s.session.user.id);
+        return;
+      }
+
+      if(!res.ok){
+        throw new Error(out?.error || out?.details || `Resume failed (${res.status})`);
+      }
 
       subsMsg.textContent = "Subscription resumed. Updating…";
       await loadSubscriptions(s.session.user.id);
@@ -488,6 +520,7 @@
       return;
     }
 
+    // load creator profiles (username/avatar)
     const creatorIds = Array.from(new Set(rows.map(r => r.creator_id).filter(Boolean)));
     const { data: profs, error: pErr } = await onlypawsClient
       .from("profiles")
@@ -518,17 +551,16 @@
 
       const hasAccess = !!periodEndMs && periodEndMs > now;
 
-      const isCanceling =
-        hasAccess &&
-        (
-          row.cancel_at_period_end === true ||
-          status === "canceled" ||
-          status === "cancelled"
-        );
+      // ✅ Correct semantics:
+      // - "Canceling" = scheduled cancellation (cancel_at_period_end = true)
+      // - "Canceled"  = Stripe canceled (NOT resumable)
+      const isCanceling = hasAccess && (row.cancel_at_period_end === true);
+      const isCanceled = (status === "canceled" || status === "cancelled");
 
       let badgeText = "Active";
       if(status === "past_due") badgeText = "Past due";
       else if(isCanceling) badgeText = "Canceling";
+      else if(isCanceled) badgeText = "Canceled";
       else if(!hasAccess) badgeText = "Expired";
 
       const until = row.current_period_end ? new Date(row.current_period_end).toLocaleDateString() : null;
@@ -549,15 +581,18 @@
         isCanceling &&
         row.stripe_subscription_id;
 
+      const canResubscribe =
+        hasAccess &&
+        isCanceled &&
+        !!uname;
+
       let actionHtml = "";
       if(canCancel){
-        actionHtml = `<button class="ghost danger" type="button"
-          data-cancel-sub="${esc(row.stripe_subscription_id)}"
-          data-cancel-label="${esc(dname)}">Cancel</button>`;
+        actionHtml = `<button class="ghost danger" type="button" data-cancel-sub="${esc(row.stripe_subscription_id)}" data-cancel-label="${esc(dname)}">Cancel</button>`;
       }else if(canResume){
-        actionHtml = `<button class="btn" type="button"
-          data-resume-sub="${esc(row.stripe_subscription_id)}"
-          data-resume-label="${esc(dname)}">Resume subscription</button>`;
+        actionHtml = `<button class="btn" type="button" data-resume-sub="${esc(row.stripe_subscription_id)}" data-resume-label="${esc(dname)}">Resume subscription</button>`;
+      }else if(canResubscribe){
+        actionHtml = `<button class="btn" type="button" data-resub-creator="${esc(uname)}">Subscribe again</button>`;
       }
 
       const canOpen = !!uname;
@@ -579,17 +614,20 @@
         </div>
       `;
 
+      // row clickable
       const openUrl = canOpen ? `creator-profile.html?u=${uParam}` : null;
       if(openUrl){
         el.classList.add("clickable");
-        el.addEventListener("click", () => { window.location.href = openUrl; });
+        el.addEventListener("click", () => {
+          window.location.href = openUrl;
+        });
       }
 
       subsList.appendChild(el);
     }
   }
 
-  // ✅ SUPER ROBUST: delegation for dynamic buttons (Cancel / Resume)
+  // ✅ Delegation for dynamic buttons (Cancel / Resume / Resubscribe)
   (function bindSubsDelegation(){
     if(!subsList) return;
     if(subsList.dataset.bound === "1") return;
@@ -598,7 +636,17 @@
     subsList.addEventListener("click", (ev) => {
       const t = ev.target;
 
-      // Resume
+      // resubscribe (go to creator profile)
+      const reb = t.closest("[data-resub-creator]");
+      if(reb){
+        ev.preventDefault();
+        ev.stopPropagation();
+        const uname = reb.getAttribute("data-resub-creator") || "";
+        if(uname) window.location.href = creatorLink(uname);
+        return;
+      }
+
+      // resume
       const rbtn = t.closest("[data-resume-sub]");
       if(rbtn){
         ev.preventDefault();
@@ -609,7 +657,7 @@
         return;
       }
 
-      // Cancel
+      // cancel
       const cbtn = t.closest("[data-cancel-sub]");
       if(cbtn){
         ev.preventDefault();
