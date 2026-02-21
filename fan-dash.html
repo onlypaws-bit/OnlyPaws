@@ -100,7 +100,6 @@
 
     .btnRow{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;}
 
-    /* ghost */
     .ghost{
       padding:12px 16px;border-radius:999px;
       background: rgba(255,255,255,.12);
@@ -126,7 +125,6 @@
       pointer-events:none;
     }
 
-    /* ✅ primary (coerente a creator-profile) */
     .btn{
       display:inline-flex;align-items:center;justify-content:center;
       padding:12px 16px;border-radius:999px;
@@ -391,16 +389,12 @@
         </div>
       `;
 
-      // row clickable
       const openUrl = creatorLink(uname);
       if(uname){
         el.classList.add("clickable");
-        el.addEventListener("click", () => {
-          window.location.href = openUrl;
-        });
+        el.addEventListener("click", () => { window.location.href = openUrl; });
       }
 
-      // unfollow
       const ubtn = el.querySelector("[data-unfollow-id]");
       if(ubtn){
         ubtn.addEventListener("click", (ev) => {
@@ -426,19 +420,20 @@
       const token = s?.session?.access_token;
       if(!token) throw new Error("No session");
 
-      const { error } = await onlypawsClient.functions.invoke("cancel-subscription", {
+      const { data, error } = await onlypawsClient.functions.invoke("cancel-subscription", {
         body: { stripe_subscription_id: stripeSubId },
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if(error) throw error;
+      if(data && data.ok === false) throw new Error(data.error || "Cancel failed");
 
       subsMsg.textContent = "Cancellation requested. Updating…";
       await loadSubscriptions(s.session.user.id);
       subsMsg.textContent = "Done. Access remains until period end.";
     }catch(e){
       console.error(e);
-      subsMsg.textContent = "❌ Error canceling subscription. Check logs.";
+      subsMsg.textContent = "❌ " + (e?.message || "Error canceling subscription. Check logs.");
     }
   }
 
@@ -447,25 +442,26 @@
     const label = creatorLabel ? ` to ${creatorLabel}` : "";
     if(!confirm(`Resume subscription${label}?`)) return;
 
-    subsMsg.textContent = "Resuming…";
+    subsMsg.textContent = "Resuming…"; // ✅ se non vedi questo, il click non arriva qui
     try{
       const { data: s } = await onlypawsClient.auth.getSession();
       const token = s?.session?.access_token;
       if(!token) throw new Error("No session");
 
-      const { error } = await onlypawsClient.functions.invoke("resume-subscription", {
+      const { data, error } = await onlypawsClient.functions.invoke("resume-subscription", {
         body: { stripe_subscription_id: stripeSubId },
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if(error) throw error;
+      if(data && data.ok === false) throw new Error(data.error || "Resume failed");
 
       subsMsg.textContent = "Subscription resumed. Updating…";
       await loadSubscriptions(s.session.user.id);
       subsMsg.textContent = "";
     }catch(e){
       console.error(e);
-      subsMsg.textContent = "❌ Error resuming subscription. Check logs.";
+      subsMsg.textContent = "❌ " + (e?.message || "Error resuming subscription. Check logs.");
     }
   }
 
@@ -492,7 +488,6 @@
       return;
     }
 
-    // load creator profiles (username/avatar)
     const creatorIds = Array.from(new Set(rows.map(r => r.creator_id).filter(Boolean)));
     const { data: profs, error: pErr } = await onlypawsClient
       .from("profiles")
@@ -523,7 +518,6 @@
 
       const hasAccess = !!periodEndMs && periodEndMs > now;
 
-      // ✅ Robust canceling detection: scheduled cancel OR already marked canceled (but still within period)
       const isCanceling =
         hasAccess &&
         (
@@ -557,9 +551,13 @@
 
       let actionHtml = "";
       if(canCancel){
-        actionHtml = `<button class="ghost danger" type="button" data-cancel-sub="${esc(row.stripe_subscription_id)}" data-cancel-label="${esc(dname)}">Cancel</button>`;
+        actionHtml = `<button class="ghost danger" type="button"
+          data-cancel-sub="${esc(row.stripe_subscription_id)}"
+          data-cancel-label="${esc(dname)}">Cancel</button>`;
       }else if(canResume){
-        actionHtml = `<button class="btn" type="button" data-resume-sub="${esc(row.stripe_subscription_id)}" data-resume-label="${esc(dname)}">Resume subscription</button>`;
+        actionHtml = `<button class="btn" type="button"
+          data-resume-sub="${esc(row.stripe_subscription_id)}"
+          data-resume-label="${esc(dname)}">Resume subscription</button>`;
       }
 
       const canOpen = !!uname;
@@ -581,40 +579,48 @@
         </div>
       `;
 
-      // cancel
-      const cbtn = el.querySelector("[data-cancel-sub]");
-      if(cbtn){
-        cbtn.addEventListener("click", (ev) => {
-          ev.stopPropagation();
-          const subId = cbtn.getAttribute("data-cancel-sub");
-          const label = cbtn.getAttribute("data-cancel-label") || "";
-          cancelSubscription(subId, label);
-        });
-      }
-
-      // resume
-      const rbtn = el.querySelector("[data-resume-sub]");
-      if(rbtn){
-        rbtn.addEventListener("click", (ev) => {
-          ev.stopPropagation();
-          const subId = rbtn.getAttribute("data-resume-sub");
-          const label = rbtn.getAttribute("data-resume-label") || "";
-          resumeSubscription(subId, label);
-        });
-      }
-
-      // row clickable
       const openUrl = canOpen ? `creator-profile.html?u=${uParam}` : null;
       if(openUrl){
         el.classList.add("clickable");
-        el.addEventListener("click", () => {
-          window.location.href = openUrl;
-        });
+        el.addEventListener("click", () => { window.location.href = openUrl; });
       }
 
       subsList.appendChild(el);
     }
   }
+
+  // ✅ SUPER ROBUST: delegation for dynamic buttons (Cancel / Resume)
+  (function bindSubsDelegation(){
+    if(!subsList) return;
+    if(subsList.dataset.bound === "1") return;
+    subsList.dataset.bound = "1";
+
+    subsList.addEventListener("click", (ev) => {
+      const t = ev.target;
+
+      // Resume
+      const rbtn = t.closest("[data-resume-sub]");
+      if(rbtn){
+        ev.preventDefault();
+        ev.stopPropagation();
+        const subId = rbtn.getAttribute("data-resume-sub");
+        const label = rbtn.getAttribute("data-resume-label") || "";
+        resumeSubscription(subId, label);
+        return;
+      }
+
+      // Cancel
+      const cbtn = t.closest("[data-cancel-sub]");
+      if(cbtn){
+        ev.preventDefault();
+        ev.stopPropagation();
+        const subId = cbtn.getAttribute("data-cancel-sub");
+        const label = cbtn.getAttribute("data-cancel-label") || "";
+        cancelSubscription(subId, label);
+        return;
+      }
+    });
+  })();
 
   document.getElementById("logoutBtn").addEventListener("click", async () => {
     try{ await onlypawsClient.auth.signOut(); }catch(e){}
