@@ -454,15 +454,42 @@
       try{
         const { data, error } = await onlypawsClient
           .from("entitlements")
-          .select("id")
+          .select("status, current_period_end")
           .eq("user_id", userId)
           .eq("key", "creator_plan")
-          .in("status", ["active","trialing"])
           .maybeSingle();
-        if(error) return false;
-        return !!data;
+
+        if(error || !data) return false;
+
+        const status = String(data.status || "").toLowerCase();
+        const cpeMs = data.current_period_end ? new Date(data.current_period_end).getTime() : 0;
+        const now = Date.now();
+
+        // Active access
+        if(["active","trialing","past_due"].includes(status)) return true;
+
+        // Canceled but still within paid period
+        if(status === "canceled" && cpeMs && cpeMs > now) return true;
+
+        return false;
       }catch(e){ return false; }
     }
+
+    async function getCreatorPlanStatus(userId){
+      try{
+        const { data, error } = await onlypawsClient
+          .from("entitlements")
+          .select("status, current_period_end, stripe_subscription_id")
+          .eq("user_id", userId)
+          .eq("key", "creator_plan")
+          .maybeSingle();
+        if(error) return null;
+        return data || null;
+      }catch(e){
+        return null;
+      }
+    }
+
 
     async function hasPayoutsEnabled(userId){
       try{
@@ -607,7 +634,7 @@
         const age = (p.age_years != null) ? `• ${p.age_years}y` : "";
         const bio = p.bio || "";
         const avatar = p.avatar_url
-          ? `<img class="petAvatarMini" src="${esc(p.avatar_url)}" alt="pet avatar">`
+          ? `<div class="petAvatarMini"><img src="${esc(p.avatar_url)}" alt="pet avatar"></div>`
           : `<div class="petAvatarMini">🐾</div>`;
         return `
           <div class="rowCard">
@@ -702,7 +729,7 @@
         else if(!hasAccess && s.is_active === false){ badgeText = "Expired"; badgeIcon = "❌"; }
 
         const avatar = s.fan_avatar_url
-          ? `<img class="avatarMini" src="${esc(s.fan_avatar_url)}" alt="avatar">`
+          ? `<div class="avatarMini"><img src="${esc(s.fan_avatar_url)}" alt="avatar"></div>`
           : `<div class="avatarMini">🐾</div>`;
 
         const renewOrUntil = endDate
@@ -760,7 +787,7 @@
         const since = f.created_at ? new Date(f.created_at).toLocaleDateString() : "";
 
         const avatar = f.fan_avatar_url
-          ? `<img class="avatarMini" src="${esc(f.fan_avatar_url)}" alt="avatar">`
+          ? `<div class="avatarMini"><img src="${esc(f.fan_avatar_url)}" alt="avatar"></div>`
           : `<div class="avatarMini">🐾</div>`;
 
         const metaLine = since ? `Followed: ${since}` : "Followed";
@@ -903,7 +930,7 @@
       }
     }
 
-    // ✅ Earnings table (from DB)
+    // ✅ Earnings table (from DB) — with avatar + username + role + click to fan profile
     async function loadEarnings(){
       if(!earningsHint || !earningsTable){
         return;
@@ -946,30 +973,87 @@
         if(fanIds.length){
           const { data: profs, error: pe } = await onlypawsClient
             .from("profiles")
-            .select("user_id, username")
+            .select("user_id, username, role, avatar_url")
             .in("user_id", fanIds);
 
           if(pe) throw pe;
 
-          (profs || []).forEach(p => fanMap.set(p.user_id, (p.username || "").trim()));
+          (profs || []).forEach(p => fanMap.set(p.user_id, p));
+        }
+
+
+        // --- Map subscription -> plan name (VIPaws, etc.) ---
+        const subMap = new Map(); // fan_id -> creator_plan_id
+        const planNameMap = new Map(); // plan_id -> plan name
+
+        if(fanIds.length){
+          const { data: subs, error: se } = await onlypawsClient
+            .from("creator_subscriptions")
+            .select("fan_id, creator_plan_id")
+            .eq("creator_id", __profileUserId)
+            .in("fan_id", fanIds);
+
+          if(se) throw se;
+
+          (subs || []).forEach(s => {
+            if(s?.fan_id) subMap.set(s.fan_id, s.creator_plan_id || null);
+          });
+
+          const planIds = [...new Set((subs || []).map(s => s.creator_plan_id).filter(Boolean))];
+
+          if(planIds.length){
+            const { data: plans, error: ple } = await onlypawsClient
+              .from("creator_plans")
+              .select("id, name")
+              .in("id", planIds);
+
+            if(ple) throw ple;
+
+            (plans || []).forEach(p => {
+              if(p?.id) planNameMap.set(p.id, p.name || "");
+            });
+          }
         }
 
         earningsTable.innerHTML = (data || []).map(t => {
+          const planId = t.fan_id ? subMap.get(t.fan_id) : null;
+          const planName = planId ? planNameMap.get(planId) : null;
+
           const typeIcon =
-            t.type === "subscription" ? "💜 Subscription" :
+            t.type === "subscription" ? `💜 ${planName || "Subscription"}` :
             t.type === "post_unlock" ? "🔓 Unlock" :
             t.type === "tip" ? "💰 Tip" :
             "Payment";
 
-          const fanU = (fanMap.get(t.fan_id) || "").trim();
-          const fanLabel = fanU ? `@${fanU}` : "Fan";
+          const fanObj = t.fan_id ? fanMap.get(t.fan_id) : null;
+
+          const uname = ((fanObj?.username ?? "") + "").trim();
+          const role = ((fanObj?.role ?? "") + "").trim();
+          const avatarUrl = ((fanObj?.avatar_url ?? "") + "").trim();
+
+          const fanLabel = uname ? `@${uname}` : "Fan";
+          const roleLabel = role ? (role.charAt(0).toUpperCase() + role.slice(1)) : "";
+
+          const avatarHtml = avatarUrl
+            ? `<div class="avatarMini"><img src="${esc(avatarUrl)}" alt="avatar"></div>`
+            : `<div class="avatarMini">🐾</div>`;
+
           const date = t.created_at ? new Date(t.created_at).toLocaleDateString() : "";
 
+          const clickable = uname ? "clickable" : "";
+
           return `
-            <div class="rowCard">
-              <div>
-                <b>${esc(typeIcon)}</b>
-                <div class="small">${esc(fanLabel)}</div>
+            <div class="rowCard ${clickable}" data-username="${esc(uname)}">
+              <div class="postMeta">
+                <div class="subLine">
+                  ${avatarHtml}
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0;">
+                    <b style="margin:0;">${esc(typeIcon)}</b>
+                    <div class="small" style="opacity:.92;">
+                      ${esc(fanLabel)}${roleLabel ? ` • ${esc(roleLabel)}` : ""}
+                    </div>
+                  </div>
+                </div>
               </div>
               <div style="text-align:right;">
                 <b>${fmtEUR(t.amount_cents)}</b>
@@ -978,6 +1062,15 @@
             </div>
           `;
         }).join("");
+
+        // click -> fan profile (only if username present)
+        earningsTable.querySelectorAll(".rowCard.clickable").forEach(row => {
+          const username = (row.getAttribute("data-username") || "").trim();
+          if(!username) return;
+          row.addEventListener("click", () => {
+            window.location.href = `fan-profile.html?u=${encodeURIComponent(username)}`;
+          });
+        });
 
         earningsHint.textContent = "Loaded ✅";
 
@@ -1209,7 +1302,89 @@
       }
 
       enable(createPostBtn, true);
-      setState("✅ Creator unlocked", "Plan active. You can create posts and use creator tools.");
+
+      const planData = await getCreatorPlanStatus(session.user.id);
+      let extras = "";
+
+      if(planData){
+        const st = String(planData.status || "").toLowerCase();
+        const cpeIso = planData.current_period_end || null;
+        const cpeMs = cpeIso ? new Date(cpeIso).getTime() : 0;
+        const now = Date.now();
+
+        // If scheduled to cancel but still active, show resume + small end date note
+        if(st === "canceled" && cpeMs && cpeMs > now){
+          const endLabel = new Date(cpeIso).toLocaleDateString();
+          extras = `
+            <div class="btnRow" style="margin-top:12px;">
+              <button class="ghost" type="button" id="resumePlanBtn">Resume Creator Plan</button>
+            </div>
+            <div class="hint" style="margin-top:8px;opacity:.9;">⏳ Access remains active until <b>${endLabel}</b>.</div>
+          `;
+        }else{
+          // Normal active/trialing/past_due
+          extras = `
+            <div class="btnRow" style="margin-top:12px;">
+              <button class="ghost danger" type="button" id="cancelPlanBtn">Cancel</button>
+            </div>
+            <div class="hint" style="margin-top:8px;opacity:.9;">Cancels at the end of your current billing period.</div>
+          `;
+        }
+      }else{
+        // Fallback (shouldn't happen if active), keep UI clean
+        extras = `
+          <div class="btnRow" style="margin-top:12px;">
+            <button class="ghost danger" type="button" id="cancelPlanBtn">Cancel at period end</button>
+          </div>
+          <div class="hint" style="margin-top:8px;opacity:.9;">Cancels at the end of your current billing period.</div>
+        `;
+      }
+
+      setState("✅ Creator unlocked", "Plan active. You can create posts and use creator tools.", extras);
+
+      setTimeout(() => {
+        const cancelBtn = document.getElementById("cancelPlanBtn");
+        if(cancelBtn){
+          cancelBtn.addEventListener("click", async () => {
+            if(!confirm("Cancel your Creator Plan at the end of the current period?")) return;
+
+            cancelBtn.disabled = true;
+            cancelBtn.style.opacity = ".75";
+            cancelBtn.textContent = "Processing…";
+
+            try{
+              const { error } = await onlypawsClient.functions.invoke("cancel-creator-plan", { body: {} });
+              if(error) throw error;
+              window.location.reload();
+            }catch(e){
+              cancelBtn.disabled = false;
+              cancelBtn.style.opacity = "1";
+              cancelBtn.textContent = "Cancel at period end";
+              alert("❌ Cancel failed: " + (e?.message || String(e)));
+            }
+          });
+        }
+
+        const resumeBtn = document.getElementById("resumePlanBtn");
+        if(resumeBtn){
+          resumeBtn.addEventListener("click", async () => {
+            resumeBtn.disabled = true;
+            resumeBtn.style.opacity = ".75";
+            resumeBtn.textContent = "Processing…";
+
+            try{
+              const { error } = await onlypawsClient.functions.invoke("resume-creator-plan", { body: {} });
+              if(error) throw error;
+              window.location.reload();
+            }catch(e){
+              resumeBtn.disabled = false;
+              resumeBtn.style.opacity = "1";
+              resumeBtn.textContent = "Resume Creator Plan";
+              alert("❌ Resume failed: " + (e?.message || String(e)));
+            }
+          });
+        }
+      }, 0);
 
       await loadWallet();
       await loadEarnings();
