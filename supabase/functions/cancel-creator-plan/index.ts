@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return new Response("Unauthorized", { status: 401, headers: corsHeaders });
 
-    // prende stripe_subscription_id dal tuo entitlements creator_plan
+    // find current creator_plan subscription id
     const { data: ent, error: e1 } = await supabase
       .from("entitlements")
       .select("stripe_subscription_id")
@@ -63,13 +63,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ✅ cancel a fine periodo
+    // ✅ cancel at period end
     const sub = await stripePOST(`subscriptions/${subId}`, {
       cancel_at_period_end: "true",
     });
 
-    // ✅ (opzionale) aggiorna subito DB (poi webhook conferma)
-    // NB: non metto status=canceled perché finché è nel periodo, lo vogliamo ancora "active/trialing"
+    // optional: store current_period_end (webhook will sync too)
     const cpeIso =
       sub?.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null;
 
