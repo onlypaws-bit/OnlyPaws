@@ -140,6 +140,19 @@ function mapStatusToDb(status: string) {
   return "past_due";
 }
 
+
+// ---------- Plan lookup helper ----------
+async function findCreatorPlanIdByPrice(creator_id: string, stripe_price_id: string) {
+  if (!creator_id || !stripe_price_id) return null;
+
+  const rows = await sbAdmin(
+    `creator_plans?select=id&creator_id=eq.${creator_id}&stripe_price_id=eq.${stripe_price_id}&limit=1`,
+    { method: "GET" }
+  );
+
+  return Array.isArray(rows) && rows[0]?.id ? String(rows[0].id) : null;
+}
+
 function isAccessActive(currentPeriodEndIso: string | null) {
   if (!currentPeriodEndIso) return true; // fallback (ma idealmente non succede)
   return new Date(currentPeriodEndIso).getTime() > Date.now();
@@ -154,6 +167,7 @@ async function upsertCreatorSubscriptionRow(row: {
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   current_period_end: string | null;
+  creator_plan_id?: string | null;
 }) {
   await sbAdmin(`creator_subscriptions?on_conflict=creator_id,fan_id`, {
     method: "POST",
@@ -167,6 +181,7 @@ async function upsertCreatorSubscriptionRow(row: {
         current_period_end: row.current_period_end,
         stripe_customer_id: row.stripe_customer_id,
         stripe_subscription_id: row.stripe_subscription_id,
+        creator_plan_id: row.creator_plan_id ?? null,
         updated_at: new Date().toISOString(),
       },
     ]),
@@ -215,6 +230,13 @@ async function upsertFromStripeSubscription(sub: any) {
   const isActiveNow =
     statusDb !== "expired" && (access || statusDb === "active" || statusDb === "past_due");
 
+  const priceId =
+    safeStr(sub?.items?.data?.[0]?.price?.id) ||
+    safeStr(sub?.items?.data?.[0]?.price) ||
+    "";
+
+  const creator_plan_id = priceId ? await findCreatorPlanIdByPrice(creator_id, priceId) : null;
+
   await upsertCreatorSubscriptionRow({
     fan_id,
     creator_id,
@@ -224,6 +246,7 @@ async function upsertFromStripeSubscription(sub: any) {
     stripe_customer_id: customerId,
     stripe_subscription_id: safeStr(sub?.id) || null,
     current_period_end: cpe,
+    creator_plan_id,
   });
 }
 
