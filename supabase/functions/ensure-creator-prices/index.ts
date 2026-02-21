@@ -19,13 +19,21 @@ function toForm(params: Record<string, string>) {
   return body;
 }
 
-async function stripePost(path: string, secret: string, params: Record<string, string>, idemKey?: string) {
+async function stripePost(
+  path: string,
+  secret: string,
+  params: Record<string, string>,
+  idemKey?: string,
+  stripeAccount?: string | null
+) {
   const res = await fetch(`https://api.stripe.com/v1/${path}`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${secret}`,
       "Content-Type": "application/x-www-form-urlencoded",
       ...(idemKey ? { "Idempotency-Key": idemKey } : {}),
+      // ✅ create on connected account (DIRECT)
+      ...(stripeAccount ? { "Stripe-Account": stripeAccount } : {}),
     },
     body: toForm(params),
   });
@@ -72,10 +80,26 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    // ✅ 0) serve connect account id: i price DEVONO vivere sul connected per DIRECT checkout
+    const { data: creatorProf, error: creatorProfErr } = await admin
+      .from("profiles")
+      .select("user_id, stripe_connect_account_id, username, display_name")
+      .eq("user_id", creator_id)
+      .maybeSingle();
+
+    if (creatorProfErr) throw creatorProfErr;
+
+    const connectId = (creatorProf as any)?.stripe_connect_account_id as string | null;
+    if (!connectId) {
+      return json(409, { error: "CREATOR_NOT_READY", reason: "missing_stripe_connect_account_id" });
+    }
+
     // 1) carica i 3 piani monthly/attivi del creator
     const { data: plans, error: plansErr } = await admin
       .from("creator_plans")
-      .select("id, creator_id, name, description, price_cents, currency, billing_period, is_active, stripe_price_id, stripe_product_id")
+      .select(
+        "id, creator_id, name, description, price_cents, currency, billing_period, is_active, stripe_price_id, stripe_product_id"
+      )
       .eq("creator_id", creator_id)
       .eq("billing_period", "monthly")
       .eq("is_active", true)
@@ -87,22 +111,13 @@ Deno.serve(async (req) => {
     }
 
     // 2) prendi un product id già esistente se c'è
-    let stripeProductId =
-      plans.find(p => p.stripe_product_id)?.stripe_product_id ??
-      null;
+    let stripeProductId = plans.find((p) => p.stripe_product_id)?.stripe_product_id ?? null;
 
-    // 3) se manca product, crealo (1 per creator)
+    // 3) se manca product, crealo (1 per creator) — SUL CONNECTED
     if (!stripeProductId) {
-      // prova a prendere un nome carino dal profilo
-      const { data: prof } = await admin
-        .from("profiles")
-        .select("user_id, username, display_name")
-        .eq("user_id", creator_id)
-        .maybeSingle();
-
       const pretty =
-        (prof as any)?.display_name ||
-        (prof as any)?.username ||
+        (creatorProf as any)?.display_name ||
+        (creatorProf as any)?.username ||
         `creator ${creator_id.slice(0, 8)}`;
 
       const product = await stripePost(
@@ -113,7 +128,9 @@ Deno.serve(async (req) => {
           description: "Creator memberships on OnlyPaws",
           "metadata[creator_id]": creator_id,
         },
-        `op_prod_${creator_id}` // idempotency
+        // idempotency per connected (così non duplichi se retry)
+        `op_${connectId}_prod_${creator_id}`,
+        connectId
       );
 
       stripeProductId = product.id;
@@ -127,7 +144,7 @@ Deno.serve(async (req) => {
         .in("price_cents", [300, 500, 800]);
     }
 
-    // 4) per ogni piano senza stripe_price_id → crea price monthly
+    // 4) per ogni piano senza stripe_price_id → crea price monthly — SUL CONNECTED
     const created: Array<{ plan_id: string; price_id: string; price_cents: number }> = [];
 
     for (const p of plans) {
@@ -149,7 +166,9 @@ Deno.serve(async (req) => {
           "metadata[plan_id]": p.id,
           "metadata[price_cents]": String(p.price_cents),
         },
-        `op_price_${creator_id}_${p.id}` // idempotency per plan
+        // idempotency per plan sul connected
+        `op_${connectId}_price_${creator_id}_${p.id}`,
+        connectId
       );
 
       await admin
@@ -171,12 +190,13 @@ Deno.serve(async (req) => {
     return json(200, {
       ok: true,
       creator_id,
+      stripe_connect_account_id: connectId,
       stripe_product_id: stripeProductId,
       created_prices: created,
       plans: finalPlans ?? [],
     });
   } catch (e) {
     console.error(e);
-    return json(500, { error: String(e?.message ?? e) });
+    return json(500, { error: String((e as any)?.message ?? e) });
   }
 });
