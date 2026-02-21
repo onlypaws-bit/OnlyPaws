@@ -296,6 +296,22 @@
               <div class="hint" id="walletMsgText"></div>
             </div>
           </div>
+
+          <!-- EARNINGS -->
+          <div class="card" style="margin-top:14px;">
+            <h3>Earnings</h3>
+            <div class="hint" id="earningsHint">Loading…</div>
+
+            <div id="earningsTable" class="list" style="margin-top:10px;"></div>
+
+            <div class="locked" style="margin-top:12px;">
+              <b>Note</b>
+              <div class="hint">
+                Shows completed payments only. Stripe fees and OnlyPaws fee already excluded.
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -370,6 +386,10 @@
     const walletMsgText = document.getElementById("walletMsgText");
     const enablePayoutBtn = document.getElementById("enablePayoutBtn");
     const refreshWalletBtn = document.getElementById("refreshWalletBtn");
+
+    // Earnings
+    const earningsHint = document.getElementById("earningsHint");
+    const earningsTable = document.getElementById("earningsTable");
 
     let __profileUserId = null;
 
@@ -883,6 +903,95 @@
       }
     }
 
+    // ✅ Earnings table (from DB)
+    async function loadEarnings(){
+      if(!earningsHint || !earningsTable){
+        return;
+      }
+
+      if(!__profileUserId){
+        earningsHint.textContent = "Unavailable";
+        earningsTable.innerHTML = "";
+        return;
+      }
+
+      earningsHint.textContent = "Loading…";
+      earningsTable.innerHTML = "";
+
+      try{
+        const { data, error } = await onlypawsClient
+          .from("wallet_transactions")
+          .select("id, type, amount_cents, created_at, fan_id, status")
+          .eq("creator_id", __profileUserId)
+          .eq("status", "paid")
+          .order("created_at", { ascending: false })
+          .limit(50);
+
+        if(error) throw error;
+
+        if(!data || data.length === 0){
+          earningsTable.innerHTML = `
+            <div class="locked">
+              <b>No earnings yet</b>
+              <div class="hint">Completed payments will appear here.</div>
+            </div>
+          `;
+          earningsHint.textContent = "No earnings yet.";
+          return;
+        }
+
+        const fanIds = [...new Set((data || []).map(d => d.fan_id).filter(Boolean))];
+        const fanMap = new Map();
+
+        if(fanIds.length){
+          const { data: profs, error: pe } = await onlypawsClient
+            .from("profiles")
+            .select("user_id, username")
+            .in("user_id", fanIds);
+
+          if(pe) throw pe;
+
+          (profs || []).forEach(p => fanMap.set(p.user_id, (p.username || "").trim()));
+        }
+
+        earningsTable.innerHTML = (data || []).map(t => {
+          const typeIcon =
+            t.type === "subscription" ? "💜 Subscription" :
+            t.type === "post_unlock" ? "🔓 Unlock" :
+            t.type === "tip" ? "💰 Tip" :
+            "Payment";
+
+          const fanU = (fanMap.get(t.fan_id) || "").trim();
+          const fanLabel = fanU ? `@${fanU}` : "Fan";
+          const date = t.created_at ? new Date(t.created_at).toLocaleDateString() : "";
+
+          return `
+            <div class="rowCard">
+              <div>
+                <b>${esc(typeIcon)}</b>
+                <div class="small">${esc(fanLabel)}</div>
+              </div>
+              <div style="text-align:right;">
+                <b>${fmtEUR(t.amount_cents)}</b>
+                <div class="small">${esc(date)}</div>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        earningsHint.textContent = "Loaded ✅";
+
+      }catch(e){
+        earningsHint.textContent = "Couldn’t load earnings";
+        earningsTable.innerHTML = `
+          <div class="locked">
+            <b>Error</b>
+            <div class="hint">${esc(e?.message || String(e))}</div>
+          </div>
+        `;
+      }
+    }
+
     // ✅ Stripe Connect: open onboarding/update flow (Stripe handles everything)
     async function openPayoutSetup(){
       try{
@@ -967,6 +1076,8 @@
         followersHint.textContent = "Log in to see followers.";
         followersList.innerHTML = "";
         walletHint.textContent = "Log in to see balance.";
+        if(earningsHint) earningsHint.textContent = "Log in to see earnings.";
+        if(earningsTable) earningsTable.innerHTML = "";
         return;
       }
 
@@ -984,6 +1095,7 @@
         setState("Profile error", pe.message);
         __profileUserId = null;
         await loadWallet();
+        await loadEarnings();
         await loadPets(session);
         await loadSubscribers(session);
         await loadMyPosts(session);
@@ -1009,6 +1121,7 @@
         enable(createPostBtn, false);
         setState("🚫 Not a creator account", "Your profile role is not set to creator.");
         await loadWallet();
+        await loadEarnings();
         await loadPets(session);
         await loadSubscribers(session);
         await loadMyPosts(session);
@@ -1079,6 +1192,7 @@
         }, 0);
 
         await loadWallet();
+        await loadEarnings();
         await loadPets(session);
         await loadSubscribers(session);
         await loadMyPosts(session);
@@ -1098,6 +1212,7 @@
       setState("✅ Creator unlocked", "Plan active. You can create posts and use creator tools.");
 
       await loadWallet();
+      await loadEarnings();
       await loadPets(session);
       await loadSubscribers(session);
       await loadMyPosts(session);
