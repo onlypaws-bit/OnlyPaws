@@ -58,6 +58,7 @@
     textarea{min-height:110px;}
     .btnRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center;}
     .btn{padding:12px 16px;border-radius:999px;background:#fff;color:#6B4EFF;font-weight:900;border:none;cursor:pointer;}
+    .btn:disabled{opacity:.6;cursor:not-allowed;}
     .ghost{
       padding:12px 16px;border-radius:999px;
       background:rgba(255,255,255,.12);
@@ -81,6 +82,21 @@
       color: rgba(255,255,255,.82);
       line-height:1.45;
     }
+
+    /* ✅ NEW: username hint */
+    .hint{
+      margin-top:8px;
+      padding:10px 12px;
+      border-radius:14px;
+      background: rgba(0,0,0,.14);
+      border:1px solid rgba(255,255,255,.14);
+      font-size:12px;
+      color: rgba(255,255,255,.82);
+      line-height:1.45;
+      white-space:pre-wrap;
+    }
+    .hint.ok{border-color: rgba(170,255,200,.35);}
+    .hint.bad{border-color: rgba(255,170,170,.45);}
 
     footer{margin-top:28px;color:rgba(255,255,255,.75);font-size:13px;text-align:center;}
     .smallLegal{display:inline-block;margin-top:6px;opacity:.85;font-size:12px;}
@@ -130,7 +146,14 @@
     </div>
 
     <div class="field"><label>Display name</label><input id="display_name"></div>
-    <div class="field"><label>Username</label><input id="username"></div>
+
+    <div class="field">
+      <label>Username</label>
+      <input id="username" autocomplete="off" />
+      <!-- ✅ NEW: hint under username -->
+      <div class="hint" id="usernameHint"></div>
+    </div>
+
     <div class="field"><label>Bio</label><textarea id="bio"></textarea></div>
 
     <div class="btnRow">
@@ -183,9 +206,67 @@
   const logoutBtn = document.getElementById("logoutBtn");
   const dashTopLink = document.getElementById("dashTopLink");
 
+  // ✅ NEW: username hint element
+  const usernameHint = document.getElementById("usernameHint");
+
   function setMsg(t){ msg.textContent = t || ""; }
   function setDeleteMsg(t){ deleteMsg.textContent = t || ""; }
   function setHint(t){ avatarHint.textContent = t || ""; }
+
+  // ✅ NEW: username rules aligned with DB
+  const USERNAME_RE = /^[a-z0-9._]{3,24}$/;
+  const HAS_LETTER_RE = /[a-z]/;
+
+  function normalizeUsername(v){
+    return String(v || "").trim().toLowerCase();
+  }
+
+  function setUsernameHint(ok, text){
+    if(!usernameHint) return;
+    usernameHint.textContent = text || "";
+    usernameHint.classList.toggle("ok", !!ok);
+    usernameHint.classList.toggle("bad", !ok);
+  }
+
+  function validateUsername(vRaw){
+    const v = normalizeUsername(vRaw);
+
+    if(!v){
+      return { ok:false, v, msg: "Username required.\nAllowed: a–z, 0–9, '.', '_' (3–24 chars). Must include at least one letter." };
+    }
+    if(v.length < 3){
+      return { ok:false, v, msg: "Too short (min 3 characters)." };
+    }
+    if(v.length > 24){
+      return { ok:false, v, msg: "Too long (max 24 characters)." };
+    }
+    if(!USERNAME_RE.test(v)){
+      return { ok:false, v, msg: "Invalid characters.\nAllowed: lowercase letters, numbers, '.', '_' only." };
+    }
+    if(!HAS_LETTER_RE.test(v)){
+      return { ok:false, v, msg: "Must include at least one letter (a–z)." };
+    }
+    return { ok:true, v, msg: "Looks good ✅" };
+  }
+
+  function refreshUsernameUI(){
+    const res = validateUsername(usernameEl.value);
+
+    // keep it normalized (lowercase/trim) but do NOT replace '.' or '_' (DB allows them)
+    if(usernameEl.value !== res.v){
+      // try to preserve cursor reasonably
+      const start = usernameEl.selectionStart;
+      const end = usernameEl.selectionEnd;
+      usernameEl.value = res.v;
+      if(start != null && end != null){
+        try{ usernameEl.setSelectionRange(start, end); }catch(e){}
+      }
+    }
+
+    setUsernameHint(res.ok, res.msg);
+    saveBtn.disabled = !res.ok;
+    return res;
+  }
 
   function hydrateUserPillFromProfile(prof, email){
     try{
@@ -334,6 +415,9 @@
     avatarImg.src = a ? a : "logo.png";
 
     setHint("Upload an image to change your avatar.");
+
+    // ✅ NEW: run username validation after hydrate
+    refreshUsernameUI();
   }
 
   async function saveProfile(){
@@ -342,6 +426,13 @@
     const user = await guardAuthOrRedirect();
     if(!user) return;
 
+    // ✅ NEW: validate before save
+    const v = refreshUsernameUI();
+    if(!v.ok){
+      setMsg("❌ Fix username before saving.");
+      return;
+    }
+
     saveBtn.disabled = true;
     setMsg("Saving…");
 
@@ -349,7 +440,7 @@
       const payload = {
         user_id: user.id,
         display_name: (displayNameEl.value || "").trim(),
-        username: (usernameEl.value || "").trim(),
+        username: v.v, // normalized + validated
         bio: (bioEl.value || "").trim()
       };
 
@@ -363,17 +454,39 @@
       setMsg("Saved ✅");
       await loadProfile();
     }catch(e){
+      const code = e?.code || "";
       const m = (e?.message || String(e));
+
       if(String(m).toLowerCase().includes("foreign key")){
         try{ await onlypawsClient.auth.signOut(); }catch(_){}
         goIndex();
         return;
       }
+
+      // ✅ NEW: friendly duplicate username
+      const mm = String(m).toLowerCase();
+      if(code === "23505" || mm.includes("duplicate key") || mm.includes("profiles_username_unique")){
+        setMsg("❌ Username already taken. Try a different one.");
+        return;
+      }
+
+      // ✅ NEW: friendly format/blank constraint errors
+      if(code === "23514" || mm.includes("profiles_username_format") || mm.includes("profiles_username_not_blank")){
+        setMsg("❌ Invalid username. Allowed: a–z, 0–9, '.', '_' (3–24). Must include at least one letter.");
+        return;
+      }
+
       setMsg("❌ " + m);
     }finally{
-      saveBtn.disabled = false;
+      // if username invalid, keep disabled
+      const vv = refreshUsernameUI();
+      if(vv.ok) saveBtn.disabled = false;
     }
   }
+
+  // ✅ NEW: live validate username
+  usernameEl.addEventListener("input", refreshUsernameUI);
+  usernameEl.addEventListener("blur", refreshUsernameUI);
 
   uploadAvatarBtn.addEventListener("click", async () => {
     setMsg("");
