@@ -907,6 +907,8 @@
         if(!__payoutEnabled){
           walletHint.textContent = "Stripe setup required to show balance.";
           showWalletMsg("Action required", "Complete Stripe onboarding to view your balance. All payouts/withdrawals are handled in Stripe.");
+          // Debug (helps confirm DB flags)
+          try{ walletHint.textContent += ` (debug: stripe_onboarded=${__payoutEnabled ? "true" : "false"})`; }catch(_){ }
 
           // ✅ Show onboarding button only BEFORE onboarding is complete
           if(enablePayoutBtn){
@@ -1178,7 +1180,7 @@
 
       const { data: prof, error: pe } = await onlypawsClient
         .from("profiles")
-        .select("user_id, username, display_name, role")
+        .select("user_id, username, display_name, role, payouts_enabled, charges_enabled, stripe_onboarding_status, stripe_onboarded, stripe_account_id")
         .eq("user_id", session.user.id)
         .maybeSingle();
 
@@ -1223,8 +1225,9 @@
       const active = await hasActiveCreatorPlan(session.user.id);
       __creatorUnlocked = !!active;
 
-      // payouts_enabled: DB only (no connect-status edge)
-      __payoutEnabled = await hasPayoutsEnabled(session.user.id);
+      // payouts_enabled: use profile flags (synced from Stripe via webhook/connect-update)
+      // ✅ This is the source of truth for whether onboarding is effectively complete.
+      __payoutEnabled = !!(prof?.stripe_onboarded || (prof?.payouts_enabled && prof?.charges_enabled));
 
       if(!active){
         // 🔒 Locked => Create post must be disabled
