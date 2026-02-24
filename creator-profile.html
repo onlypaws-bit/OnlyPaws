@@ -702,15 +702,12 @@
         // creator eligibility
         const status = (creator.stripe_onboarding_status || "").toString().trim().toLowerCase();
         const statusOk = (status === "completed" || status === "complete");
-        const creatorEligible = (
-          creator.role === "creator" &&
-          statusOk &&
-          creator.charges_enabled === true &&
-          (String(creator.stripe_connect_account_id || "").trim().length > 0)
-        );
+
+        // ✅ FIX: fan clients may not see charges_enabled / connect id due to RLS
+        const creatorEligible = (creator.role === "creator" && statusOk);
 
         if(!creatorEligible){
-          premiumBtn.title = "Creator not ready yet (Stripe setup). Missing completion, charges_enabled, or Connect ID.";
+          premiumBtn.title = "Creator not ready yet (Stripe setup incomplete).";
         }else{
           premiumBtn.title = "";
         }
@@ -789,7 +786,7 @@
           if(!creatorEligible){
             premiumBtn.textContent = "Creator not ready";
             premiumBtn.disabled = true;
-            premiumBtn.title = "Creator not ready yet (Stripe setup).";
+            premiumBtn.title = "Creator not ready yet (Stripe setup incomplete).";
             return;
           }
 
