@@ -4,121 +4,1403 @@
   <meta charset="UTF-8" />
   <title>OnlyPaws — Creator Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <!-- ⚠️ STILI IDENTICI, NON TOCCATI -->
   <style>
-    /* … [STILI IDENTICI AL TUO FILE, NON MODIFICATI] … */
+    :root{
+      --bg1:#6B4EFF;
+      --bg2:#8B6CFF;
+      --text:#ffffff;
+      --muted:rgba(255,255,255,.85);
+      --stroke:rgba(255,255,255,.16);
+      --card:rgba(0,0,0,.16);
+      --btn:#ffffff;
+      --btnText:#6B4EFF;
+      --shadow: rgba(0,0,0,.25);
+      --soft: rgba(255,255,255,.10);
+      --soft2: rgba(255,255,255,.12);
+      --danger: rgba(255,0,80,.18);
+      --dangerBorder: rgba(255,0,80,.26);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 20% 10%, rgba(255,255,255,.18), transparent 55%),
+        radial-gradient(1000px 650px at 90% 30%, rgba(0,0,0,.22), transparent 55%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
+      min-height:100vh;
+    }
+    .wrap{max-width:1100px;margin:0 auto;padding:28px 18px 90px;}
+
+    /* NAV */
+    .nav{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px;flex-wrap:wrap;}
+    .brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:white;font-weight:900;}
+    .brandLogo{
+      width:62px;height:62px;border-radius:14px;
+      background: rgba(255,255,255,.16);
+      border:1px solid rgba(255,255,255,.18);
+      display:flex;align-items:center;justify-content:center;
+      overflow:hidden;
+    }
+    .brandLogo img{width:46px;height:46px;object-fit:contain;}
+    .navRight{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
+    .pill{
+      padding:8px 14px;border-radius:999px;
+      background: rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      font-size:13px;color:rgba(255,255,255,.85);
+      white-space:nowrap;
+    }
+    .navBtn{
+      display:inline-flex;align-items:center;justify-content:center;
+      padding:10px 14px;border-radius:999px;
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      color:white;text-decoration:none;font-weight:900;
+      cursor:pointer;font-size:13px;white-space:nowrap;
+      transition:transform .16s ease, background .16s ease, border-color .16s ease;
+      user-select:none;
+    }
+    .navBtn:hover{transform: translateY(-1px); background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.22);}
+    .navBtn:active{transform: translateY(0px) scale(.99);}
+    .navBtn.primary{
+      background: var(--btn);
+      color: var(--btnText);
+      border-color: rgba(255,255,255,.22);
+    }
+    .navBtn.primary:hover{background: rgba(255,255,255,.95);}
+
+    /* PANEL */
+    .panel{
+      border-radius:22px;padding:22px;
+      background: var(--card);
+      border:1px solid var(--stroke);
+      backdrop-filter: blur(10px);
+      box-shadow:0 20px 45px var(--shadow);
+    }
+    h1{margin:0 0 6px;font-size: clamp(2rem, 4vw, 2.4rem);letter-spacing:-0.6px;}
+    .sub{margin:0;color:var(--muted);line-height:1.55}
+
+    /* TOP LAYOUT */
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:14px;
+      margin-top:14px;
+      align-items:start;
+    }
+    .col{
+      display:grid;
+      gap:14px;
+      align-content:start;
+    }
+
+    /* CARDS */
+    .card{
+      background: rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.16);
+      border-radius:18px;
+      padding:14px;
+      height: fit-content;
+    }
+    .card h3{margin:0 0 8px;font-size:18px;letter-spacing:-0.2px}
+    .hint{color:rgba(255,255,255,.82);font-size:13px;line-height:1.55}
+
+    .btnRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+    .btn, .ghost{
+      display:inline-flex;align-items:center;justify-content:center;
+      padding:10px 14px;border-radius:12px;
+      font-weight:900;cursor:pointer;text-decoration:none;
+      border:1px solid rgba(255,255,255,.18);
+      transition:transform .16s ease, background .16s ease, border-color .16s ease, opacity .16s ease;
+      user-select:none;
+      font-size:13px;
+    }
+    .btn{
+      background: var(--btn);
+      color: var(--btnText);
+      border-color: rgba(255,255,255,.22);
+    }
+    .btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.95);}
+    .ghost{
+      background: rgba(255,255,255,.10);
+      color:white;
+    }
+    .ghost:hover{transform: translateY(-1px); background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.22);}
+    .ghost.danger{
+      background: var(--danger);
+      border-color: var(--dangerBorder);
+    }
+    .ghost.danger:hover{background: rgba(255,0,80,.22);}
+
+    .small{font-size:12px;color:rgba(255,255,255,.78);line-height:1.5;}
+    .list{display:grid;gap:10px;margin-top:10px;}
+    .rowCard{
+      background: rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.16);
+      border-radius:16px;
+      padding:12px 14px;
+      display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+    }
+
+    .rowCard.clickable{
+      cursor:pointer;
+      transition: background .16s ease, transform .16s ease;
+    }
+    .rowCard.clickable:hover{
+      background: rgba(255,255,255,.14);
+      transform: translateY(-1px);
+    }
+    .rowCard b{display:block;margin-bottom:4px}
+    .postMeta{min-width:0}
+    .postActions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+    .badge{
+      display:inline-flex;align-items:center;gap:6px;
+      padding:6px 10px;border-radius:999px;
+      border:1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.10);
+      font-size:12px;font-weight:900;
+      white-space:nowrap;
+    }
+    .locked{
+      margin-top:10px;
+      padding:12px 14px;
+      border-radius:16px;
+      background: rgba(0,0,0,.18);
+      border:1px solid rgba(255,255,255,.14);
+    }
+
+    /* Section titles */
+    .sectionTitle{
+      margin-top:18px;
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+      padding-top:8px;
+    }
+    .sectionTitle h2{
+      margin:0;
+      font-size:1.18rem;
+      letter-spacing:-0.3px;
+      line-height:1.2;
+    }
+
+    /* WALLET */
+    .walletGrid{display:grid;grid-template-columns: repeat(2, minmax(0,1fr));gap:10px;margin-top:10px;}
+    @media(max-width:520px){ .walletGrid{grid-template-columns:1fr;} }
+    .kpi{
+      padding:12px;border-radius:16px;
+      background: rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.16);
+    }
+    .kpi .k{font-size:12px;color:rgba(255,255,255,.80);font-weight:900;margin-bottom:6px}
+    .kpi .v{font-size:22px;font-weight:900;letter-spacing:-0.4px}
+    .kpi .s{font-size:12px;color:rgba(255,255,255,.78);margin-top:6px}
+
+    /* Media */
+    .mediaWrap{margin-top:10px;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.16);}
+    .mediaWrap img,.mediaWrap video{display:block;width:100%;max-height:330px;object-fit:cover;background:rgba(0,0,0,.15);}
+
+    .avatarMini,.petAvatarMini{
+      width:34px;height:34px;border-radius:10px;
+      border:1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.12);
+      display:inline-flex;align-items:center;justify-content:center;
+      overflow:hidden;flex:0 0 auto;
+    }
+    .avatarMini img,.petAvatarMini img{width:100%;height:100%;object-fit:cover}
+    .subLine{display:flex;align-items:center;gap:10px;}
+    .petLine{display:flex;align-items:center;gap:10px;}
+
+    footer{
+      margin-top:32px;
+      padding-bottom:22px;
+      color:rgba(255,255,255,.75);
+      font-size:13px;
+      text-align:center;
+      line-height:1.5;
+    }
+    .smallLegal{display:inline-block;margin-top:6px;opacity:.85;font-size:12px;}
   </style>
 </head>
 
 <body>
-<div class="wrap">
-  <!-- NAV identica -->
+  <div class="wrap">
+    <div class="nav">
+      <a href="feed.html" class="brand">
+        <div class="brandLogo"><img src="logo.png" alt="OnlyPaws logo"></div>
+        <span>OnlyPaws</span>
+      </a>
 
-  <div class="panel">
-    <h1>Creator dashboard</h1>
-    <p class="sub">Manage creator tools: posts, audience, and an indicative Stripe balance.</p>
-
-    <!-- STATUS -->
-    <div class="card">
-      <h3>Status</h3>
-      <div class="hint" id="stateBox">Loading…</div>
-
-      <div class="btnRow" style="margin-top:12px;">
-        <a class="btn" id="createPostBtn" href="create-post.html" style="pointer-events:none;opacity:.6;">Create post</a>
-        <a class="ghost" id="gotoProfileBtn" href="profile.html">View profile</a>
-      </div>
-
-      <div class="locked" style="margin-top:12px;">
-        <b>Tip</b>
-        <div class="hint">Post consistently to grow followers and convert them into subscribers 💜</div>
+      <div class="navRight">
+        <div class="pill" id="whoPill">Dashboard</div>
+        <a class="navBtn" id="profileBtn" href="profile.html" style="display:none;">Profile</a>
+        <a class="navBtn" id="loginCreatorBtn" href="creators.html" style="display:none;">Log in</a>
+        <a class="navBtn" id="logoutBtn" href="#" style="display:none;">Log out</a>
       </div>
     </div>
 
-    <!-- resto file invariato -->
+    <div class="panel">
+      <h1>Creator dashboard</h1>
+      <p class="sub">Manage creator tools: posts, audience, and an indicative Stripe balance.</p>
+
+      <div class="grid">
+        <div class="col">
+          <div class="card">
+            <h3>Status</h3>
+            <div class="hint" id="stateBox">Loading…</div>
+
+            <div class="btnRow" style="margin-top:12px;">
+              <a class="btn" id="createPostBtn" href="create-post.html" style="pointer-events:none;opacity:.6;">Create post</a>
+              <a class="ghost" id="gotoProfileBtn" href="profile.html">View profile</a>
+            </div>
+
+            <div class="locked" style="margin-top:12px;">
+              <b>Tip</b>
+              <div class="hint">Post consistently to grow followers and convert them into subscribers 💜</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Balance (indicative)</h3>
+            <div class="hint" id="walletHint">Loading…</div>
+
+            <div class="walletGrid">
+              <div class="kpi">
+                <div class="k">Available</div>
+                <div class="v" id="walletAvailable">—</div>
+                <div class="s">Indicative — managed by Stripe.</div>
+              </div>
+              <div class="kpi">
+                <div class="k">Pending</div>
+                <div class="v" id="walletPending">—</div>
+                <div class="s">Indicative — managed by Stripe.</div>
+              </div>
+            </div>
+
+            <div class="btnRow" style="margin-top:10px;">
+              <button class="ghost" id="refreshWalletBtn" type="button">Refresh</button>
+              <a class="ghost" id="enablePayoutBtn" href="#" style="display:none;">Open Stripe</a>
+            </div>
+
+            <div class="locked" style="margin-top:12px;">
+              <b>Note</b>
+              <div class="hint">Withdrawals, payouts, and account management happen directly in Stripe. This page only shows an indicative balance.</div>
+            </div>
+
+            <div id="walletMsg" class="locked" style="display:none;margin-top:10px;">
+              <b>Wallet message</b>
+              <div class="hint" id="walletMsgText"></div>
+            </div>
+          </div>
+
+          <!-- EARNINGS -->
+          <div class="card" style="margin-top:14px;">
+            <h3>Earnings</h3>
+            <div class="hint" id="earningsHint">Loading…</div>
+
+            <div id="earningsTable" class="list" style="margin-top:10px;"></div>
+
+            <div class="locked" style="margin-top:12px;">
+              <b>Note</b>
+              <div class="hint">
+                Shows completed payments only. Stripe fees and OnlyPaws fee already excluded.
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- PETS -->
+      <div class="sectionTitle">
+        <h2>Your pets</h2>
+        <div class="hint" id="petsHint">Loading…</div>
+      </div>
+      <div class="btnRow" style="margin-top:8px;">
+        <a class="ghost" href="pets.html">➕ Add / manage pets</a>
+      </div>
+      <div class="list" id="petsList"></div>
+
+      <!-- SUBSCRIBERS -->
+      <div class="sectionTitle">
+        <h2>Your subscribers</h2>
+        <div class="hint" id="subsHint">Loading…</div>
+      </div>
+      <div class="list" id="subsList"></div>
+
+      <!-- FOLLOWERS -->
+      <div class="sectionTitle">
+        <h2>Your followers</h2>
+        <div class="hint" id="followersHint">Loading…</div>
+      </div>
+      <div class="list" id="followersList"></div>
+
+      <!-- POSTS -->
+      <div class="sectionTitle">
+        <h2>Your posts</h2>
+        <div class="hint" id="myPostsHint">Loading…</div>
+      </div>
+      <div class="list" id="myPosts"></div>
+    </div>
+
+    <footer>
+      © 2026 OnlyPaws • Built with toe beans energy 🐾<br/>
+      <span class="smallLegal">OnlyPaws is an independent digital platform. Features may evolve over time.</span>
+    </footer>
   </div>
-</div>
 
-<script>
-/* ========= PATCH FRONT ========= */
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="onlypawsClient.js"></script>
+  <script>
+    // ===== CONFIG =====
+    const CREATOR_PLAN_URL = "https://buy.stripe.com/5kQbJ25UY5qegpM4kD5wI02";
+    // Stripe Connect link is created by Supabase Edge Function: connect-update
 
-async function getCreatorPlanStatus(userId){
-  const { data, error } = await onlypawsClient
-    .from("entitlements")
-    .select("status, current_period_end, cancel_at_period_end, stripe_subscription_id")
-    .eq("user_id", userId)
-    .eq("key", "creator_plan")
-    .maybeSingle();
+    function goIndex(){ window.location.replace("index.html"); }
 
-  if(error) throw error;
-  return data;
-}
+    const whoPill = document.getElementById("whoPill");
+    const stateBox = document.getElementById("stateBox");
+    const loginCreatorBtn = document.getElementById("loginCreatorBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const profileBtn = document.getElementById("profileBtn");
+    const createPostBtn = document.getElementById("createPostBtn");
+    const gotoProfileBtn = document.getElementById("gotoProfileBtn");
+    const myPostsEl = document.getElementById("myPosts");
+    const myPostsHint = document.getElementById("myPostsHint");
+    const petsList = document.getElementById("petsList");
+    const petsHint = document.getElementById("petsHint");
+    const subsList = document.getElementById("subsList");
+    const subsHint = document.getElementById("subsHint");
+    const followersList = document.getElementById("followersList");
+    const followersHint = document.getElementById("followersHint");
 
-function renderCreatorPlanState(plan){
-  const now = Date.now();
-  const cpeMs = plan?.current_period_end ? new Date(plan.current_period_end).getTime() : 0;
-  const until = plan?.current_period_end
-    ? new Date(plan.current_period_end).toLocaleDateString()
-    : null;
+    // Balance
+    const walletHint = document.getElementById("walletHint");
+    const walletAvailableEl = document.getElementById("walletAvailable");
+    const walletPendingEl = document.getElementById("walletPending");
+    const walletMsg = document.getElementById("walletMsg");
+    const walletMsgText = document.getElementById("walletMsgText");
+    const enablePayoutBtn = document.getElementById("enablePayoutBtn");
+    const refreshWalletBtn = document.getElementById("refreshWalletBtn");
 
-  if(plan?.cancel_at_period_end && cpeMs > now){
-    setState(
-      "⚠️ Creator plan canceled",
-      `Your plan will end at the end of the billing period.`,
-      `
-        <div class="btnRow" style="margin-top:12px;">
-          <button class="ghost" id="resumePlanBtn">Resume Creator Plan</button>
-        </div>
-        <div class="hint" style="margin-top:6px;">
-          ⏳ Active until <b>${until}</b>
-        </div>
-      `
-    );
-    enable(createPostBtn, true);
-    bindResume();
-    return;
-  }
+    // Earnings
+    const earningsHint = document.getElementById("earningsHint");
+    const earningsTable = document.getElementById("earningsTable");
 
-  // NORMAL ACTIVE
-  setState(
-    "✅ Creator unlocked",
-    "Plan active. You can create posts and use creator tools.",
-    `
-      <div class="btnRow" style="margin-top:12px;">
-        <button class="ghost danger" id="cancelPlanBtn">Cancel</button>
-      </div>
-      <div class="hint" style="margin-top:6px;">
-        Cancels at the end of your current billing period.
-      </div>
-    `
-  );
-  enable(createPostBtn, true);
-  bindCancel();
-}
+    let __profileUserId = null;
 
-function bindCancel(){
-  const btn = document.getElementById("cancelPlanBtn");
-  if(!btn) return;
-  btn.onclick = async () => {
-    if(!confirm("Cancel your Creator Plan at the end of the current period?")) return;
-    btn.disabled = true;
-    btn.textContent = "Processing…";
-    await onlypawsClient.functions.invoke("cancel-creator-plan");
-    window.location.reload();
-  };
-}
+    let __creatorUnlocked = false; // creator_plan active|trialing|past_due|or canceled-but-in-period
+    let __payoutEnabled = false;   // payouts_enabled via entitlements only (no edge)
 
-function bindResume(){
-  const btn = document.getElementById("resumePlanBtn");
-  if(!btn) return;
-  btn.onclick = async () => {
-    btn.disabled = true;
-    btn.textContent = "Processing…";
-    await onlypawsClient.functions.invoke("resume-creator-plan");
-    window.location.reload();
-  };
-}
+    function esc(s){
+      return (s ?? "").toString()
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
 
-/* ========= END PATCH ========= */
-</script>
+    function setState(title, text, extrasHtml){
+      stateBox.innerHTML = `
+        <b>${title}</b>
+        <div class="hint">${(text || "").toString().replaceAll("\n","<br/>")}</div>
+        ${extrasHtml || ""}
+      `;
+    }
+
+    function enable(el, yes){
+      if(!el) return;
+      el.style.pointerEvents = yes ? "auto" : "none";
+      el.style.opacity = yes ? "1" : ".6";
+      if("disabled" in el) el.disabled = !yes;
+    }
+
+    function fmtEUR(cents){
+      const n = Number(cents || 0);
+      return "€" + (n / 100).toFixed(2);
+    }
+
+    function showWalletMsg(title, text){
+      walletMsg.style.display = "block";
+      walletMsg.querySelector("b").textContent = title;
+      walletMsgText.textContent = text || "";
+    }
+
+    function hideWalletMsg(){
+      walletMsg.style.display = "none";
+      walletMsgText.textContent = "";
+    }
+
+    function extractInvokeErrorDetails(e){
+      try{
+        const msg = e?.message || String(e);
+        const ctxBody = e?.context?.body;
+        const extra =
+          ctxBody
+            ? (typeof ctxBody === "string" ? ctxBody : JSON.stringify(ctxBody))
+            : "";
+        return extra ? (msg + " — " + extra) : msg;
+      }catch(_){
+        return e?.message || String(e);
+      }
+    }
+
+    // --- Entitlements: creator_plan (DB only) ---
+    async function hasActiveCreatorPlan(userId){
+      try{
+        const { data, error } = await onlypawsClient
+          .from("entitlements")
+          .select("status, current_period_end, cancel_at_period_end")
+          .eq("user_id", userId)
+          .eq("key", "creator_plan")
+          .maybeSingle();
+
+        if(error) throw error;
+        if(!data) return false;
+
+        const status = String(data.status || "").toLowerCase();
+        const cpeMs = data.current_period_end ? new Date(data.current_period_end).getTime() : 0;
+        const now = Date.now();
+
+        if(["active","trialing","past_due"].includes(status)) return true;
+        if(status === "canceled" && cpeMs && cpeMs > now) return true;
+
+        return false;
+      }catch(e){
+        // If RLS blocks entitlements, we want to *see* it, not silently "false"
+        console.warn("hasActiveCreatorPlan error:", e);
+        return false;
+      }
+    }
+
+    async function getCreatorPlanStatus(userId){
+      try{
+        const { data, error } = await onlypawsClient
+          .from("entitlements")
+          .select("status, current_period_end, cancel_at_period_end, stripe_subscription_id")
+          .eq("user_id", userId)
+          .eq("key", "creator_plan")
+          .maybeSingle();
+        if(error) throw error;
+        return data || null;
+      }catch(e){
+        console.warn("getCreatorPlanStatus error:", e);
+        return null;
+      }
+    }
+
+    // --- Entitlements: payouts_enabled (DB only) ---
+    async function hasPayoutsEnabled(userId){
+      try{
+        const { data, error } = await onlypawsClient
+          .from("entitlements")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("key", "payouts_enabled")
+          .eq("status", "active")
+          .maybeSingle();
+        if(error) throw error;
+        return !!data;
+      }catch(e){
+        console.warn("hasPayoutsEnabled error:", e);
+        return false;
+      }
+    }
+
+    // ===== Media preview =====
+    function mediaBlock(p){
+      if(!p?.media_url) return "";
+      const isVideo = p.media_type === "video";
+      const url = esc(p.media_url);
+      if(isVideo){
+        return `<div class="mediaWrap"><video controls playsinline src="${url}"></video></div>`;
+      }
+      return `<div class="mediaWrap"><img src="${url}" alt="Post media"></div>`;
+    }
+
+    function renderMyPosts(list){
+      if(!list || list.length === 0){
+        myPostsEl.innerHTML = `
+          <div class="locked" style="margin-top:10px;">
+            <b>No posts yet</b>
+            <div class="hint">Create your first post to see it here.</div>
+          </div>
+        `;
+        return;
+      }
+      myPostsEl.innerHTML = list.map(p => {
+        const title = p.title || "Untitled";
+        const isPaid = !!p.is_paid;
+        const badge = isPaid ? "🔒 PREMIUM" : "🆓 FREE";
+        const vis = p.is_public ? "🌍 PUBLIC" : "🙈 PRIVATE";
+        const date = p.created_at ? new Date(p.created_at).toLocaleString() : "";
+        const preview = p.preview || (p.content ? String(p.content).slice(0, 90) : "");
+        const id = p.id;
+        return `
+          <div class="rowCard" data-post-id="${esc(id)}">
+            <div class="postMeta">
+              <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:6px;">
+                <span class="badge">${badge}</span>
+                <span class="badge">${vis}</span>
+                ${date ? `<span class="badge">${esc(date)}</span>` : ``}
+              </div>
+              <b>${esc(title)}</b>
+              ${mediaBlock(p)}
+              <div class="small" style="margin-top:8px;">${esc(preview || "")}</div>
+            </div>
+            <div class="postActions">
+              <a class="ghost" href="create-post.html?edit=${encodeURIComponent(id)}">Edit</a>
+              <button class="ghost danger" type="button" data-action="delete">Delete</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      myPostsEl.querySelectorAll('[data-action="delete"]').forEach(btn => {
+        btn.addEventListener("click", async () => {
+          const row = btn.closest(".rowCard");
+          const postId = row?.getAttribute("data-post-id");
+          if(!postId) return;
+          if(!confirm("Delete this post? This can’t be undone.")) return;
+
+          btn.disabled = true;
+          btn.textContent = "Deleting…";
+          try{
+            const { data: u } = await onlypawsClient.auth.getUser();
+            const userId = u?.user?.id;
+            const del = await onlypawsClient
+              .from("posts")
+              .delete()
+              .eq("id", postId)
+              .eq("creator_id", userId);
+            if(del.error) throw del.error;
+            row.remove();
+            myPostsHint.textContent = "Deleted ✅";
+            if(!myPostsEl.querySelector(".rowCard")){
+              renderMyPosts([]);
+              myPostsHint.textContent = "No posts yet.";
+            }
+          }catch(e){
+            btn.disabled = false;
+            btn.textContent = "Delete";
+            alert("❌ Delete failed: " + (e?.message || String(e)));
+          }
+        });
+      });
+    }
+
+    async function loadMyPosts(session){
+      myPostsHint.textContent = "Loading…";
+      myPostsEl.innerHTML = "";
+      try{
+        const { data, error } = await onlypawsClient
+          .from("posts")
+          .select("id, title, content, preview, media_url, media_type, is_paid, is_public, created_at")
+          .eq("creator_id", session.user.id)
+          .order("created_at", { ascending: false })
+          .limit(30);
+        if(error) throw error;
+        renderMyPosts(data || []);
+        myPostsHint.textContent = (data && data.length) ? "Loaded ✅" : "No posts yet.";
+      }catch(e){
+        myPostsHint.textContent = "Couldn’t load posts";
+        myPostsEl.innerHTML = `
+          <div class="locked" style="margin-top:10px;">
+            <b>Posts list error</b>
+            <div class="hint">${esc(e?.message || String(e))}</div>
+          </div>
+        `;
+      }
+    }
+
+    function renderPets(list){
+      if(!list || list.length === 0){
+        petsList.innerHTML = `
+          <div class="locked" style="margin-top:10px;">
+            <b>No pets yet</b>
+            <div class="hint">Add your first pet in Pets.</div>
+          </div>
+        `;
+        return;
+      }
+      petsList.innerHTML = list.map(p => {
+        const name = p.name || "Pet";
+        const species = p.species ? `• ${p.species}` : "";
+        const breed = p.breed ? `• ${p.breed}` : "";
+        const age = (p.age_years != null) ? `• ${p.age_years}y` : "";
+        const bio = p.bio || "";
+        const avatar = p.avatar_url
+          ? `<div class="petAvatarMini"><img src="${esc(p.avatar_url)}" alt="pet avatar"></div>`
+          : `<div class="petAvatarMini">🐾</div>`;
+        return `
+          <div class="rowCard">
+            <div class="petMeta">
+              <div class="petLine">
+                ${avatar}
+                <b style="margin:0;">${esc(name)} ${esc(species)} ${esc(breed)} ${esc(age)}</b>
+              </div>
+              <div class="small">${esc(bio)}</div>
+            </div>
+            <div class="postActions">
+              <a class="ghost" href="pets.html">Manage</a>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    async function loadPets(session){
+      petsHint.textContent = "Loading…";
+      petsList.innerHTML = "";
+      try{
+        const { data, error } = await onlypawsClient
+          .from("pets")
+          .select("id, name, species, breed, age_years, bio, avatar_url, created_at, owner_id")
+          .eq("owner_id", session.user.id)
+          .order("created_at", { ascending: false })
+          .limit(30);
+        if(error) throw error;
+        renderPets(data || []);
+        petsHint.textContent = (data && data.length) ? "Loaded ✅" : "No pets yet.";
+      }catch(e){
+        petsHint.textContent = "Couldn’t load pets";
+        petsList.innerHTML = `
+          <div class="locked" style="margin-top:10px;">
+            <b>Pets list error</b>
+            <div class="hint">${esc(e?.message || String(e))}</div>
+          </div>
+        `;
+      }
+    }
+
+    function renderSubs(list){
+      if(!list || list.length === 0){
+        subsList.innerHTML = `
+          <div class="locked" style="margin-top:10px;">
+            <b>No subscribers yet</b>
+            <div class="hint">Once paid subscriptions go live, they will show here.</div>
+          </div>
+        `;
+        return;
+      }
+
+      const now = Date.now();
+      const visible = (list || []).filter(s => {
+        const status = String(s.status || "").toLowerCase();
+        const cpeMs = s.current_period_end ? new Date(s.current_period_end).getTime() : 0;
+        return (["active","trialing","past_due"].includes(status) || (cpeMs && cpeMs > now));
+      });
+
+      if(visible.length === 0){
+        subsList.innerHTML = `
+          <div class="locked" style="margin-top:10px;">
+            <b>No active subscribers</b>
+            <div class="hint">Subscriptions will appear here while access is valid.</div>
+          </div>
+        `;
+        return;
+      }
+
+      subsList.innerHTML = visible.map(s => {
+        const name = s.fan_display_name || s.fan_username || "Subscriber";
+        const unameRaw = (s.fan_username || "").trim();
+        const uname = unameRaw ? `@${unameRaw}` : "";
+
+        const since = s.created_at ? new Date(s.created_at).toLocaleDateString() : "";
+
+        const cpeMs = s.current_period_end ? new Date(s.current_period_end).getTime() : 0;
+        const hasAccess = !!cpeMs && cpeMs > now;
+
+        const endDate = s.current_period_end ? new Date(s.current_period_end).toLocaleDateString() : "";
+
+        const status = String(s.status || "").toLowerCase();
+        const cancelAtPeriodEnd = !!s.cancel_at_period_end && hasAccess;
+
+        let badgeText = "Active";
+        let badgeIcon = "💜";
+        if(status === "trialing"){ badgeText = "Trial"; badgeIcon = "✨"; }
+        else if(status === "past_due"){ badgeText = "Past due"; badgeIcon = "⚠️"; }
+        else if(cancelAtPeriodEnd && endDate){ badgeText = "Cancels at period end"; badgeIcon = "⏳"; }
+        else if(!hasAccess && status === "canceled"){ badgeText = "Canceled"; badgeIcon = "❌"; }
+        else if(!hasAccess && s.is_active === false){ badgeText = "Expired"; badgeIcon = "❌"; }
+
+        const avatar = s.fan_avatar_url
+          ? `<div class="avatarMini"><img src="${esc(s.fan_avatar_url)}" alt="avatar"></div>`
+          : `<div class="avatarMini">🐾</div>`;
+
+        const renewOrUntil = endDate
+          ? (cancelAtPeriodEnd ? `Access until ${endDate}` : (hasAccess ? `Renews ${endDate}` : `Ended ${endDate}`))
+          : "";
+
+        const metaLine = [
+          since ? `Subscribed: ${since}` : "",
+          renewOrUntil
+        ].filter(Boolean).join(" • ");
+
+        const clickable = unameRaw ? "clickable" : "";
+        return `
+          <div class="rowCard ${clickable}" data-username="${esc(unameRaw)}">
+            <div class="postMeta">
+              <div class="subLine">
+                ${avatar}
+                <div style="display:flex;flex-direction:column;gap:2px;">
+                  <b style="margin:0;">${esc(name)} ${uname ? `<span style="opacity:.85;font-weight:700;">${esc(uname)}</span>` : ""}</b>
+                  <span class="small" style="opacity:.9;">${esc(metaLine)}</span>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;align-items:center">
+              <span class="badge">${badgeIcon} ${esc(badgeText)}</span>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      subsList.querySelectorAll(".rowCard.clickable").forEach(row => {
+        const username = (row.getAttribute("data-username") || "").trim();
+        if(!username) return;
+        row.addEventListener("click", () => {
+          window.location.href = `fan-profile.html?u=${encodeURIComponent(username)}`;
+        });
+      });
+    }
+
+    function renderFollowers(list){
+      if(!list || list.length === 0){
+        followersList.innerHTML = `
+          <div class="locked" style="margin-top:10px;">
+            <b>No followers yet</b>
+            <div class="hint">Free followers will show up here.</div>
+          </div>
+        `;
+        return;
+      }
+
+      followersList.innerHTML = list.map(f => {
+        const name = f.fan_display_name || f.fan_username || "Follower";
+        const unameRaw = (f.fan_username || "").trim();
+        const uname = unameRaw ? `@${unameRaw}` : "";
+        const since = f.created_at ? new Date(f.created_at).toLocaleDateString() : "";
+
+        const avatar = f.fan_avatar_url
+          ? `<div class="avatarMini"><img src="${esc(f.fan_avatar_url)}" alt="avatar"></div>`
+          : `<div class="avatarMini">🐾</div>`;
+
+        const metaLine = since ? `Followed: ${since}` : "Followed";
+
+        const clickable = unameRaw ? "clickable" : "";
+        return `
+          <div class="rowCard ${clickable}" data-username="${esc(unameRaw)}">
+            <div class="postMeta">
+              <div class="subLine">
+                ${avatar}
+                <div style="display:flex;flex-direction:column;gap:2px;">
+                  <b style="margin:0;">${esc(name)} ${uname ? `<span style="opacity:.85;font-weight:700;">${esc(uname)}</span>` : ""}</b>
+                  <span class="small" style="opacity:.9;">${esc(metaLine)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      followersList.querySelectorAll(".rowCard.clickable").forEach(row => {
+        const username = (row.getAttribute("data-username") || "").trim();
+        if(!username) return;
+        row.addEventListener("click", () => {
+          window.location.href = `fan-profile.html?u=${encodeURIComponent(username)}`;
+        });
+      });
+    }
+
+    async function loadAudience(session){
+      subsHint.textContent = "Loading…";
+      followersHint.textContent = "Loading…";
+      subsList.innerHTML = "";
+      followersList.innerHTML = "";
+
+      // ---- Subscribers ----
+      try{
+        const { data: subsRows, error: se } = await onlypawsClient
+          .from("creator_subscriptions")
+          .select("fan_id,status,is_active,cancel_at_period_end,created_at,current_period_end,stripe_subscription_id")
+          .eq("creator_id", session.user.id)
+          .order("created_at", { ascending: false })
+          .limit(200);
+
+        if(se) throw se;
+
+        const fanIds = Array.from(new Set((subsRows || []).map(r => r.fan_id).filter(Boolean)));
+        const pMap = new Map();
+
+        if(fanIds.length){
+          const { data: profs, error: pe } = await onlypawsClient
+            .from("profiles")
+            .select("user_id, username, display_name, avatar_url")
+            .in("user_id", fanIds);
+
+          if(pe) throw pe;
+
+          for(const p of (profs || [])) pMap.set(p.user_id, p);
+        }
+
+        const subs = (subsRows || []).map(r => {
+          const p = pMap.get(r.fan_id) || {};
+          return {
+            ...r,
+            fan_username: p.username || null,
+            fan_display_name: p.display_name || null,
+            fan_avatar_url: p.avatar_url || null,
+          };
+        });
+
+        renderSubs(subs || []);
+        subsHint.textContent = (subs && subs.length) ? "Loaded ✅" : "No subscribers yet.";
+      }catch(e){
+        const msg = esc(e?.message || String(e));
+        subsHint.textContent = "Couldn’t load subscribers";
+        subsList.innerHTML = `<div class="locked" style="margin-top:10px;"><b>Subscribers error</b><div class="hint">${msg}</div></div>`;
+      }
+
+      // ---- Followers ----
+      try{
+        const { data: foll, error: fe } = await onlypawsClient
+          .from("v_followers_creator")
+          .select("*")
+          .eq("creator_id", session.user.id)
+          .order("created_at", { ascending: false })
+          .limit(200);
+
+        if(fe) throw fe;
+
+        renderFollowers(foll || []);
+        followersHint.textContent = (foll && foll.length) ? "Loaded ✅" : "No followers yet.";
+      }catch(e){
+        const msg = esc(e?.message || String(e));
+        followersHint.textContent = "Couldn’t load followers";
+        followersList.innerHTML = `<div class="locked" style="margin-top:10px;"><b>Followers error</b><div class="hint">${msg}</div></div>`;
+      }
+    }
+
+    async function loadSubscribers(session){ return loadAudience(session); }
+
+    // ✅ Balance only (indicative) — no withdraw logic
+    async function loadWallet(){
+      walletHint.textContent = "Loading…";
+      hideWalletMsg();
+
+      walletAvailableEl.textContent = "—";
+      walletPendingEl.textContent = "—";
+      if(enablePayoutBtn) enablePayoutBtn.style.display = "none";
+
+      try{
+        if(!__creatorUnlocked){
+          walletHint.textContent = "Creator Plan required to view balance.";
+          return;
+        }
+
+        if(!__payoutEnabled){
+          walletHint.textContent = "Stripe setup required to show balance.";
+          showWalletMsg("Action required", "Complete Stripe onboarding to view your balance. All payouts/withdrawals are handled in Stripe.");
+          if(enablePayoutBtn) enablePayoutBtn.style.display = "inline-flex";
+          return;
+        }
+
+        const { data, error } = await onlypawsClient.functions.invoke("creator-balance", { body: {} });
+        if(error) throw error;
+
+        const available = Number(data?.available_cents || 0);
+        const pending = Number(data?.pending_cents || 0);
+
+        walletAvailableEl.textContent = fmtEUR(available);
+        walletPendingEl.textContent = fmtEUR(pending);
+        walletHint.textContent = "Loaded ✅";
+
+      }catch(e){
+        walletHint.textContent = "Couldn’t load balance";
+        const details = extractInvokeErrorDetails(e);
+        showWalletMsg("Balance error", details);
+        if(enablePayoutBtn) enablePayoutBtn.style.display = "inline-flex";
+      }
+    }
+
+    // ✅ Earnings table (from DB) — with avatar + username + role + click to fan profile
+    async function loadEarnings(){
+      if(!earningsHint || !earningsTable) return;
+
+      if(!__profileUserId){
+        earningsHint.textContent = "Unavailable";
+        earningsTable.innerHTML = "";
+        return;
+      }
+
+      earningsHint.textContent = "Loading…";
+      earningsTable.innerHTML = "";
+
+      try{
+        const { data, error } = await onlypawsClient
+          .from("wallet_transactions")
+          .select("id, type, amount_cents, created_at, fan_id, status")
+          .eq("creator_id", __profileUserId)
+          .eq("status", "paid")
+          .order("created_at", { ascending: false })
+          .limit(50);
+
+        if(error) throw error;
+
+        if(!data || data.length === 0){
+          earningsTable.innerHTML = `
+            <div class="locked">
+              <b>No earnings yet</b>
+              <div class="hint">Completed payments will appear here.</div>
+            </div>
+          `;
+          earningsHint.textContent = "No earnings yet.";
+          return;
+        }
+
+        const fanIds = [...new Set((data || []).map(d => d.fan_id).filter(Boolean))];
+        const fanMap = new Map();
+
+        if(fanIds.length){
+          const { data: profs, error: pe } = await onlypawsClient
+            .from("profiles")
+            .select("user_id, username, role, avatar_url")
+            .in("user_id", fanIds);
+
+          if(pe) throw pe;
+          (profs || []).forEach(p => fanMap.set(p.user_id, p));
+        }
+
+        // --- Map subscription -> plan name (VIPaws, etc.) ---
+        const subMap = new Map(); // fan_id -> creator_plan_id
+        const planNameMap = new Map(); // plan_id -> plan name
+
+        if(fanIds.length){
+          const { data: subs, error: se } = await onlypawsClient
+            .from("creator_subscriptions")
+            .select("fan_id, creator_plan_id")
+            .eq("creator_id", __profileUserId)
+            .in("fan_id", fanIds);
+
+          if(se) throw se;
+
+          (subs || []).forEach(s => {
+            if(s?.fan_id) subMap.set(s.fan_id, s.creator_plan_id || null);
+          });
+
+          const planIds = [...new Set((subs || []).map(s => s.creator_plan_id).filter(Boolean))];
+
+          if(planIds.length){
+            const { data: plans, error: ple } = await onlypawsClient
+              .from("creator_plans")
+              .select("id, name")
+              .in("id", planIds);
+
+            if(ple) throw ple;
+
+            (plans || []).forEach(p => {
+              if(p?.id) planNameMap.set(p.id, p.name || "");
+            });
+          }
+        }
+
+        earningsTable.innerHTML = (data || []).map(t => {
+          const planId = t.fan_id ? subMap.get(t.fan_id) : null;
+          const planName = planId ? planNameMap.get(planId) : null;
+
+          const typeIcon =
+            t.type === "subscription" ? `💜 ${planName || "Subscription"}` :
+            t.type === "post_unlock" ? "🔓 Unlock" :
+            t.type === "tip" ? "💰 Tip" :
+            "Payment";
+
+          const fanObj = t.fan_id ? fanMap.get(t.fan_id) : null;
+
+          const uname = ((fanObj?.username ?? "") + "").trim();
+          const role = ((fanObj?.role ?? "") + "").trim();
+          const avatarUrl = ((fanObj?.avatar_url ?? "") + "").trim();
+
+          const fanLabel = uname ? `@${uname}` : "Fan";
+          const roleLabel = role ? (role.charAt(0).toUpperCase() + role.slice(1)) : "";
+
+          const avatarHtml = avatarUrl
+            ? `<div class="avatarMini"><img src="${esc(avatarUrl)}" alt="avatar"></div>`
+            : `<div class="avatarMini">🐾</div>`;
+
+          const date = t.created_at ? new Date(t.created_at).toLocaleDateString() : "";
+
+          const clickable = uname ? "clickable" : "";
+
+          return `
+            <div class="rowCard ${clickable}" data-username="${esc(uname)}">
+              <div class="postMeta">
+                <div class="subLine">
+                  ${avatarHtml}
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0;">
+                    <b style="margin:0;">${esc(typeIcon)}</b>
+                    <div class="small" style="opacity:.92;">
+                      ${esc(fanLabel)}${roleLabel ? ` • ${esc(roleLabel)}` : ""}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <b>${fmtEUR(t.amount_cents)}</b>
+                <div class="small">${esc(date)}</div>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        earningsTable.querySelectorAll(".rowCard.clickable").forEach(row => {
+          const username = (row.getAttribute("data-username") || "").trim();
+          if(!username) return;
+          row.addEventListener("click", () => {
+            window.location.href = `fan-profile.html?u=${encodeURIComponent(username)}`;
+          });
+        });
+
+        earningsHint.textContent = "Loaded ✅";
+
+      }catch(e){
+        earningsHint.textContent = "Couldn’t load earnings";
+        earningsTable.innerHTML = `
+          <div class="locked">
+            <b>Error</b>
+            <div class="hint">${esc(e?.message || String(e))}</div>
+          </div>
+        `;
+      }
+    }
+
+    // ✅ Stripe Connect: open onboarding/update flow (Stripe handles everything)
+    async function openPayoutSetup(){
+      try{
+        if(!enablePayoutBtn) return;
+
+        enablePayoutBtn.textContent = "Opening Stripe…";
+        enablePayoutBtn.style.pointerEvents = "none";
+        enablePayoutBtn.style.opacity = ".75";
+
+        const returnUrl = window.location.origin + "/payouts-setup.html?done=1";
+        const refreshUrl = window.location.origin + "/payouts-setup.html?retry=1";
+
+        const { data, error } = await onlypawsClient.functions.invoke("connect-update", {
+          body: { return_url: returnUrl, refresh_url: refreshUrl }
+        });
+
+        if(error){
+          const ctxBody = error?.context?.body;
+          const extra =
+            ctxBody
+              ? (typeof ctxBody === "string" ? ctxBody : JSON.stringify(ctxBody))
+              : "";
+          throw new Error((error.message || "Edge Function error") + (extra ? " — " + extra : ""));
+        }
+
+        if(!data?.url) throw new Error("Missing Stripe URL");
+        window.location.href = data.url;
+
+      }catch(e){
+        alert("❌ Stripe open failed: " + (e?.message || String(e)));
+      }finally{
+        if(enablePayoutBtn){
+          enablePayoutBtn.textContent = "Open Stripe";
+          enablePayoutBtn.style.pointerEvents = "auto";
+          enablePayoutBtn.style.opacity = "1";
+        }
+      }
+    }
+
+    // ===== MAIN LOAD =====
+    async function load(){
+      if(typeof onlypawsClient === "undefined"){
+        setState("❌ onlypawsClient missing", "Check onlypawsClient.js path and script order.");
+        return;
+      }
+
+      enable(gotoProfileBtn, true);
+
+      if(refreshWalletBtn && refreshWalletBtn.dataset.bound !== "1"){
+        refreshWalletBtn.dataset.bound = "1";
+        refreshWalletBtn.addEventListener("click", loadWallet);
+      }
+      if(enablePayoutBtn && enablePayoutBtn.dataset.bound !== "1"){
+        enablePayoutBtn.dataset.bound = "1";
+        enablePayoutBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          openPayoutSetup();
+        });
+      }
+
+      const { data: sessData } = await onlypawsClient.auth.getSession();
+      const session = sessData?.session;
+
+      loginCreatorBtn.style.display = session ? "none" : "inline-flex";
+      logoutBtn.style.display = session ? "inline-flex" : "none";
+      profileBtn.style.display = session ? "inline-flex" : "none";
+
+      __creatorUnlocked = false;
+      __payoutEnabled = false;
+      if(enablePayoutBtn) enablePayoutBtn.style.display = "none";
+
+      if(!session){
+        whoPill.textContent = "Dashboard";
+        enable(createPostBtn, false);
+        setState("Not logged in", "Log in as a creator to access dashboard tools.");
+        myPostsHint.textContent = "Log in to see your posts.";
+        myPostsEl.innerHTML = "";
+        petsHint.textContent = "Log in to see pets.";
+        petsList.innerHTML = "";
+        subsHint.textContent = "Log in to see subscribers.";
+        subsList.innerHTML = "";
+        followersHint.textContent = "Log in to see followers.";
+        followersList.innerHTML = "";
+        walletHint.textContent = "Log in to see balance.";
+        if(earningsHint) earningsHint.textContent = "Log in to see earnings.";
+        if(earningsTable) earningsTable.innerHTML = "";
+        return;
+      }
+
+      const email = session.user?.email || "creator";
+      whoPill.textContent = email;
+
+      const { data: prof, error: pe } = await onlypawsClient
+        .from("profiles")
+        .select("user_id, username, display_name, role")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+
+      if(pe){
+        enable(createPostBtn, false);
+        setState("Profile error", pe.message);
+        __profileUserId = null;
+        await loadWallet();
+        await loadEarnings();
+        await loadPets(session);
+        await loadSubscribers(session);
+        await loadMyPosts(session);
+        return;
+      }
+
+      __profileUserId = prof?.user_id || session.user.id;
+
+      const role = prof?.role || "fan";
+      const username = prof?.username;
+      const handle = username ? `@${username}` : (prof?.display_name || email);
+      whoPill.textContent = handle;
+
+      if(username){
+        createPostBtn.href = `create-post.html?u=${encodeURIComponent(username)}`;
+        gotoProfileBtn.href = `profile.html?u=${encodeURIComponent(username)}`;
+      }else{
+        createPostBtn.href = "create-post.html";
+        gotoProfileBtn.href = "profile.html";
+      }
+
+      if(role !== "creator"){
+        enable(createPostBtn, false);
+        setState("🚫 Not a creator account", "Your profile role is not set to creator.");
+        await loadWallet();
+        await loadEarnings();
+        await loadPets(session);
+        await loadSubscribers(session);
+        await loadMyPosts(session);
+        return;
+      }
+
+      const active = await hasActiveCreatorPlan(session.user.id);
+      __creatorUnlocked = !!active;
+
+      // payouts_enabled: DB only (no connect-status edge)
+      __payoutEnabled = await hasPayoutsEnabled(session.user.id);
+
+      if(!active){
+        // 🔒 Locked => Create post must be disabled
+        enable(createPostBtn, false);
+
+        const qp = new URLSearchParams(window.location.search);
+        const cameFromStripe = (
+          qp.has("session_id") || qp.has("success") || qp.has("checkout") ||
+          qp.has("payment_intent") || qp.has("redirect_status")
+        );
+
+        const extras = `
+          <div class="btnRow" style="margin-top:12px;">
+            ${
+              cameFromStripe
+                ? `<button class="navBtn primary" type="button" disabled style="opacity:.65;cursor:not-allowed;">Creator Plan processing…</button>`
+                : `<button class="navBtn primary" type="button" id="buyCreatorPlanBtn">Unlock Creator Access — €10/month</button>`
+            }
+            <button class="navBtn" type="button" id="refreshBtn">Refresh</button>
+          </div>
+          ${
+            cameFromStripe
+              ? `<div class="hint" style="margin-top:10px;">✅ Payment started — waiting for Stripe confirmation. Then press Refresh.</div>`
+              : ``
+          }
+        `;
+
+        setState(
+          "🔒 Creator tools locked",
+          cameFromStripe
+            ? "Thanks! Your payment is processing. Creator Plan stays disabled until our server receives confirmation from Stripe."
+            : "Your creator account is ready, but the Creator Plan is not active yet (or the dashboard can’t read it).",
+          extras
+        );
+
+        setTimeout(() => {
+          const refreshBtn = document.getElementById("refreshBtn");
+          if(refreshBtn) refreshBtn.addEventListener("click", () => window.location.reload());
+
+          const buyBtn = document.getElementById("buyCreatorPlanBtn");
+          if(buyBtn){
+            buyBtn.addEventListener("click", async () => {
+              buyBtn.disabled = true;
+              buyBtn.style.opacity = ".75";
+              buyBtn.textContent = "Opening Stripe…";
+              try{
+                const { data, error } = await onlypawsClient.functions.invoke(
+                  "create-creator-plan-checkout",
+                  { body: {} }
+                );
+                if(error) throw error;
+                if(!data?.url) throw new Error("Missing Stripe URL");
+                window.location.href = data.url;
+              }catch(e){
+                buyBtn.disabled = false;
+                buyBtn.style.opacity = "1";
+                buyBtn.textContent = "Unlock Creator Access — €10/month";
+                alert("❌ Checkout error: " + (e?.message || String(e)));
+              }
+            });
+          }
+        }, 0);
+
+        await loadWallet();
+        await loadEarnings();
+        await loadPets(session);
+        await loadSubscribers(session);
+        await loadMyPosts(session);
+        return;
+      }
+
+      // ✅ Active => unlocked
+      enable(createPostBtn, true);
+
+      const planData = await getCreatorPlanStatus(session.user.id);
+      let extras = "";
+
+      if(planData){
+        const st = String(planData.status || "").toLowerCase();
+        const cpeIso = planData.current_period_end || null;
+        const cpeMs = cpeIso ? new Date(cpeIso).getTime() : 0;
+        const now = Date.now();
+
+        if(!!planData.cancel_at_period_end && cpeMs && cpeMs > now){
+          const endLabel = new Date(cpeIso).toLocaleDateString();
+          extras = `
+            <div class="btnRow" style="margin-top:12px;">
+              <button class="ghost" type="button" id="resumePlanBtn">Resume Creator Plan</button>
+            </div>
+            <div class="hint" style="margin-top:8px;opacity:.9;">⏳ Access remains active until <b>${endLabel}</b>.</div>
+          `;
+        }else{
+          extras = `
+            <div class="btnRow" style="margin-top:12px;">
+              <button class="ghost danger" type="button" id="cancelPlanBtn">Cancel</button>
+            </div>
+            <div class="hint" style="margin-top:8px;opacity:.9;">Cancels at the end of your current billing period.</div>
+          `;
+        }
+      }else{
+        extras = `
+          <div class="btnRow" style="margin-top:12px;">
+            <button class="ghost danger" type="button" id="cancelPlanBtn">Cancel at period end</button>
+          </div>
+          <div class="hint" style="margin-top:8px;opacity:.9;">Cancels at the end of your current billing period.</div>
+        `;
+      }
+
+      setState(
+        (!!planData && !!planData.cancel_at_period_end) ? "⚠️ Creator plan canceled" : "✅ Creator unlocked",
+        (!!planData && !!planData.cancel_at_period_end)
+          ? "Your plan will end at the end of the billing period. You keep access until then."
+          : "Plan active. You can create posts and use creator tools.",
+        extras
+      );
+
+      setTimeout(() => {
+        const cancelBtn = document.getElementById("cancelPlanBtn");
+        if(cancelBtn){
+          cancelBtn.addEventListener("click", async () => {
+            if(!confirm("Cancel your Creator Plan at the end of the current period?")) return;
+
+            cancelBtn.disabled = true;
+            cancelBtn.style.opacity = ".75";
+            cancelBtn.textContent = "Processing…";
+
+            try{
+              const { error } = await onlypawsClient.functions.invoke("cancel-creator-plan", { body: {} });
+              if(error) throw error;
+              window.location.reload();
+            }catch(e){
+              cancelBtn.disabled = false;
+              cancelBtn.style.opacity = "1";
+              cancelBtn.textContent = "Cancel at period end";
+              alert("❌ Cancel failed: " + (e?.message || String(e)));
+            }
+          });
+        }
+
+        const resumeBtn = document.getElementById("resumePlanBtn");
+        if(resumeBtn){
+          resumeBtn.addEventListener("click", async () => {
+            resumeBtn.disabled = true;
+            resumeBtn.style.opacity = ".75";
+            resumeBtn.textContent = "Processing…";
+
+            try{
+              const { error } = await onlypawsClient.functions.invoke("resume-creator-plan", { body: {} });
+              if(error) throw error;
+              window.location.reload();
+            }catch(e){
+              resumeBtn.disabled = false;
+              resumeBtn.style.opacity = "1";
+              resumeBtn.textContent = "Resume Creator Plan";
+              alert("❌ Resume failed: " + (e?.message || String(e)));
+            }
+          });
+        }
+      }, 0);
+
+      await loadWallet();
+      await loadEarnings();
+      await loadPets(session);
+      await loadSubscribers(session);
+      await loadMyPosts(session);
+    }
+
+    (function setupLogoutOnce(){
+      if(!logoutBtn) return;
+      if(logoutBtn.dataset.bound === "1") return;
+      logoutBtn.dataset.bound = "1";
+      logoutBtn.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        logoutBtn.disabled = true;
+        logoutBtn.textContent = "Logging out…";
+        try { await onlypawsClient.auth.signOut(); } catch(e) {}
+        goIndex();
+      });
+    })();
+
+    load();
+  </script>
 </body>
 </html>
