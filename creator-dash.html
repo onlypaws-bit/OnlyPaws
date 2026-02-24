@@ -907,7 +907,12 @@
         if(!__payoutEnabled){
           walletHint.textContent = "Stripe setup required to show balance.";
           showWalletMsg("Action required", "Complete Stripe onboarding to view your balance. All payouts/withdrawals are handled in Stripe.");
-          if(enablePayoutBtn) enablePayoutBtn.style.display = "inline-flex";
+
+          // ✅ Show onboarding button only BEFORE onboarding is complete
+          if(enablePayoutBtn){
+            enablePayoutBtn.textContent = "Complete onboarding";
+            enablePayoutBtn.style.display = "inline-flex";
+          }
           return;
         }
 
@@ -1111,7 +1116,7 @@
         alert("❌ Stripe open failed: " + (e?.message || String(e)));
       }finally{
         if(enablePayoutBtn){
-          enablePayoutBtn.textContent = "Open Stripe";
+          enablePayoutBtn.textContent = (__payoutEnabled ? "Open Stripe" : "Complete onboarding");
           enablePayoutBtn.style.pointerEvents = "auto";
           enablePayoutBtn.style.opacity = "1";
         }
