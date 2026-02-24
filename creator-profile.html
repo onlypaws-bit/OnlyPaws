@@ -832,8 +832,8 @@
             return;
           }
 
-          // Active subscription
-          premiumBtn.textContent = "Subscribed";
+          // Active subscription (not canceling) -> allow cancel at period end
+          premiumBtn.textContent = "Cancel subscription";
           premiumBtn.disabled = false;
           premiumBtn.title = "";
         }
@@ -884,6 +884,47 @@
                 isSelf,
                 isSubscribed: true
               });
+
+            }catch(e){
+              alert(e?.message || String(e));
+            }finally{
+              setBtnBusy(premiumBtn, false);
+            }
+            return;
+          }
+
+          // Cancel at period end (active subscription)
+          if(subRow && subState.hasAccess && !subRow.cancel_at_period_end){
+            if(!subRow.stripe_subscription_id){
+              setTopHint("⚠️ Missing Stripe subscription id. Can't cancel automatically.");
+              return;
+            }
+
+            try{
+              setBtnBusy(premiumBtn, true, "Canceling…");
+
+              const { data: s } = await onlypawsClient.auth.getSession();
+              const token = s?.session?.access_token;
+              if(!token) throw new Error("No session");
+
+              // Always cancel at period end
+              const { error } = await onlypawsClient.functions.invoke("cancel-subscription", {
+                body: { stripe_subscription_id: subRow.stripe_subscription_id },
+                headers: { Authorization: `Bearer ${token}` },
+              });
+
+              if(error) throw error;
+
+              // Update local state
+              subRow.status = "active";
+              subRow.cancel_at_period_end = true;
+
+              setPremiumUi();
+
+              const d = subRow?.current_period_end
+                ? new Date(subRow.current_period_end).toLocaleDateString()
+                : "";
+              setTopHint(d ? `✅ Will cancel on ${d}. You can resume anytime before then.` : "✅ Will cancel at period end. You can resume anytime before then.");
 
             }catch(e){
               alert(e?.message || String(e));
