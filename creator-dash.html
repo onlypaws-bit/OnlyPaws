@@ -255,7 +255,7 @@
 
             <div class="btnRow" style="margin-top:12px;">
               <a class="btn" id="createPostBtn" href="create-post.html" style="pointer-events:none;opacity:.6;">Create post</a>
-              <a class="ghost" id="gotoProfileBtn" href="profile.html">View profile</a>
+              
             </div>
 
             <div class="locked" style="margin-top:12px;">
@@ -368,7 +368,7 @@
     const logoutBtn = document.getElementById("logoutBtn");
     const profileBtn = document.getElementById("profileBtn");
     const createPostBtn = document.getElementById("createPostBtn");
-    const gotoProfileBtn = document.getElementById("gotoProfileBtn");
+   
     const myPostsEl = document.getElementById("myPosts");
     const myPostsHint = document.getElementById("myPostsHint");
     const petsList = document.getElementById("petsList");
@@ -1160,7 +1160,7 @@ async function openPayoutSetup(){
         return;
       }
 
-      enable(gotoProfileBtn, true);
+  
 
       if(refreshWalletBtn && refreshWalletBtn.dataset.bound !== "1"){
         refreshWalletBtn.dataset.bound = "1";
@@ -1233,10 +1233,9 @@ async function openPayoutSetup(){
 
       if(username){
         createPostBtn.href = `create-post.html?u=${encodeURIComponent(username)}`;
-        gotoProfileBtn.href = `profile.html?u=${encodeURIComponent(username)}`;
+       
       }else{
         createPostBtn.href = "create-post.html";
-        gotoProfileBtn.href = "profile.html";
       }
 
       if(role !== "creator"){
