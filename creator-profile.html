@@ -574,14 +574,12 @@
         ? new Date(subRow.current_period_end).getTime()
         : 0;
 
-      // access until period end
       const hasAccess = !!periodEndMs && periodEndMs > Date.now();
 
       const status = (subRow?.status || "").toString().toLowerCase();
       const statusCanceled = (status === "canceled" || status === "cancelled");
 
       const isCanceling = hasAccess && (subRow?.cancel_at_period_end === true);
-
       const isHardCanceled = !hasAccess && statusCanceled;
 
       return { hasAccess, isCanceling, periodEndMs, isHardCanceled };
@@ -611,64 +609,10 @@
       el.textContent = msg || "";
     }
 
-    async function loadCreatorPriceId(creatorId){
-      const { data, error } = await onlypawsClient
-        .from("creator_plans")
-        .select("id, stripe_price_id, created_at")
-        .eq("creator_id", creatorId)
-        .eq("is_active", true)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if(error) throw error;
-
-      const pid = (data?.stripe_price_id || "").toString().trim();
-      if(!pid) throw new Error("Creator plan is missing stripe_price_id.");
-      return pid;
+    // ✅ NEW: redirect to subscriptions page (before checkout)
+    function goToSubscriptions(creatorId){
+      window.location.href = `subscriptions.html?creator=${encodeURIComponent(creatorId)}`;
     }
-
-    async function startCheckout(creator, creatorUsernameOrUParam){
-  const { data: s } = await onlypawsClient.auth.getSession();
-  const token = s?.session?.access_token;
-  if(!token) throw new Error("No session");
-
-  const base = new URL(window.location.href);
-  base.searchParams.set("u", creatorUsernameOrUParam || (creator?.username || ""));
-  base.searchParams.set("success", "1");
-  const success_url = base.toString();
-
-  const cancelBase = new URL(window.location.href);
-  cancelBase.searchParams.set("u", creatorUsernameOrUParam || (creator?.username || ""));
-  cancelBase.searchParams.delete("success");
-  cancelBase.searchParams.delete("session_id");
-  const cancel_url = cancelBase.toString();
-
-  const { data, error } = await onlypawsClient.functions.invoke("create-fan-subscription", {
-    body: {
-      creator_id: creator.user_id,
-      success_url,
-      cancel_url
-    },
-    headers: { Authorization: `Bearer ${token}` },
-  });
-
-  if(error) throw error;
-
-  const action = (data?.action || "").toString();
-  const url = data?.url || data?.checkout_url || data?.sessionUrl;
-
-  if(action === "resumed"){
-    return { action: "resumed" };
-  }
-
-  if(url){
-    window.location.href = url;
-    return { action: "checkout" };
-  }
-
-  return { action: action || "unknown", data };
-}
 
     async function boot(){
       setupLogout();
@@ -874,14 +818,13 @@
               const token = s?.session?.access_token;
               if(!token) throw new Error("No session");
 
-              const { data, error } = await onlypawsClient.functions.invoke("resume-fan-subscription", {
+              const { error } = await onlypawsClient.functions.invoke("resume-fan-subscription", {
                 body: { creator_id: creator.user_id },
                 headers: { Authorization: `Bearer ${token}` },
               });
 
               if(error) throw error;
 
-              // refresh local subRow with latest DB snapshot
               subRow = await getSubscriptionState(creator.user_id, fanId);
 
               setPremiumUi();
@@ -893,8 +836,7 @@
               });
 
             }catch(e){
-              const msg = String(e?.message || e);
-              alert(msg);
+              alert(e?.message || String(e));
             }finally{
               setBtnBusy(premiumBtn, false);
             }
@@ -910,14 +852,13 @@
               const token = s?.session?.access_token;
               if(!token) throw new Error("No session");
 
-              const { data, error } = await onlypawsClient.functions.invoke("cancel-fan-subscription", {
+              const { error } = await onlypawsClient.functions.invoke("cancel-fan-subscription", {
                 body: { creator_id: creator.user_id },
                 headers: { Authorization: `Bearer ${token}` },
               });
 
               if(error) throw error;
 
-              // refresh local subRow with latest DB snapshot
               subRow = await getSubscriptionState(creator.user_id, fanId);
 
               setPremiumUi();
@@ -928,37 +869,15 @@
               setTopHint(d ? `✅ Will cancel on ${d}. You can resume anytime before then.` : "✅ Will cancel at period end. You can resume anytime before then.");
 
             }catch(e){
-              const msg = String(e?.message || e);
-              alert(msg);
+              alert(e?.message || String(e));
             }finally{
               setBtnBusy(premiumBtn, false);
             }
             return;
           }
 
-          // NEW checkout (or edge may resume)
-          try{
-            setBtnBusy(premiumBtn, true, "Opening checkout…");
-            const result = await startCheckout(creator, isUUID(u) ? (creator.username || "") : u);
-
-            // if edge resumed (no redirect), refresh UI
-            if(result?.action === "resumed"){
-              subRow = await getSubscriptionState(creator.user_id, fanId);
-              setPremiumUi();
-              setTopHint("✅ Subscription resumed. Premium posts are unlocked.");
-              renderPosts(posts, creatorUsername || (isUUID(u) ? creatorUsername : u), {
-                isSelf,
-                isSubscribed: true
-              });
-              setBtnBusy(premiumBtn, false);
-              return;
-            }
-
-            // if checkout redirects, this code won't run
-          }catch(e){
-            alert(e?.message || String(e));
-            setBtnBusy(premiumBtn, false);
-          }
+          // ✅ NEW SUBSCRIBE FLOW: go to subscriptions page (no direct checkout here)
+          goToSubscriptions(creator.user_id);
         });
 
         await loadPetsByOwner(creator.user_id);
