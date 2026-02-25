@@ -559,8 +559,8 @@
       if(!creatorId || !fanId) return null;
 
       const { data, error } = await onlypawsClient
-        .from("creator_subscriptions")
-        .select("id, status, is_active, current_period_end, cancel_at_period_end, stripe_subscription_id")
+        .from("fan_subscriptions")
+        .select("id, status, current_period_end, cancel_at_period_end, provider_subscription_id")
         .eq("creator_id", creatorId)
         .eq("fan_id", fanId)
         .maybeSingle();
@@ -570,33 +570,22 @@
     }
 
     function computeAccess(subRow){
-  const periodEndMs = subRow?.current_period_end
-    ? new Date(subRow.current_period_end).getTime()
-    : 0;
+      const periodEndMs = subRow?.current_period_end
+        ? new Date(subRow.current_period_end).getTime()
+        : 0;
 
-  // access until period end
-  let hasAccess = !!periodEndMs && periodEndMs > Date.now();
+      // access until period end
+      const hasAccess = !!periodEndMs && periodEndMs > Date.now();
 
-  // legacy fallback
-  if(!hasAccess && !subRow?.current_period_end && subRow?.is_active === true) hasAccess = true;
+      const status = (subRow?.status || "").toString().toLowerCase();
+      const statusCanceled = (status === "canceled" || status === "cancelled");
 
-  const status = (subRow?.status || "").toString().toLowerCase();
-  const statusCanceled = (status === "canceled" || status === "cancelled");
+      const isCanceling = hasAccess && (subRow?.cancel_at_period_end === true);
 
-  // ✅ KEY FIX:
-  // if DB says "canceled" BUT access still valid (period_end in future),
-  // treat as "canceling at period end" => show RESUME
-  const isCanceling =
-    hasAccess && (
-      subRow?.cancel_at_period_end === true ||
-      statusCanceled
-    );
+      const isHardCanceled = !hasAccess && statusCanceled;
 
-  // hard canceled = no access anymore
-  const isHardCanceled = !hasAccess && (statusCanceled || subRow?.is_active === false);
-
-  return { hasAccess, isCanceling, periodEndMs, isHardCanceled };
-}
+      return { hasAccess, isCanceling, periodEndMs, isHardCanceled };
+    }
 
     function setupLogout(){
       const logoutBtn = document.getElementById("navLogout");
@@ -622,29 +611,68 @@
       el.textContent = msg || "";
     }
 
-    async function startCheckout(creator, creatorUsernameOrUParam){
-      const FN_NAME = "create-checkout-session";
+    async function loadCreatorPriceId(creatorId){
+      // best effort: try typical column names
+      const { data, error } = await onlypawsClient
+        .from("creator_plans")
+        .select("id, stripe_price_id, price_id, created_at")
+        .eq("creator_id", creatorId)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
 
+      if(error) throw error;
+
+      const pid = (data?.stripe_price_id || data?.price_id || "").toString().trim();
+      if(!pid) throw new Error("Creator price_id missing (creator_plans.stripe_price_id).");
+      return pid;
+    }
+
+    async function startCheckout(creator, creatorUsernameOrUParam){
       const { data: s } = await onlypawsClient.auth.getSession();
       const token = s?.session?.access_token;
       if(!token) throw new Error("No session");
 
       const base = new URL(window.location.href);
       base.searchParams.set("u", creatorUsernameOrUParam || (creator?.username || ""));
-      const return_url = base.toString();
+      base.searchParams.set("success", "1");
+      const success_url = base.toString();
 
-      const { data, error } = await onlypawsClient.functions.invoke(FN_NAME, {
+      const cancelBase = new URL(window.location.href);
+      cancelBase.searchParams.set("u", creatorUsernameOrUParam || (creator?.username || ""));
+      cancelBase.searchParams.delete("success");
+      cancelBase.searchParams.delete("session_id");
+      const cancel_url = cancelBase.toString();
+
+      const price_id = await loadCreatorPriceId(creator.user_id);
+
+      const { data, error } = await onlypawsClient.functions.invoke("create-fan-subscription", {
         body: {
           creator_id: creator.user_id,
-          return_url
+          price_id,
+          success_url,
+          cancel_url
         },
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if(error) throw error;
+
+      // Support both styles: {action:"checkout",url:"..."} or {url:"..."}
+      const action = (data?.action || "").toString();
       const url = data?.url || data?.checkout_url || data?.sessionUrl;
-      if(!url) throw new Error("Checkout URL missing from edge response.");
-      window.location.href = url;
+
+      if(action === "resumed"){
+        // edge may have resumed instead of checkout
+        return { action: "resumed" };
+      }
+
+      if(url){
+        window.location.href = url;
+        return { action: "checkout" };
+      }
+
+      return { action: action || "unknown", data };
     }
 
     async function boot(){
@@ -844,11 +872,6 @@
 
           // RESUME
           if(subRow && subState.isCanceling){
-            if(!subRow.stripe_subscription_id){
-              setTopHint("⚠️ Missing Stripe subscription id. Can't resume automatically.");
-              return;
-            }
-
             try{
               setBtnBusy(premiumBtn, true, "Resuming…");
 
@@ -856,20 +879,15 @@
               const token = s?.session?.access_token;
               if(!token) throw new Error("No session");
 
-              const { data, error } = await onlypawsClient.functions.invoke("resume-subscription", {
-                body: { stripe_subscription_id: subRow.stripe_subscription_id },
+              const { data, error } = await onlypawsClient.functions.invoke("resume-fan-subscription", {
+                body: { creator_id: creator.user_id },
                 headers: { Authorization: `Bearer ${token}` },
               });
 
               if(error) throw error;
 
-              // ✅ TRUST STRIPE (via edge response)
-              if(subRow){
-                if(data?.current_period_end) subRow.current_period_end = data.current_period_end;
-                if(typeof data?.cancel_at_period_end === "boolean") subRow.cancel_at_period_end = data.cancel_at_period_end;
-                if(data?.status) subRow.status = data.status;
-                subRow.is_active = true;
-              }
+              // refresh local subRow with latest DB snapshot
+              subRow = await getSubscriptionState(creator.user_id, fanId);
 
               setPremiumUi();
               setTopHint("✅ Subscription resumed. Premium posts are unlocked.");
@@ -890,11 +908,6 @@
 
           // CANCEL (at period end)
           if(subRow && subState.hasAccess && !subRow.cancel_at_period_end){
-            if(!subRow.stripe_subscription_id){
-              setTopHint("⚠️ Missing Stripe subscription id. Can't cancel automatically.");
-              return;
-            }
-
             try{
               setBtnBusy(premiumBtn, true, "Canceling…");
 
@@ -902,49 +915,15 @@
               const token = s?.session?.access_token;
               if(!token) throw new Error("No session");
 
-              const { data, error } = await onlypawsClient.functions.invoke("cancel-subscription", {
-                body: { stripe_subscription_id: subRow.stripe_subscription_id },
+              const { data, error } = await onlypawsClient.functions.invoke("cancel-fan-subscription", {
+                body: { creator_id: creator.user_id },
                 headers: { Authorization: `Bearer ${token}` },
               });
 
-              // 🔥 If Stripe says it's already canceled, handle it as hard-canceled
-              if(error){
-                const em = String(error.message || error);
-                if(em.includes("A canceled subscription can only update its cancellation_details and metadata")){
-                  // treat as already canceled
-                  subRow.status = "canceled";
-                  subRow.is_active = false;
-                  subRow.cancel_at_period_end = false;
-                  setPremiumUi();
-                  setTopHint("⚠️ This subscription is already canceled. Subscribe again to renew.");
-                  renderPosts(posts, creatorUsername || (isUUID(u) ? creatorUsername : u), {
-                    isSelf,
-                    isSubscribed: false
-                  });
-                  return;
-                }
-                throw error;
-              }
+              if(error) throw error;
 
-              // ✅ TRUST STRIPE (via edge response)
-              if(data?.already_canceled){
-                subRow.status = "canceled";
-                subRow.is_active = false;
-                subRow.cancel_at_period_end = false;
-                if(data?.current_period_end) subRow.current_period_end = data.current_period_end;
-                setPremiumUi();
-                setTopHint("⚠️ This subscription is already canceled. Subscribe again to renew.");
-                renderPosts(posts, creatorUsername || (isUUID(u) ? creatorUsername : u), {
-                  isSelf,
-                  isSubscribed: false
-                });
-                return;
-              }
-
-              subRow.status = (data?.status || "active");
-              subRow.cancel_at_period_end = (typeof data?.cancel_at_period_end === "boolean") ? data.cancel_at_period_end : true;
-              if(data?.current_period_end) subRow.current_period_end = data.current_period_end;
-              subRow.is_active = true;
+              // refresh local subRow with latest DB snapshot
+              subRow = await getSubscriptionState(creator.user_id, fanId);
 
               setPremiumUi();
 
@@ -962,10 +941,25 @@
             return;
           }
 
-          // NEW checkout
+          // NEW checkout (or edge may resume)
           try{
             setBtnBusy(premiumBtn, true, "Opening checkout…");
-            await startCheckout(creator, isUUID(u) ? (creator.username || "") : u);
+            const result = await startCheckout(creator, isUUID(u) ? (creator.username || "") : u);
+
+            // if edge resumed (no redirect), refresh UI
+            if(result?.action === "resumed"){
+              subRow = await getSubscriptionState(creator.user_id, fanId);
+              setPremiumUi();
+              setTopHint("✅ Subscription resumed. Premium posts are unlocked.");
+              renderPosts(posts, creatorUsername || (isUUID(u) ? creatorUsername : u), {
+                isSelf,
+                isSubscribed: true
+              });
+              setBtnBusy(premiumBtn, false);
+              return;
+            }
+
+            // if checkout redirects, this code won't run
           }catch(e){
             alert(e?.message || String(e));
             setBtnBusy(premiumBtn, false);
