@@ -155,11 +155,41 @@
       line-height:1.5;
     }
 
-    footer{
-      margin-top:28px;
-      color: rgba(255,255,255,.75);
-      font-size: 13px;
-      text-align:center;
+    /* ===== GLOBAL FOOTER ===== */
+
+.globalFooter {
+  text-align: center;
+  padding: 30px 20px;
+  font-size: 14px;
+  opacity: 0.9;
+  line-height: 1.6;
+}
+
+/* Seconda frase descrittiva */
+.globalFooter .small {
+  margin-top: 6px;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+/* Spazio tra frase e link */
+.globalFooter .footerLinks {
+  margin-top: 14px;
+}
+
+/* Link footer */
+.globalFooter a {
+  color: rgba(255,255,255,0.9);
+  text-decoration: none;
+  opacity: 0.85;
+  transition: opacity 0.2s ease, text-decoration 0.2s ease;
+}
+
+/* Hover */
+.globalFooter a:hover {
+  text-decoration: underline;
+  opacity: 1;
+}
     }
     .smallLegal{
       display:inline-block;
@@ -244,9 +274,8 @@
             <input type="password" id="fan-password" placeholder="Password (min 6)" required />
 
             <div class="btnRow">
-          
-              <button type="submit" class="btn" id="fanLoginBtn">Log in</button>
               <button type="button" class="ghost" id="fanSignupBtn">Create fan account</button>
+              <button type="submit" class="btn" id="fanLoginBtn">Log in</button>
             </div>
 
             <!-- added: forgot password link -->
@@ -312,19 +341,25 @@ and take care of our furry friends 💜
       </div>
     </div>
 
-    <footer>
-      © 2026 OnlyPaws • Built with toe beans energy 🐾<br/>
-      <span class="smallLegal">
-        OnlyPaws is an independent digital platform. Features may evolve over time.
-      </span>
-      <br/><br/>
-      <a href="content-policy.html" style="color:white;text-decoration:underline;">Content Policy</a>
-      &nbsp;·&nbsp;
-      <a href="privacy-policy.html" style="color:white;text-decoration:underline;">Privacy Policy</a>
-      &nbsp;·&nbsp;
-      <a href="terms.html" style="color:white;text-decoration:underline;">Terms of Service</a>
-    </footer>
+   <footer class="globalFooter">
+  <div class="footerTop">
+    © 2026 OnlyPaws • Built with toe beans energy 🐾
+  </div>
 
+  <div class="small">
+    OnlyPaws is an independent digital platform. Features may evolve over time.
+  </div>
+
+  <div class="footerLinks">
+    <a href="content-policy.html">Content Policy</a>
+    &nbsp;·&nbsp;
+    <a href="privacy-policy.html">Privacy Policy</a>
+    &nbsp;·&nbsp;
+    <a href="terms.html">Terms of Service</a>
+    &nbsp;·&nbsp;
+    <a href="mailto:onlypawssupp@gmail.com">Contact Us</a>
+  </div>
+</footer>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

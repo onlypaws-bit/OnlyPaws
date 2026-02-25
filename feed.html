@@ -139,14 +139,41 @@
     }
     .mediaWrap img,.mediaWrap video{width:100%;display:block;max-height:460px;object-fit:cover;}
 
-    footer{
-      margin-top:32px;
-      padding-bottom:22px;
-      color:rgba(255,255,255,.75);
-      font-size:13px;
-      text-align:center;
-      line-height:1.5;
-    }
+    /* ===== GLOBAL FOOTER ===== */
+
+.globalFooter {
+  text-align: center;
+  padding: 30px 20px;
+  font-size: 14px;
+  opacity: 0.9;
+  line-height: 1.6;
+}
+
+/* Seconda frase descrittiva */
+.globalFooter .small {
+  margin-top: 6px;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+/* Spazio tra frase e link */
+.globalFooter .footerLinks {
+  margin-top: 14px;
+}
+
+/* Link footer */
+.globalFooter a {
+  color: rgba(255,255,255,0.9);
+  text-decoration: none;
+  opacity: 0.85;
+  transition: opacity 0.2s ease, text-decoration 0.2s ease;
+}
+
+/* Hover */
+.globalFooter a:hover {
+  text-decoration: underline;
+  opacity: 1;
+}
     .smallLegal{display:inline-block;margin-top:6px;opacity:.85;font-size:12px;}
 
     /* Debug pill */
@@ -182,7 +209,56 @@
       filter: blur(18px);
       transform: scale(1.03);
     }
-  </style>
+  
+    /* Clickable post wrapper */
+    .postLinkWrap{ border-radius:22px; }
+    .postLinkWrap:focus-visible{ outline:2px solid rgba(255,255,255,.55); outline-offset:4px; }
+
+    /* Media modal (lightbox) */
+    .mediaModal{
+      position:fixed; inset:0; z-index:9999;
+      display:none; align-items:center; justify-content:center;
+      background: rgba(0,0,0,.72);
+      backdrop-filter: blur(2px);
+      padding: 18px;
+    }
+    .mediaModal.open{ display:flex; }
+
+    .mediaModalInner{
+      max-width: 94vw;
+      max-height: 94vh;
+      border-radius: 18px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.16);
+      background: rgba(0,0,0,.35);
+      box-shadow:0 30px 80px rgba(0,0,0,.45);
+      position: relative;
+    }
+
+    .mediaModalInner img,
+    .mediaModalInner video{
+      display:block;
+      max-width: 94vw;
+      max-height: 94vh;
+      width:auto;
+      height:auto;
+      object-fit: contain;
+      background: rgba(0,0,0,.25);
+    }
+
+    .mediaModalClose{
+      position:absolute; top:10px; right:10px;
+      border-radius:999px;
+      padding:10px 12px;
+      background: rgba(255,255,255,.14);
+      border:1px solid rgba(255,255,255,.18);
+      color:white;
+      font-weight:900;
+      cursor:pointer;
+    }
+    .mediaModalClose:hover{ background: rgba(255,255,255,.18); }
+
+</style>
 </head>
 
 <body>
@@ -238,10 +314,25 @@
       <div class="hint" id="postsHint">Loading posts…</div>
     </div>
 
-    <footer>
-      © 2026 OnlyPaws • Built with toe beans energy 🐾<br/>
-      <span class="smallLegal">OnlyPaws is an independent digital platform. Features may evolve over time.</span>
-    </footer>
+    <footer class="globalFooter">
+  <div class="footerTop">
+    © 2026 OnlyPaws • Built with toe beans energy 🐾
+  </div>
+
+  <div class="small">
+    OnlyPaws is an independent digital platform. Features may evolve over time.
+  </div>
+
+  <div class="footerLinks">
+    <a href="content-policy.html">Content Policy</a>
+    &nbsp;·&nbsp;
+    <a href="privacy-policy.html">Privacy Policy</a>
+    &nbsp;·&nbsp;
+    <a href="terms.html">Terms of Service</a>
+    &nbsp;·&nbsp;
+    <a href="mailto:onlypawssupp@gmail.com">Contact Us</a>
+  </div>
+</footer>
 
   </div>
 
@@ -361,7 +452,9 @@
         postsEl.innerHTML = list.map(p => {
           const uname = p?.profiles?.username || "creator";
           const locked = Boolean(p.is_locked);
-          return window.OnlyPawsPostCard.renderPostCard({
+          const premium = (p.is_paid === true);
+
+          const cardHtml = window.OnlyPawsPostCard.renderPostCard({
             id: p.id,
             creator_username: uname,
             title: p.title || "Post",
@@ -374,10 +467,19 @@
             media_url: p.media_url || null,
             media_type: p.media_type || null,
           });
+
+          // ✅ wrapper: click routes to creator profile (outside text/media)
+          // also carries meta so we can adjust badges (premium unlocked != FREE)
+          const access = (!locked && premium) ? "unlocked" : (premium ? "premium" : "free");
+          return `<div class="postLinkWrap" tabindex="0" data-creator="${esc(uname)}" data-premium="${premium ? "1" : "0"}" data-locked="${locked ? "1" : "0"}" data-access="${access}">${cardHtml}</div>`;
         }).join("");
 
         // Bind like buttons after render
         window.OnlyPawsPostCard.initPostCards(postsEl);
+
+        // Fix badge label: premium posts unlocked via subscription should show UNLOCKED (not FREE)
+        patchUnlockedBadges(postsEl);
+
         return;
       }
 
@@ -599,9 +701,162 @@
       hint.textContent = enriched.length ? "" : "No posts yet.";
     }
 
-    async function boot(){
+    
+    function patchUnlockedBadges(root){
+      try{
+        const wraps = root.querySelectorAll('.postLinkWrap[data-access="unlocked"]');
+        wraps.forEach(w => {
+          // Try to find a "status" badge (usually the second badge in the top row)
+          const badges = w.querySelectorAll(".badge");
+          if(!badges || !badges.length) return;
+
+          // Prefer the last badge if there are multiple
+          const b = badges[badges.length - 1];
+          const t = (b.textContent || "").trim().toUpperCase();
+
+          // Only replace obvious FREE labels
+          if(t.includes("FREE") || t.includes("🆓")){
+            b.textContent = "🔓 UNLOCKED";
+          }
+        });
+      }catch(e){
+        // no-op
+      }
+    }
+
+    function openMediaModal({ type, src }){
+      const modal = document.getElementById("mediaModal");
+      const img = document.getElementById("mediaModalImg");
+      const vid = document.getElementById("mediaModalVid");
+
+      // reset
+      img.style.display = "none";
+      vid.style.display = "none";
+      try{
+        vid.pause();
+        vid.removeAttribute("src");
+        vid.load();
+      }catch(e){}
+
+      if(type === "video"){
+        vid.src = src;
+        vid.style.display = "block";
+      }else{
+        img.src = src;
+        img.style.display = "block";
+      }
+
+      modal.classList.add("open");
+      modal.setAttribute("aria-hidden", "false");
+    }
+
+    function closeMediaModal(){
+      const modal = document.getElementById("mediaModal");
+      const vid = document.getElementById("mediaModalVid");
+      modal.classList.remove("open");
+      modal.setAttribute("aria-hidden", "true");
+      try{
+        vid.pause();
+        vid.removeAttribute("src");
+        vid.load();
+      }catch(e){}
+    }
+
+    function setupMediaModal(){
+      const modal = document.getElementById("mediaModal");
+      const closeBtn = document.getElementById("mediaModalClose");
+      if(!modal || !closeBtn) return;
+
+      closeBtn.addEventListener("click", closeMediaModal);
+      modal.addEventListener("click", (e) => {
+        if(e.target === modal) closeMediaModal();
+      });
+
+      window.addEventListener("keydown", (e) => {
+        if(e.key === "Escape") closeMediaModal();
+      });
+    }
+
+    /**
+     * Delegation:
+     * - click on IMG/VIDEO inside .mediaWrap (if NOT locked/blurred) => modal
+     * - click on post card wrapper => creator profile
+     *   BUT: navigate only when clicking OUTSIDE text blocks.
+     */
+    function setupPostClickRouting(){
+      const postsEl = document.getElementById("posts");
+      if(!postsEl) return;
+
+      // Helpers: define "text zones" that should NOT navigate
+      function isTextZone(el){
+        return Boolean(el.closest("p, h1, h2, h3, h4, h5, h6, .postText, .postExcerpt, .postContent, .content, .excerpt, .caption"));
+      }
+
+      postsEl.addEventListener("click", (e) => {
+        const target = e.target;
+
+        // Don't hijack interactive controls
+        if(target.closest("a, button, input, textarea, select, label")) return;
+
+        // If user clicked in a text zone, do not navigate
+        if(isTextZone(target)) return;
+
+        // 1) MEDIA CLICK => modal (only if not blurred/locked)
+        const mediaWrap = target.closest(".mediaWrap");
+        if(mediaWrap){
+          if(mediaWrap.classList.contains("blurred")) return;
+
+          const img = mediaWrap.querySelector("img");
+          const vid = mediaWrap.querySelector("video");
+
+          if(img && target.closest("img")){
+            e.preventDefault();
+            openMediaModal({ type:"image", src: img.getAttribute("src") });
+            return;
+          }
+
+          // Avoid opening modal when clicking video controls
+          if(vid && target.closest("video")){
+            return;
+          }
+          if(vid){
+            e.preventDefault();
+            openMediaModal({ type:"video", src: vid.getAttribute("src") });
+            return;
+          }
+        }
+
+        // 2) WRAPPER CLICK => creator profile
+        const wrap = target.closest(".postLinkWrap");
+        if(!wrap) return;
+
+        const uname = wrap.getAttribute("data-creator") || "";
+        if(!uname) return;
+
+        e.preventDefault();
+        window.location.href = creatorProfileUrl(uname);
+      });
+
+      // Keyboard accessibility (Enter)
+      postsEl.addEventListener("keydown", (e) => {
+        if(e.key !== "Enter") return;
+        const target = e.target;
+        const wrap = target.closest(".postLinkWrap");
+        if(!wrap) return;
+        const uname = wrap.getAttribute("data-creator") || "";
+        if(!uname) return;
+        // Avoid navigating when focused inside a text zone
+        if(isTextZone(target)) return;
+        window.location.href = creatorProfileUrl(uname);
+      });
+    }
+
+async function boot(){
       setupSearch();
       setupLogout();
+
+      setupMediaModal();
+      setupPostClickRouting();
 
       const { data, error } = await onlypawsClient.auth.getSession();
       if(error){
@@ -623,7 +878,17 @@
       if(event === "SIGNED_OUT") goIndex();
     });
 
-    boot();
+    window.addEventListener('DOMContentLoaded', boot);
   </script>
+
+  <!-- Media modal -->
+  <div id="mediaModal" class="mediaModal" aria-hidden="true">
+    <div class="mediaModalInner" role="dialog" aria-modal="true" aria-label="Media preview">
+      <button id="mediaModalClose" class="mediaModalClose" type="button">✕</button>
+      <img id="mediaModalImg" alt="Preview" style="display:none;">
+      <video id="mediaModalVid" controls playsinline style="display:none;"></video>
+    </div>
+  </div>
+
 </body>
 </html>

@@ -100,7 +100,6 @@
 
     .btnRow{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;}
 
-    /* ghost */
     .ghost{
       padding:12px 16px;border-radius:999px;
       background: rgba(255,255,255,.12);
@@ -126,7 +125,6 @@
       pointer-events:none;
     }
 
-    /* primary */
     .btn{
       display:inline-flex;align-items:center;justify-content:center;
       padding:12px 16px;border-radius:999px;
@@ -151,13 +149,41 @@
     }
     .msg{margin-top:10px;font-size:13px;color:rgba(255,255,255,.85);min-height:18px}
 
-    footer{
-      margin-top:32px;
-      padding-bottom:22px;
-      color:rgba(255,255,255,.75);
-      font-size:13px;
-      text-align:center;
-      line-height:1.5;
+    /* ===== GLOBAL FOOTER ===== */
+
+.globalFooter {
+  text-align: center;
+  padding: 30px 20px;
+  font-size: 14px;
+  opacity: 0.9;
+  line-height: 1.6;
+}
+
+/* Seconda frase descrittiva */
+.globalFooter .small {
+  margin-top: 6px;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+/* Spazio tra frase e link */
+.globalFooter .footerLinks {
+  margin-top: 14px;
+}
+
+/* Link footer */
+.globalFooter a {
+  color: rgba(255,255,255,0.9);
+  text-decoration: none;
+  opacity: 0.85;
+  transition: opacity 0.2s ease, text-decoration 0.2s ease;
+}
+
+/* Hover */
+.globalFooter a:hover {
+  text-decoration: underline;
+  opacity: 1;
+}
     }
     .smallLegal{display:inline-block;margin-top:6px;opacity:.85;font-size:12px;}
 
@@ -230,9 +256,24 @@
   </div>
 </div>
 
-<footer>
-  © 2026 OnlyPaws • Built with toe beans energy 🐾<br/>
-  <span class="smallLegal">OnlyPaws is an independent digital platform. Features may evolve over time.</span>
+<footer class="globalFooter">
+  <div class="footerTop">
+    © 2026 OnlyPaws • Built with toe beans energy 🐾
+  </div>
+
+  <div class="small">
+    OnlyPaws is an independent digital platform. Features may evolve over time.
+  </div>
+
+  <div class="footerLinks">
+    <a href="content-policy.html">Content Policy</a>
+    &nbsp;·&nbsp;
+    <a href="privacy-policy.html">Privacy Policy</a>
+    &nbsp;·&nbsp;
+    <a href="terms.html">Terms of Service</a>
+    &nbsp;·&nbsp;
+    <a href="mailto:onlypawssupp@gmail.com">Contact Us</a>
+  </div>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -391,16 +432,12 @@
         </div>
       `;
 
-      // row clickable
       const openUrl = creatorLink(uname);
       if(uname){
         el.classList.add("clickable");
-        el.addEventListener("click", () => {
-          window.location.href = openUrl;
-        });
+        el.addEventListener("click", () => { window.location.href = openUrl; });
       }
 
-      // unfollow
       const ubtn = el.querySelector("[data-unfollow-id]");
       if(ubtn){
         ubtn.addEventListener("click", (ev) => {
@@ -415,27 +452,20 @@
     }
   }
 
-  function getSupabaseFunctionsUrl(){
-    // Works with common supabase-js v2 client builds
-    const base =
-      (onlypawsClient && (onlypawsClient.supabaseUrl || onlypawsClient.url || onlypawsClient._supabaseUrl)) ||
-      "";
-    return base ? `${String(base).replace(/\/+$/,"")}/functions/v1` : "";
-  }
-
-  async function cancelSubscription(stripeSubId, creatorLabel){
-    if(!stripeSubId) return;
+  // ✅ NEW edges: cancel-fan-subscription / resume-fan-subscription
+  async function cancelSubscription(creatorId, creatorLabel){
+    if(!creatorId) return;
     const label = creatorLabel ? ` to ${creatorLabel}` : "";
     if(!confirm(`Cancel subscription${label}? Access remains active until the end of the billing period.`)) return;
 
-    subsMsg.textContent = "Cancelling…";
+    subsMsg.textContent = "Canceling…";
     try{
       const { data: s } = await onlypawsClient.auth.getSession();
       const token = s?.session?.access_token;
       if(!token) throw new Error("No session");
 
-      const { data, error } = await onlypawsClient.functions.invoke("cancel-subscription", {
-        body: { stripe_subscription_id: stripeSubId },
+      const { data, error } = await onlypawsClient.functions.invoke("cancel-fan-subscription", {
+        body: { creator_id: creatorId },
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -451,9 +481,8 @@
     }
   }
 
-  // ✅ Uses fetch so we can handle 409 cleanly
-  async function resumeSubscription(stripeSubId, creatorLabel){
-    if(!stripeSubId) return;
+  async function resumeSubscription(creatorId, creatorLabel){
+    if(!creatorId) return;
     const label = creatorLabel ? ` to ${creatorLabel}` : "";
     if(!confirm(`Resume subscription${label}?`)) return;
 
@@ -463,30 +492,13 @@
       const token = s?.session?.access_token;
       if(!token) throw new Error("No session");
 
-      const fnBase = getSupabaseFunctionsUrl();
-      if(!fnBase) throw new Error("Supabase URL not available in client");
-
-      const res = await fetch(`${fnBase}/resume-subscription`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({ stripe_subscription_id: stripeSubId }),
+      const { data, error } = await onlypawsClient.functions.invoke("resume-fan-subscription", {
+        body: { creator_id: creatorId },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      const out = await res.json().catch(() => ({}));
-
-      if(res.status === 409){
-        subsMsg.textContent = out?.error || "This subscription can’t be resumed. Please subscribe again.";
-        // refresh (DB might have been synced)
-        await loadSubscriptions(s.session.user.id);
-        return;
-      }
-
-      if(!res.ok){
-        throw new Error(out?.error || out?.details || `Resume failed (${res.status})`);
-      }
+      if(error) throw error;
+      if(data && data.ok === false) throw new Error(data.error || "Resume failed");
 
       subsMsg.textContent = "Subscription resumed. Updating…";
       await loadSubscriptions(s.session.user.id);
@@ -501,11 +513,11 @@
     subsMsg.textContent = "Loading…";
     subsList.innerHTML = "";
 
+    // ✅ NEW table: fan_subscriptions (no is_active, no stripe_subscription_id)
     const { data: rows, error } = await onlypawsClient
-      .from("creator_subscriptions")
-      .select("creator_id,status,is_active,created_at,current_period_end,stripe_subscription_id,cancel_at_period_end")
+      .from("fan_subscriptions")
+      .select("creator_id,status,created_at,current_period_end,cancel_at_period_end,provider_subscription_id,plan_id")
       .eq("fan_id", userId)
-      .eq("is_active", true)
       .order("created_at", { ascending:false });
 
     if(error){
@@ -520,7 +532,6 @@
       return;
     }
 
-    // load creator profiles (username/avatar)
     const creatorIds = Array.from(new Set(rows.map(r => r.creator_id).filter(Boolean)));
     const { data: profs, error: pErr } = await onlypawsClient
       .from("profiles")
@@ -550,49 +561,33 @@
         : 0;
 
       const hasAccess = !!periodEndMs && periodEndMs > now;
-
-      // ✅ Correct semantics:
-      // - "Canceling" = scheduled cancellation (cancel_at_period_end = true)
-      // - "Canceled"  = Stripe canceled (NOT resumable)
-      const isCanceling = hasAccess && (row.cancel_at_period_end === true);
-      const isCanceled = (status === "canceled" || status === "cancelled");
+      const isCanceling = hasAccess && row.cancel_at_period_end === true;
 
       let badgeText = "Active";
       if(status === "past_due") badgeText = "Past due";
       else if(isCanceling) badgeText = "Canceling";
-      else if(isCanceled) badgeText = "Canceled";
       else if(!hasAccess) badgeText = "Expired";
 
       const until = row.current_period_end ? new Date(row.current_period_end).toLocaleDateString() : null;
 
       const metaLine = [
         uname ? ("@" + uname) : "",
-        until ? ("until " + until) : ""
+        until ? ((isCanceling ? "until " : "renews ") + until) : ""
       ].filter(Boolean).join(" • ");
 
-      const canCancel =
-        hasAccess &&
-        status === "active" &&
-        !isCanceling &&
-        row.stripe_subscription_id;
-
-      const canResume =
-        hasAccess &&
-        isCanceling &&
-        row.stripe_subscription_id;
-
-      const canResubscribe =
-        hasAccess &&
-        isCanceled &&
-        !!uname;
+      // ✅ Buttons now depend only on access + cancel_at_period_end
+      const canCancel = hasAccess && !isCanceling;
+      const canResume = hasAccess && isCanceling;
 
       let actionHtml = "";
       if(canCancel){
-        actionHtml = `<button class="ghost danger" type="button" data-cancel-sub="${esc(row.stripe_subscription_id)}" data-cancel-label="${esc(dname)}">Cancel</button>`;
+        actionHtml = `<button class="ghost danger" type="button"
+          data-cancel-creator="${esc(row.creator_id)}"
+          data-cancel-label="${esc(dname)}">Cancel</button>`;
       }else if(canResume){
-        actionHtml = `<button class="btn" type="button" data-resume-sub="${esc(row.stripe_subscription_id)}" data-resume-label="${esc(dname)}">Resume subscription</button>`;
-      }else if(canResubscribe){
-        actionHtml = `<button class="btn" type="button" data-resub-creator="${esc(uname)}">Subscribe again</button>`;
+        actionHtml = `<button class="btn" type="button"
+          data-resume-creator="${esc(row.creator_id)}"
+          data-resume-label="${esc(dname)}">Resume subscription</button>`;
       }
 
       const canOpen = !!uname;
@@ -614,20 +609,17 @@
         </div>
       `;
 
-      // row clickable
       const openUrl = canOpen ? `creator-profile.html?u=${uParam}` : null;
       if(openUrl){
         el.classList.add("clickable");
-        el.addEventListener("click", () => {
-          window.location.href = openUrl;
-        });
+        el.addEventListener("click", () => { window.location.href = openUrl; });
       }
 
       subsList.appendChild(el);
     }
   }
 
-  // ✅ Delegation for dynamic buttons (Cancel / Resume / Resubscribe)
+  // ✅ SUPER ROBUST: delegation for dynamic buttons (Cancel / Resume)
   (function bindSubsDelegation(){
     if(!subsList) return;
     if(subsList.dataset.bound === "1") return;
@@ -636,35 +628,25 @@
     subsList.addEventListener("click", (ev) => {
       const t = ev.target;
 
-      // resubscribe (go to creator profile)
-      const reb = t.closest("[data-resub-creator]");
-      if(reb){
-        ev.preventDefault();
-        ev.stopPropagation();
-        const uname = reb.getAttribute("data-resub-creator") || "";
-        if(uname) window.location.href = creatorLink(uname);
-        return;
-      }
-
-      // resume
-      const rbtn = t.closest("[data-resume-sub]");
+      // Resume
+      const rbtn = t.closest("[data-resume-creator]");
       if(rbtn){
         ev.preventDefault();
         ev.stopPropagation();
-        const subId = rbtn.getAttribute("data-resume-sub");
+        const creatorId = rbtn.getAttribute("data-resume-creator");
         const label = rbtn.getAttribute("data-resume-label") || "";
-        resumeSubscription(subId, label);
+        resumeSubscription(creatorId, label);
         return;
       }
 
-      // cancel
-      const cbtn = t.closest("[data-cancel-sub]");
+      // Cancel
+      const cbtn = t.closest("[data-cancel-creator]");
       if(cbtn){
         ev.preventDefault();
         ev.stopPropagation();
-        const subId = cbtn.getAttribute("data-cancel-sub");
+        const creatorId = cbtn.getAttribute("data-cancel-creator");
         const label = cbtn.getAttribute("data-cancel-label") || "";
-        cancelSubscription(subId, label);
+        cancelSubscription(creatorId, label);
         return;
       }
     });
