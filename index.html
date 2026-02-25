@@ -5,18 +5,18 @@
   <title>OnlyPaws</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Centralized CSS -->
   <link rel="stylesheet" href="styles/styles.css">
 </head>
 
 <body>
 
-  <!-- HEADER -->
-  <div id="header-placeholder"></div>
-
   <div class="wrap">
 
+    <!-- HEADER -->
+    <div id="header-placeholder"></div>
+
     <div class="hero">
+
       <!-- LEFT -->
       <div class="panel">
         <div class="pill">Cute content. Serious platform.</div>
@@ -97,14 +97,12 @@
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
-
   <script src="js/partials.js"></script>
 
   <script>
     (async () => {
       await loadMarketingLayout();
 
-      // if already logged in → skip landing
       try {
         const { data } = await onlypawsClient.auth.getSession();
         if (data?.session) {
