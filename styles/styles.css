@@ -27,7 +27,7 @@ body{
 .wrap{
   max-width:1040px;
   margin:0 auto;
-  padding:12px 18px 70px;
+  padding:0 18px 70px; /* top = 0 */
 }
 
 /* ================= HEADER ================= */
@@ -37,7 +37,7 @@ body{
   align-items:center;
   justify-content:space-between;
   gap:14px;
-  margin-bottom:18px;
+  margin:18px 0 18px; /* top fixed */
 }
 
 .brand{
