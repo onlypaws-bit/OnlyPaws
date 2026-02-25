@@ -103,8 +103,7 @@
     }
 
     /* PLANS */
-    .plans{display:grid;grid-template-columns:1fr;gap:14px}
-    @media(min-width:900px){.plans{grid-template-columns:repeat(3,1fr)}}
+    .plans{display:grid;grid-template-columns:1fr;gap:14px;max-width:520px;margin:0 auto}
 
     .plan{
       background:rgba(255,255,255,.10);
@@ -137,7 +136,6 @@
       box-shadow: 0 30px 65px rgba(0,0,0,.30);
     }
 
-    /* Sticker icon */
     .planIcon{
       position:absolute;
       top:-42px;
@@ -149,10 +147,6 @@
       filter: drop-shadow(0 10px 20px rgba(0,0,0,.35));
       will-change: transform;
     }
-    .planIcon-big{ width:94px; }
-
-    .plan-big{ transform: scale(1.03); }
-    .plan-big:hover{ transform: scale(1.06) translateY(-2px); }
 
     @keyframes pawFloat{
       0%   { transform: translateX(-50%) translateY(0px) rotate(-0.6deg); }
@@ -240,52 +234,21 @@
       <h1>Choose your plan 🐾</h1>
       <div class="subline" id="subline">Loading…</div>
 
+      <!-- ONLY ONE PLAN (5€/month) -->
       <div class="plans" id="plans">
-        <div class="plan" data-price="3">
-          <img class="planIcon" src="paw-stars.png" alt="Paw-fessional">
-          <h2>The Paw-fessional</h2>
-          <div class="tag">Join the crew</div>
-          <p class="desc">Perfect if you just want to peek behind the scenes and support the journey 💜</p>
-          <ul class="list">
-            <li>early access to posts</li>
-            <li>community access</li>
-            <li>priority reactions</li>
-          </ul>
-          <div class="price">€3 / month</div>
-          <div class="micro">less than a coffee ☕</div>
-          <button class="btn" type="button">Subscribe</button>
-        </div>
-
-        <div class="plan featured" data-price="5">
+        <div class="plan featured" id="vipPlan">
           <img class="planIcon" src="paw-crown.png" alt="VIPaws">
-          <h2>VIPaws</h2>
-          <div class="tag">Stay one paw ahead</div>
-          <p class="desc">Extra content, more interaction, real influence 🐶✨</p>
+          <h2 id="planName">VIPaws</h2>
+          <div class="tag" id="planTag">best value 🐾</div>
+          <p class="desc" id="planDesc">Extra content, more interaction, real influence 🐶✨</p>
           <ul class="list">
-            <li>everything in Paw-fessional</li>
             <li>exclusive monthly content</li>
             <li>bloopers &amp; polls</li>
             <li>monthly Q&amp;A</li>
           </ul>
-          <div class="price">€5 / month</div>
-          <div class="micro">best value 🐾</div>
-          <button class="btn" type="button">Subscribe</button>
-        </div>
-
-        <div class="plan plan-big" data-price="8">
-          <img class="planIcon planIcon-big" src="paw-diamond.png" alt="Snuggle Buddy">
-          <h2>Ultimate Snuggle Buddy</h2>
-          <div class="tag">Maximum tail wags</div>
-          <p class="desc">For true fans who want a closer connection 🥹</p>
-          <ul class="list">
-            <li>everything in VIPaws</li>
-            <li>special shout-outs</li>
-            <li>personalized moments</li>
-            <li>virtual meet &amp; greet</li>
-          </ul>
-          <div class="price">€8 / month</div>
-          <div class="micro">for true fans 🐶💜</div>
-          <button class="btn" type="button">Subscribe</button>
+          <div class="price" id="planPrice">€5 / month</div>
+          <div class="micro" id="planMicro">best value 🐾</div>
+          <button class="btn" id="subscribeBtn" type="button">Subscribe</button>
         </div>
       </div>
     </div>
@@ -314,11 +277,15 @@
     function goIndex(){ window.location.replace("index.html"); }
 
     const CREATOR_ID = new URLSearchParams(location.search).get("creator");
-    const PRICE_TO_CENTS = { 3:300, 5:500, 8:800 };
 
     const subline = document.getElementById("subline");
     const toastEl = document.getElementById("toast");
     const logoutBtn = document.getElementById("logoutBtn");
+    const subscribeBtn = document.getElementById("subscribeBtn");
+
+    const planNameEl = document.getElementById("planName");
+    const planDescEl = document.getElementById("planDesc");
+    const planPriceEl = document.getElementById("planPrice");
 
     function toast(msg){
       toastEl.textContent = msg;
@@ -327,11 +294,9 @@
       toastEl._t = setTimeout(()=>toastEl.classList.remove("show"), 2600);
     }
 
-    function setButtonsBusy(isBusy, txt){
-      document.querySelectorAll(".plan .btn").forEach(b=>{
-        b.disabled = !!isBusy;
-        if (txt) b.textContent = txt;
-      });
+    function setButtonBusy(isBusy, txt){
+      subscribeBtn.disabled = !!isBusy;
+      if(txt) subscribeBtn.textContent = txt;
     }
 
     function shortId(id){
@@ -351,48 +316,26 @@
       return data?.display_name || data?.username || null;
     }
 
-    async function loadPlanIdByPrice(price){
+    // Load ONLY the 5€/month active plan
+    async function loadVipPlan(){
       const c = supa();
-      const cents = PRICE_TO_CENTS[price];
-      if(!cents) return null;
 
       const { data, error } = await c
         .from("creator_plans")
-        .select("id")
+        .select("id, name, description, price_cents, currency, billing_period, is_active, stripe_price_id, created_at")
         .eq("creator_id", CREATOR_ID)
-        .eq("price_cents", cents)
-        .eq("billing_period", "monthly")
         .eq("is_active", true)
+        .eq("billing_period", "monthly")
+        .eq("price_cents", 500)
+        .order("created_at", { ascending: true })
+        .limit(1)
         .maybeSingle();
 
       if(error) throw error;
-      return data?.id ?? null;
+      return data || null;
     }
 
-    // ✅ check connect status (server verifies on Stripe)
-    async function getCreatorConnectStatus(){
-      const c = supa();
-      const { data:{ session } } = await c.auth.getSession();
-      if(!session) return null;
-
-      const res = await fetch(`${c.supabaseUrl}/functions/v1/connect-status`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${session.access_token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({}), // keep POST consistent
-      });
-
-      const data = await res.json().catch(()=> ({}));
-      if(!res.ok){
-        console.error("connect-status error:", data);
-        throw new Error(data?.error || "Failed to check creator status");
-      }
-      return data;
-    }
-
-    async function startCheckout({ creator_id, plan_id }){
+    async function createFanCheckout({ creator_id, price_id }){
       const c = supa();
       const { data:{ session } } = await c.auth.getSession();
       if(!session){
@@ -401,42 +344,48 @@
         return;
       }
 
-      const FUNCTIONS_BASE = `${c.supabaseUrl}/functions/v1`;
+      const successUrl = new URL(`${location.origin}/creator-profile.html`);
+      successUrl.searchParams.set("u", creator_id);
+      successUrl.searchParams.set("success", "1");
 
-      const res = await fetch(`${FUNCTIONS_BASE}/create-checkout-session`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
+      const cancelUrl = new URL(location.href);
+
+      const { data, error } = await c.functions.invoke("create-fan-subscription", {
+        body: {
           creator_id,
-          plan_id,
-          success_path: `/creator-profile.html?u=${creator_id}`,
-          cancel_path: `/subscribers.html?creator=${creator_id}`,
-        }),
+          price_id,
+          success_url: successUrl.toString(),
+          cancel_url: cancelUrl.toString()
+        },
+        headers: { Authorization: `Bearer ${session.access_token}` },
       });
 
-      const data = await res.json().catch(()=> ({}));
-      if(!res.ok){
-        console.error("create-checkout-session error:", data);
-        throw new Error(data?.error || "Checkout failed");
+      if(error) throw error;
+
+      const action = (data?.action || "").toString();
+      const url = data?.url || data?.checkout_url || data?.sessionUrl;
+
+      if(action === "resumed"){
+        toast("Subscription resumed ✅");
+        return { action: "resumed" };
       }
-      if(!data?.url) throw new Error("Missing checkout url");
-      window.location.href = data.url;
+
+      if(!url) throw new Error("Missing checkout url");
+      window.location.href = url;
+      return { action: "checkout" };
     }
 
     async function boot(){
       const c = supa();
       if(!c || !c.auth){
-        setButtonsBusy(true, "Subscribe");
+        setButtonBusy(true, "Subscribe");
         subline.textContent = "—";
         toast("Config error");
         return;
       }
 
       if(!CREATOR_ID){
-        setButtonsBusy(true, "Subscribe");
+        setButtonBusy(true, "Subscribe");
         subline.textContent = "—";
         toast("Missing creator");
         return;
@@ -453,72 +402,59 @@
       if(!session){
         toast("Please login first");
         subline.textContent = "Please login to subscribe";
-        document.querySelectorAll(".plan .btn").forEach(btn=>{
-          btn.addEventListener("click", ()=> goIndex());
-        });
+        subscribeBtn.addEventListener("click", ()=> goIndex());
         return;
       }
 
       const label = await getCreatorLabel();
       subline.textContent = label ? `Creator: @${label}` : `Creator: ${shortId(CREATOR_ID)}`;
 
-      // ✅ optional: pre-disable buttons if creator not ready (better UX)
+      // Load plan from DB
+      let plan = null;
       try{
-        const status = await getCreatorConnectStatus();
-        if(!status?.ready){
-          setButtonsBusy(true, "Creator not ready");
-          // still allow page to load; user just can't checkout
-          // you can show a nicer hint:
-          // toast("Creator must enable payouts before subscribing");
-        }
+        plan = await loadVipPlan();
       }catch(e){
-        console.warn("connect-status failed:", e);
-        // don't hard-block the UI if status check fails
+        console.error(e);
+        toast(e?.message || String(e));
       }
 
-      document.querySelectorAll(".plan").forEach(planEl=>{
-        const btn = planEl.querySelector(".btn");
-        btn.addEventListener("click", async ()=>{
-          try{
-            setButtonsBusy(true, "Checking…");
+      if(!plan){
+        setButtonBusy(true, "Unavailable");
+        toast("VIP plan not available");
+        return;
+      }
 
-            // ✅ hard guard on click too
-            const status = await getCreatorConnectStatus();
-            if(!status?.ready){
-              if(status?.reason === "missing_stripe_connect_account_id"){
-                toast("Creator has not enabled payouts yet 🐾");
-              }else{
-                toast("Creator must complete payout setup before subscribing");
-              }
-              setButtonsBusy(false, "Subscribe");
-              return;
-            }
+      // Optional: reflect DB name/desc
+      if(plan.name) planNameEl.textContent = plan.name;
+      if(plan.description) planDescEl.textContent = plan.description;
 
-            setButtonsBusy(true, "Redirecting…");
+      // Price label from DB
+      const euro = (plan.price_cents ?? 500) / 100;
+      planPriceEl.textContent = `€${euro} / month`;
 
-            const price = Number(planEl.dataset.price);
-            const planId = await loadPlanIdByPrice(price);
+      // Hard guard: needs stripe_price_id
+      const priceId = (plan.stripe_price_id || "").toString().trim();
+      if(!priceId){
+        setButtonBusy(true, "Not configured");
+        toast("Creator plan is missing stripe_price_id.");
+        return;
+      }
 
-            if(!planId){
-              toast("Plan not available");
-              setButtonsBusy(false, "Subscribe");
-              return;
-            }
-
-            await startCheckout({ creator_id: CREATOR_ID, plan_id: planId });
-          }catch(e){
-            console.error(e);
-            toast(e?.message || String(e));
-            setButtonsBusy(false, "Subscribe");
-          }
-        });
+      // Subscribe click
+      subscribeBtn.addEventListener("click", async ()=> {
+        try{
+          setButtonBusy(true, "Opening checkout…");
+          await createFanCheckout({ creator_id: CREATOR_ID, price_id: priceId });
+          // If redirect happens, code stops here.
+          setButtonBusy(false, "Subscribe");
+        }catch(e){
+          console.error(e);
+          toast(e?.message || String(e));
+          setButtonBusy(false, "Subscribe");
+        }
       });
 
-      // only re-enable if not already disabled by "not ready"
-      // (if disabled, the click handler will keep it safe anyway)
-      // This keeps original behavior but doesn't overwrite "Creator not ready"
-      const anyDisabled = Array.from(document.querySelectorAll(".plan .btn")).some(b => b.disabled);
-      if(!anyDisabled) setButtonsBusy(false, "Subscribe");
+      setButtonBusy(false, "Subscribe");
     }
 
     (function(){
