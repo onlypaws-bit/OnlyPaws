@@ -629,51 +629,46 @@
     }
 
     async function startCheckout(creator, creatorUsernameOrUParam){
-      const { data: s } = await onlypawsClient.auth.getSession();
-      const token = s?.session?.access_token;
-      if(!token) throw new Error("No session");
+  const { data: s } = await onlypawsClient.auth.getSession();
+  const token = s?.session?.access_token;
+  if(!token) throw new Error("No session");
 
-      const base = new URL(window.location.href);
-      base.searchParams.set("u", creatorUsernameOrUParam || (creator?.username || ""));
-      base.searchParams.set("success", "1");
-      const success_url = base.toString();
+  const base = new URL(window.location.href);
+  base.searchParams.set("u", creatorUsernameOrUParam || (creator?.username || ""));
+  base.searchParams.set("success", "1");
+  const success_url = base.toString();
 
-      const cancelBase = new URL(window.location.href);
-      cancelBase.searchParams.set("u", creatorUsernameOrUParam || (creator?.username || ""));
-      cancelBase.searchParams.delete("success");
-      cancelBase.searchParams.delete("session_id");
-      const cancel_url = cancelBase.toString();
+  const cancelBase = new URL(window.location.href);
+  cancelBase.searchParams.set("u", creatorUsernameOrUParam || (creator?.username || ""));
+  cancelBase.searchParams.delete("success");
+  cancelBase.searchParams.delete("session_id");
+  const cancel_url = cancelBase.toString();
 
-      const price_id = await loadCreatorPriceId(creator.user_id);
+  const { data, error } = await onlypawsClient.functions.invoke("create-fan-subscription", {
+    body: {
+      creator_id: creator.user_id,
+      success_url,
+      cancel_url
+    },
+    headers: { Authorization: `Bearer ${token}` },
+  });
 
-      const { data, error } = await onlypawsClient.functions.invoke("create-fan-subscription", {
-        body: {
-          creator_id: creator.user_id,
-          price_id,
-          success_url,
-          cancel_url
-        },
-        headers: { Authorization: `Bearer ${token}` },
-      });
+  if(error) throw error;
 
-      if(error) throw error;
+  const action = (data?.action || "").toString();
+  const url = data?.url || data?.checkout_url || data?.sessionUrl;
 
-      // Support both styles: {action:"checkout",url:"..."} or {url:"..."}
-      const action = (data?.action || "").toString();
-      const url = data?.url || data?.checkout_url || data?.sessionUrl;
+  if(action === "resumed"){
+    return { action: "resumed" };
+  }
 
-      if(action === "resumed"){
-        // edge may have resumed instead of checkout
-        return { action: "resumed" };
-      }
+  if(url){
+    window.location.href = url;
+    return { action: "checkout" };
+  }
 
-      if(url){
-        window.location.href = url;
-        return { action: "checkout" };
-      }
-
-      return { action: action || "unknown", data };
-    }
+  return { action: action || "unknown", data };
+}
 
     async function boot(){
       setupLogout();
