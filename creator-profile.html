@@ -612,19 +612,19 @@
     }
 
     async function loadCreatorPriceId(creatorId){
-      // best effort: try typical column names
       const { data, error } = await onlypawsClient
         .from("creator_plans")
-        .select("id, stripe_price_id, price_id, created_at")
+        .select("id, stripe_price_id, created_at")
         .eq("creator_id", creatorId)
+        .eq("is_active", true)
         .order("created_at", { ascending: true })
         .limit(1)
         .maybeSingle();
 
       if(error) throw error;
 
-      const pid = (data?.stripe_price_id || data?.price_id || "").toString().trim();
-      if(!pid) throw new Error("Creator price_id missing (creator_plans.stripe_price_id).");
+      const pid = (data?.stripe_price_id || "").toString().trim();
+      if(!pid) throw new Error("Creator plan is missing stripe_price_id.");
       return pid;
     }
 
