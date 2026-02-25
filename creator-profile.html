@@ -17,27 +17,21 @@
       --btnText:#6B4EFF;
     }
 
-    .globalFooter{
-  margin-top:40px;
-  text-align:center;
-  font-size:13px;
-  color:rgba(255,255,255,.75);
+    .globalFooter {
+  text-align: center;
+  padding: 30px 20px;
+  font-size: 14px;
+  opacity: 0.9;
 }
 
-.globalFooter a{
-  color:white;
-  text-decoration:underline;
-  opacity:.85;
+.globalFooter .small {
+  margin-top: 6px;
+  font-size: 13px;
+  opacity: 0.8;
 }
 
-.globalFooter a:hover{
-  opacity:1;
-}
-
-.small{
-  font-size:12px;
-  opacity:.85;
-  margin-top:6px;
+.globalFooter .footerLinks {
+  margin-top: 14px; /* ← QUESTO è lo spazietto che volevi */
 }
     *{box-sizing:border-box}
     body{
@@ -262,20 +256,24 @@
   </div>
 
   <footer class="globalFooter">
-  © 2026 OnlyPaws • Built with toe beans energy 🐾<br/>
-  <span class="small">
+  <div class="footerTop">
+    © 2026 OnlyPaws • Built with toe beans energy 🐾
+  </div>
+
+  <div class="small">
     OnlyPaws is an independent digital platform. Features may evolve over time.
-  </span>
-  <br/>
-  <a href="content-policy.html">Content Policy</a>
-  &nbsp;·&nbsp;
-  <a href="privacy-policy.html">Privacy Policy</a>
-  &nbsp;·&nbsp;
-  <a href="terms.html">Terms of Service</a>
-  &nbsp;·&nbsp;
-  <a href="mailto:onlypawssupp@gmail.com">Contact Us</a>
-  </footer>
-</div>
+  </div>
+
+  <div class="footerLinks">
+    <a href="content-policy.html">Content Policy</a>
+    &nbsp;·&nbsp;
+    <a href="privacy-policy.html">Privacy Policy</a>
+    &nbsp;·&nbsp;
+    <a href="terms.html">Terms of Service</a>
+    &nbsp;·&nbsp;
+    <a href="mailto:onlypawssupp@gmail.com">Contact Us</a>
+  </div>
+</footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
