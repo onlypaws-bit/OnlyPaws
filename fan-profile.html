@@ -1,487 +1,280 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>OnlyPaws — Fan Profile</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    :root{
-      --bg1:#6B4EFF;
-      --bg2:#8B6CFF;
-      --text:#ffffff;
-      --muted:rgba(255,255,255,.85);
-      --stroke:rgba(255,255,255,.16);
-      --card:rgba(0,0,0,.16);
-      --shadow: rgba(0,0,0,.25);
-      --btn:#ffffff;
-      --btnText:#6B4EFF;
-    }
+<meta charset="UTF-8" />
+<title>OnlyPaws — Fan Profile</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family: Arial, sans-serif;
-      color:var(--text);
-      background:
-        radial-gradient(1200px 700px at 20% 10%, rgba(255,255,255,.18), transparent 55%),
-        radial-gradient(1000px 650px at 90% 30%, rgba(0,0,0,.22), transparent 55%),
-        linear-gradient(135deg, var(--bg1), var(--bg2));
-      min-height:100vh;
-    }
-    .wrap{max-width:1040px;margin:0 auto;padding:28px 18px 70px;}
+<style>
+:root{
+  --bg1:#6B4EFF;
+  --bg2:#8B6CFF;
+  --text:#ffffff;
+  --muted:rgba(255,255,255,.85);
+  --stroke:rgba(255,255,255,.16);
+  --card:rgba(0,0,0,.16);
+  --shadow: rgba(0,0,0,.25);
+}
 
-    .nav{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px;}
-    .brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:white;font-weight:900;letter-spacing:.2px;user-select:none;}
-    .brandLogo{
-      width:62px;height:62px;border-radius:14px;background:rgba(255,255,255,.16);
-      border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;overflow:hidden;
-      transition: transform .18s ease;
-    }
-    .brand:hover .brandLogo{transform: translateY(-1px) scale(1.02);}
-    .navRight{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
-    .navBtn{
-      display:inline-flex;align-items:center;justify-content:center;
-      padding:10px 14px;border-radius:999px;background:rgba(255,255,255,.12);
-      border:1px solid rgba(255,255,255,.18);color:white;text-decoration:none;font-weight:900;
-      cursor:pointer; user-select:none; transition: transform .16s ease, background .16s ease, border-color .16s ease;
-      font-size:13px; white-space:nowrap;
-    }
-    .navBtn:hover{transform: translateY(-1px); background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.22);}
-    .navBtn.primary{background:var(--btn);border:none;color:var(--btnText);box-shadow:0 14px 30px rgba(0,0,0,.20);}
-    .navBtn.primary:hover{transform: translateY(-1px) scale(1.01);}
-    .navBtn:active{transform: translateY(0px) scale(.99);}
+*{box-sizing:border-box}
 
-    .panel{
-      border-radius:22px;padding:22px;background:var(--card);
-      border:1px solid var(--stroke);backdrop-filter: blur(10px);
-      box-shadow:0 20px 45px var(--shadow);
-    }
+body{
+  margin:0;
+  font-family: Arial, sans-serif;
+  color:var(--text);
+  background:
+    radial-gradient(1200px 700px at 20% 10%, rgba(255,255,255,.18), transparent 55%),
+    radial-gradient(1000px 650px at 90% 30%, rgba(0,0,0,.22), transparent 55%),
+    linear-gradient(135deg, var(--bg1), var(--bg2));
+  min-height:100vh;
+}
 
-    .grid{display:grid;grid-template-columns: 1.25fr .75fr; gap:12px;}
-    @media (max-width: 920px){ .grid{grid-template-columns:1fr;} }
+.wrap{max-width:1040px;margin:0 auto;padding:28px 18px 60px;}
 
-    .pill{
-      display:inline-flex;gap:8px;align-items:center;
-      padding:10px 14px;border-radius:999px;
-      background: rgba(255,255,255,.12);
-      border:1px solid rgba(255,255,255,.18);
-      font-size:13px;color:rgba(255,255,255,.85);
-      white-space:nowrap;
-    }
+.nav{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:20px;
+}
 
-    h1{margin:10px 0 6px;font-size: clamp(2rem, 4vw, 2.6rem);line-height:1.05; letter-spacing:-0.6px;}
-    .sub{margin:0;color:var(--muted);font-size:1.02rem;line-height:1.55;}
+.brand{
+  text-decoration:none;color:white;font-weight:900;
+}
 
-    .heroRow{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:10px;}
-    .avatar{
-      width:64px;height:64px;border-radius:20px;
-      background: rgba(0,0,0,.18);
-      border:1px solid rgba(255,255,255,.14);
-      display:flex;align-items:center;justify-content:center;
-      flex:0 0 auto;font-size:22px;overflow:hidden;
-    }
-    .avatar img{width:100%;height:100%;object-fit:cover;display:block;}
-    .meta b{display:block;font-size:1.05rem;}
-    .meta span{display:block;color:rgba(255,255,255,.78);font-size:13px;margin-top:2px;white-space:pre-wrap;}
+.panel{
+  border-radius:22px;
+  padding:22px;
+  background:var(--card);
+  border:1px solid var(--stroke);
+  backdrop-filter:blur(10px);
+  box-shadow:0 20px 45px var(--shadow);
+}
 
-    .hint{color:rgba(255,255,255,.78);font-size:13px;line-height:1.4;margin-top:10px;white-space:pre-wrap;}
+.grid{
+  display:grid;
+  grid-template-columns:1.2fr .8fr;
+  gap:14px;
+}
 
-    .miniGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px;}
-    .miniCard{
-      border-radius:18px;padding:14px 14px;background:rgba(255,255,255,.10);
-      border:1px solid rgba(255,255,255,.16);
-    }
-    .miniK{font-size:12px;opacity:.9;font-weight:700;}
-    .miniV{font-size:20px;font-weight:900;margin-top:4px;}
+@media(max-width:900px){
+  .grid{grid-template-columns:1fr;}
+}
 
-    .list{display:flex;flex-direction:column;gap:10px;margin-top:12px;}
-    .listItem{
-      display:flex;align-items:center;gap:12px;
-      padding:12px 14px;border-radius:18px;
-      background:rgba(255,255,255,.10);
-      border:1px solid rgba(255,255,255,.16);
-      text-decoration:none;color:inherit;
-      transition: transform .16s ease, background .16s ease, border-color .16s ease;
-    }
-    .listItem:hover{transform: translateY(-1px);background: rgba(255,255,255,.12);border-color: rgba(255,255,255,.22);}
-    .listAvatar{
-      width:38px;height:38px;border-radius:14px;
-      background:rgba(0,0,0,.20);
-      display:flex;align-items:center;justify-content:center;
-      overflow:hidden;flex:0 0 auto;
-    }
-    .listAvatar img{width:100%;height:100%;object-fit:cover;display:block;}
-    .listMeta{display:flex;flex-direction:column;min-width:0;}
-    .listMeta b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .listMeta span{opacity:.9;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+h1{margin:0 0 10px;font-size:2rem}
 
-    /* Footer */
-    .globalFooter{
-      max-width:1040px;
-      margin:0 auto;
-      padding:18px 18px 34px;
-      color:rgba(255,255,255,.88);
-    }
-    .footerBox{
-      border-radius:18px;
-      background:rgba(0,0,0,.14);
-      border:1px solid rgba(255,255,255,.14);
-      padding:16px 16px;
-      backdrop-filter: blur(10px);
-    }
-    .footerTop{font-weight:900;}
-    .footerLinks{margin-top:10px;font-size:13px;opacity:.95;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
-    .footerLinks a{color:rgba(255,255,255,.9);text-decoration:none;}
-    .footerLinks a:hover{text-decoration:underline;}
-    .small{margin-top:8px;font-size:12px;opacity:.85;line-height:1.5;}
-  </style>
+.meta{opacity:.9;font-size:14px;margin-top:6px}
+
+.miniGrid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:10px;
+  margin-top:14px;
+}
+
+.miniCard{
+  background:rgba(255,255,255,.10);
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:16px;
+  padding:12px;
+}
+
+.miniK{font-size:12px;opacity:.9}
+.miniV{font-size:20px;font-weight:900;margin-top:4px}
+
+.list{
+  margin-top:14px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.listItem{
+  padding:12px;
+  border-radius:16px;
+  background:rgba(255,255,255,.10);
+  border:1px solid rgba(255,255,255,.16);
+  text-decoration:none;
+  color:white;
+}
+
+.hint{margin-top:10px;font-size:13px;opacity:.85}
+
+/* ===== GLOBAL FOOTER (IDENTICO A CREATORS) ===== */
+
+.globalFooter {
+  text-align: center;
+  padding: 30px 20px;
+  font-size: 14px;
+  opacity: 0.9;
+  line-height: 1.6;
+}
+
+.globalFooter .small {
+  margin-top: 6px;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.globalFooter .footerLinks {
+  margin-top: 14px;
+}
+
+.globalFooter a {
+  color: rgba(255,255,255,0.9);
+  text-decoration: none;
+  opacity: 0.85;
+  transition: opacity 0.2s ease, text-decoration 0.2s ease;
+}
+
+.globalFooter a:hover {
+  text-decoration: underline;
+  opacity: 1;
+}
+
+</style>
 </head>
 
 <body>
-  <div class="wrap">
-    <div class="nav">
-      <a href="feed.html" class="brand">
-        <div class="brandLogo" aria-hidden="true">🐾</div>
-        <span>OnlyPaws</span>
-      </a>
 
-      <div class="navRight">
-        <div class="pill" id="userPill">…</div>
+<div class="wrap">
 
-        <a class="navBtn primary" id="navProfile" href="profile.html" style="display:none;">Profile</a>
-        <a class="navBtn" id="navFanDash" href="fan-dash.html" style="display:none;">Dashboard</a>
-        <a class="navBtn" id="navCreatorDash" href="creator-dash.html" style="display:none;">Dashboard</a>
-        <button class="navBtn" id="navLogout" type="button" style="display:none;">Log out</button>
-      </div>
-    </div>
-
-    <div class="grid">
-      <div class="panel">
-        <div class="pill">Fan</div>
-        <h1 id="fanName">Fan</h1>
-
-        <div class="heroRow">
-          <div class="avatar" id="fanAvatar">🐾</div>
-          <div class="meta">
-            <b id="fanHandle">@username</b>
-            <span id="fanBio"></span>
-          </div>
-        </div>
-
-        <div class="hint" style="margin-top:10px;opacity:.9;">Public fan profile</div>
-
-        <div class="miniGrid">
-          <div class="miniCard">
-            <div class="miniK">Following</div>
-            <div class="miniV" id="statFollowing">—</div>
-          </div>
-          <div class="miniCard">
-            <div class="miniK">Subscriptions</div>
-            <div class="miniV" id="statSubscriptions">—</div>
-          </div>
-          <div class="miniCard">
-            <div class="miniK">Likes</div>
-            <div class="miniV">—</div>
-            <div class="small">Coming soon</div>
-          </div>
-          <div class="miniCard">
-            <div class="miniK">Collections</div>
-            <div class="miniV">—</div>
-            <div class="small">Coming soon</div>
-          </div>
-        </div>
-
-        <div class="hint" id="fanHint"></div>
-      </div>
-
-      <div class="panel">
-        <div class="pill">Following</div>
-        <div class="hint" style="margin-top:0;">Creators followed</div>
-        <div class="list" id="followingList"></div>
-        <div class="hint" id="followingHint">Loading…</div>
-      </div>
-    </div>
+  <div class="nav">
+    <a href="feed.html" class="brand">OnlyPaws</a>
   </div>
 
-  <footer class="globalFooter">
-    <div class="footerBox">
-      <div class="footerTop">© 2026 OnlyPaws • Built with toe beans energy 🐾</div>
-      <div class="small">OnlyPaws is an independent digital platform. Features may evolve over time.</div>
-      <div class="footerLinks">
-        <a href="content-policy.html">Content Policy</a>
-        <span>·</span>
-        <a href="privacy-policy.html">Privacy Policy</a>
-        <span>·</span>
-        <a href="terms.html">Terms of Service</a>
-        <span>·</span>
-        <a href="mailto:onlypawssupp@gmail.com">Contact Us</a>
+  <div class="grid">
+
+    <div class="panel">
+      <h1 id="fanName">Fan</h1>
+      <div class="meta" id="fanHandle">@username</div>
+      <div class="meta" id="fanBio"></div>
+
+      <div class="miniGrid">
+        <div class="miniCard">
+          <div class="miniK">Following</div>
+          <div class="miniV" id="statFollowing">—</div>
+        </div>
+        <div class="miniCard">
+          <div class="miniK">Subscriptions</div>
+          <div class="miniV" id="statSubscriptions">—</div>
+        </div>
       </div>
+
+      <div class="hint" id="fanHint"></div>
     </div>
-  </footer>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="supabase.js"></script>
+    <div class="panel">
+      <h2 style="margin:0 0 10px;">Creators followed</h2>
+      <div class="list" id="followingList"></div>
+      <div class="hint" id="followingHint">Loading…</div>
+    </div>
 
-  <script>
-    function show(el, yes){
-      if(!el) return;
-      el.style.display = yes ? "inline-flex" : "none";
-    }
+  </div>
+</div>
 
-    function esc(s){
-      return (s ?? "").toString()
-        .replaceAll("&","&amp;")
-        .replaceAll("<","&lt;")
-        .replaceAll(">","&gt;")
-        .replaceAll('"',"&quot;")
-        .replaceAll("'","&#039;");
-    }
+<footer class="globalFooter">
+  <div>
+    © 2026 OnlyPaws • Built with toe beans energy 🐾
+  </div>
 
-    function getParams(){
-      const p = new URLSearchParams(window.location.search);
-      return { u: (p.get("u") || "").trim() };
-    }
+  <div class="small">
+    OnlyPaws is an independent digital platform. Features may evolve over time.
+  </div>
 
-    function isUUID(v){
-      return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v || "");
-    }
+  <div class="footerLinks">
+    <a href="content-policy.html">Content Policy</a>
+    &nbsp;·&nbsp;
+    <a href="privacy-policy.html">Privacy Policy</a>
+    &nbsp;·&nbsp;
+    <a href="terms.html">Terms of Service</a>
+    &nbsp;·&nbsp;
+    <a href="mailto:onlypawssupp@gmail.com">Contact Us</a>
+  </div>
+</footer>
 
-    async function hydrateUserPill(){
-      try{
-        const pill = document.getElementById("userPill");
-        if(!pill) return;
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
 
-        const { data: sessData } = await onlypawsClient.auth.getSession();
-        const session = sessData?.session;
-        if(!session){
-          pill.textContent = "Guest";
-          return;
-        }
+<script>
 
-        const uid = session.user.id;
-        const email = session.user.email || "";
+function getParam(){
+  const p=new URLSearchParams(window.location.search);
+  return p.get("u");
+}
 
-        const { data: prof } = await onlypawsClient
-          .from("profiles")
-          .select("username, display_name, role")
-          .eq("user_id", uid)
-          .maybeSingle();
+async function loadFan(){
+  const u=getParam();
+  if(!u){
+    document.getElementById("fanHint").textContent="Missing ?u=username";
+    return;
+  }
 
-        const uname = (prof?.username || "").trim();
-        const dname = (prof?.display_name || "").trim();
+  const {data:fan,error}=await onlypawsClient
+    .from("profiles")
+    .select("user_id,username,display_name,bio")
+    .eq("username",u)
+    .maybeSingle();
 
-        if(uname) pill.textContent = "@" + uname;
-        else if(dname) pill.textContent = dname;
-        else if(email) pill.textContent = email.split("@")[0];
-        else pill.textContent = "User";
-      }catch(e){}
-    }
+  if(error||!fan){
+    document.getElementById("fanHint").textContent="Fan not found";
+    return;
+  }
 
-    async function hydrateNav(){
-      const profileBtn = document.getElementById("navProfile");
-      const fanDash = document.getElementById("navFanDash");
-      const creatorDash = document.getElementById("navCreatorDash");
-      const logoutBtn = document.getElementById("navLogout");
+  document.getElementById("fanName").textContent =
+    fan.display_name||fan.username;
 
-      show(profileBtn, true);
-      show(logoutBtn, true);
-      show(fanDash, false);
-      show(creatorDash, false);
+  document.getElementById("fanHandle").textContent =
+    "@"+fan.username;
 
-      try{
-        const { data: u } = await onlypawsClient.auth.getUser();
-        const userId = u?.user?.id;
-        if(!userId) return;
+  document.getElementById("fanBio").textContent =
+    fan.bio||"";
 
-        const { data: p } = await onlypawsClient
-          .from("profiles")
-          .select("role")
-          .eq("user_id", userId)
-          .maybeSingle();
+  const {count:following}=await onlypawsClient
+    .from("followers")
+    .select("id",{count:"exact",head:true})
+    .eq("fan_id",fan.user_id);
 
-        if(p?.role === "creator") show(creatorDash, true);
-        else show(fanDash, true);
-      }catch(e){}
-    }
+  const {count:subs}=await onlypawsClient
+    .from("creator_subscriptions")
+    .select("id",{count:"exact",head:true})
+    .eq("fan_id",fan.user_id)
+    .eq("is_active",true);
 
-    function setupLogout(){
-      const logoutBtn = document.getElementById("navLogout");
-      if(!logoutBtn) return;
-      logoutBtn.addEventListener("click", async (ev) => {
-        ev.preventDefault();
-        logoutBtn.disabled = true;
-        logoutBtn.textContent = "Logging out…";
-        try { await onlypawsClient.auth.signOut(); } catch(e) {}
-        window.location.replace("index.html");
-      });
-    }
+  document.getElementById("statFollowing").textContent =
+    following||0;
 
-    function setHint(msg){
-      const el = document.getElementById("fanHint");
-      if(el) el.textContent = msg || "";
-    }
+  document.getElementById("statSubscriptions").textContent =
+    subs||0;
 
-    function setFanUI(p){
-      const name = (p.display_name || p.username || "Fan").trim();
-      const uname = (p.username || "username").trim();
-      const bio = (p.bio || "").trim();
-      const url = (p.avatar_url || "").trim();
+  const {data:rows}=await onlypawsClient
+    .from("followers")
+    .select("creator_id")
+    .eq("fan_id",fan.user_id);
 
-      document.getElementById("fanName").textContent = name;
-      document.getElementById("fanHandle").textContent = "@" + uname;
-      document.getElementById("fanBio").textContent = bio;
+  if(!rows||rows.length===0){
+    document.getElementById("followingHint").textContent="No creators yet.";
+    return;
+  }
 
-      const av = document.getElementById("fanAvatar");
-      if(url){
-        av.innerHTML = `<img src="${esc(url)}" alt="Fan avatar" loading="lazy" decoding="async" referrerpolicy="no-referrer">`;
-      }else{
-        av.textContent = "🐾";
-      }
-    }
+  const ids=rows.map(r=>r.creator_id);
 
-    function renderFollowingList(creators){
-      const list = document.getElementById("followingList");
-      const hint = document.getElementById("followingHint");
+  const {data:creators}=await onlypawsClient
+    .from("profiles")
+    .select("username,display_name")
+    .in("user_id",ids);
 
-      if(!list || !hint) return;
+  document.getElementById("followingHint").textContent="";
 
-      if(!creators || creators.length === 0){
-        list.innerHTML = "";
-        hint.textContent = "No creators yet.";
-        return;
-      }
+  document.getElementById("followingList").innerHTML =
+    creators.map(c=>`
+      <a class="listItem" href="creator-profile.html?u=${c.username}">
+        ${c.display_name||c.username}
+      </a>
+    `).join("");
+}
 
-      hint.textContent = "";
+loadFan();
 
-      list.innerHTML = creators.map(c => {
-        const name = (c.display_name || c.username || "Creator").trim();
-        const uname = (c.username || "").trim();
-        const url = (c.avatar_url || "").trim();
-        const avatar = url
-          ? `<img src="${esc(url)}" alt="Creator avatar" loading="lazy" decoding="async" referrerpolicy="no-referrer">`
-          : "🐾";
+</script>
 
-        // link to creator profile page (you already use ?u=)
-        const href = `creator-profile.html?u=${encodeURIComponent(uname || c.user_id)}`;
-
-        return `
-          <a class="listItem" href="${esc(href)}">
-            <div class="listAvatar">${avatar}</div>
-            <div class="listMeta">
-              <b>${esc(name)}</b>
-              <span>${esc(uname ? "@"+uname : c.user_id)}</span>
-            </div>
-          </a>
-        `;
-      }).join("");
-    }
-
-    async function loadFanByParam(u){
-      const sel = "user_id, username, display_name, bio, avatar_url, role";
-      const q = onlypawsClient.from("profiles").select(sel);
-
-      const { data, error } = isUUID(u)
-        ? await q.eq("user_id", u).maybeSingle()
-        : await q.eq("username", u).maybeSingle();
-
-      if(error) throw error;
-      if(!data) throw new Error("Fan not found");
-      return data;
-    }
-
-    async function countFollowing(fanUserId){
-      // followers table: rows where fan_id = fanUserId
-      const { count, error } = await onlypawsClient
-        .from("followers")
-        .select("id", { count: "exact", head: true })
-        .eq("fan_id", fanUserId);
-
-      if(error) throw error;
-      return count ?? 0;
-    }
-
-    async function countSubscriptions(fanUserId){
-      const { count, error } = await onlypawsClient
-        .from("creator_subscriptions")
-        .select("id", { count: "exact", head: true })
-        .eq("fan_id", fanUserId)
-        .eq("is_active", true);
-
-      if(error) throw error;
-      return count ?? 0;
-    }
-
-    async function loadFollowingCreators(fanUserId){
-      // 1) get creator ids from followers
-      const { data: rows, error } = await onlypawsClient
-        .from("followers")
-        .select("creator_id")
-        .eq("fan_id", fanUserId)
-        .limit(50);
-
-      if(error) throw error;
-
-      const ids = (rows || []).map(r => r.creator_id).filter(Boolean);
-      if(ids.length === 0) return [];
-
-      // 2) load profiles for those creator ids
-      const { data: creators, error: e2 } = await onlypawsClient
-        .from("profiles")
-        .select("user_id, username, display_name, avatar_url, role")
-        .in("user_id", ids)
-        .eq("role", "creator");
-
-      if(e2) throw e2;
-
-      // Keep same order as ids (optional)
-      const byId = new Map((creators || []).map(c => [c.user_id, c]));
-      return ids.map(id => byId.get(id)).filter(Boolean);
-    }
-
-    async function initFanPublic(){
-      setupLogout();
-      await hydrateUserPill();
-      await hydrateNav();
-
-      const { u } = getParams();
-      if(!u){
-        document.getElementById("followingHint").textContent = "Missing ?u=username (or UUID)";
-        setHint("");
-        return;
-      }
-
-      try{
-        const fan = await loadFanByParam(u);
-        setFanUI(fan);
-
-        // soft role check (don’t block, just show hint)
-        if((fan.role || "").toLowerCase() === "creator"){
-          setHint("This user is a creator (you might be looking for creator-profile.html).");
-        }else{
-          setHint("");
-        }
-
-        const [followingCount, subCount, creators] = await Promise.all([
-          countFollowing(fan.user_id),
-          countSubscriptions(fan.user_id),
-          loadFollowingCreators(fan.user_id),
-        ]);
-
-        document.getElementById("statFollowing").textContent = String(followingCount);
-        document.getElementById("statSubscriptions").textContent = String(subCount);
-
-        renderFollowingList(creators);
-      }catch(e){
-        document.getElementById("followingHint").textContent = "";
-        setHint("❌ " + (e?.message || String(e)));
-      }
-    }
-
-    onlypawsClient.auth.onAuthStateChange((event) => {
-      if(event === "SIGNED_OUT") window.location.replace("index.html");
-    });
-
-    initFanPublic();
-  </script>
 </body>
 </html>
