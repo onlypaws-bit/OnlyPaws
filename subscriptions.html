@@ -316,13 +316,13 @@
       return data?.display_name || data?.username || null;
     }
 
-    // Load ONLY the 5€/month active plan
+    // Load ONLY the 5€/month active plan (for UI display)
     async function loadVipPlan(){
       const c = supa();
 
       const { data, error } = await c
         .from("creator_plans")
-        .select("id, name, description, price_cents, currency, billing_period, is_active, stripe_price_id, created_at")
+        .select("id, name, description, price_cents, currency, billing_period, is_active, created_at")
         .eq("creator_id", CREATOR_ID)
         .eq("is_active", true)
         .eq("billing_period", "monthly")
@@ -335,7 +335,7 @@
       return data || null;
     }
 
-    async function createFanCheckout({ creator_id, price_id }){
+    async function createFanCheckout({ creator_id }){
       const c = supa();
       const { data:{ session } } = await c.auth.getSession();
       if(!session){
@@ -350,10 +350,10 @@
 
       const cancelUrl = new URL(location.href);
 
+      // IMPORTANT: price comes from DB inside the edge (auto-heal)
       const { data, error } = await c.functions.invoke("create-fan-subscription", {
         body: {
           creator_id,
-          price_id,
           success_url: successUrl.toString(),
           cancel_url: cancelUrl.toString()
         },
@@ -409,7 +409,7 @@
       const label = await getCreatorLabel();
       subline.textContent = label ? `Creator: @${label}` : `Creator: ${shortId(CREATOR_ID)}`;
 
-      // Load plan from DB
+      // Load plan from DB (for display)
       let plan = null;
       try{
         plan = await loadVipPlan();
@@ -432,19 +432,11 @@
       const euro = (plan.price_cents ?? 500) / 100;
       planPriceEl.textContent = `€${euro} / month`;
 
-      // Hard guard: needs stripe_price_id
-      const priceId = (plan.stripe_price_id || "").toString().trim();
-      if(!priceId){
-        setButtonBusy(true, "Not configured");
-        toast("Creator plan is missing stripe_price_id.");
-        return;
-      }
-
       // Subscribe click
       subscribeBtn.addEventListener("click", async ()=> {
         try{
           setButtonBusy(true, "Opening checkout…");
-          await createFanCheckout({ creator_id: CREATOR_ID, price_id: priceId });
+          await createFanCheckout({ creator_id: CREATOR_ID });
           // If redirect happens, code stops here.
           setButtonBusy(false, "Subscribe");
         }catch(e){
