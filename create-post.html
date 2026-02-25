@@ -198,7 +198,7 @@
         <textarea id="preview" placeholder="Short teaser shown when locked…"></textarea>
       </div>
 
-      <div class="field">
+      <div class="field" id="mediaField">
         <label>Media (optional)</label>
         <input id="mediaFile" type="file" accept="image/*,video/*" />
       </div>
@@ -475,7 +475,16 @@ console.log("BUCKET:", BUCKET, "PATH:", path);
       setMsg("Loading post…");
       setEditModeUI();
 
-      const { data, error } = await onlypawsClient
+      
+      // 🔒 EDIT MODE: allow editing only content (no title/preview/type/visibility/media)
+      document.getElementById("title").disabled = true;
+      document.getElementById("preview").disabled = true;
+      document.getElementById("is_paid").disabled = true;
+      document.getElementById("is_public").disabled = true;
+
+      const mediaField = document.getElementById("mediaField");
+      if(mediaField) mediaField.style.display = "none";
+const { data, error } = await onlypawsClient
         .from("posts")
         .select("id, title, content, preview, is_paid, is_public, media_url, media_type, creator_id")
         .eq("id", postId)
@@ -514,9 +523,12 @@ console.log("BUCKET:", BUCKET, "PATH:", path);
 
         const is_paid = document.getElementById("is_paid").value === "true";
         const is_public = document.getElementById("is_public").value === "true";
-
-        if(!title) throw new Error("Title is required.");
-        if(!content) throw new Error("Content is required.");
+        if(editId){
+          if(!content) throw new Error("Content is required.");
+        }else{
+          if(!title) throw new Error("Title is required.");
+          if(!content) throw new Error("Content is required.");
+        }
 
         const creator_id = user.id; // ✅ UUID sempre
 
@@ -527,40 +539,16 @@ console.log("BUCKET:", BUCKET, "PATH:", path);
         if(editId){
           if(!editingPost) throw new Error("Edit mode not ready.");
 
-          const { error: upErr1 } = await onlypawsClient
+          // Only update content (media is locked in edit mode)
+          const { error: upErr } = await onlypawsClient
             .from("posts")
-            .update({
-              title,
-              content,
-              preview: preview || null,
-              is_paid,
-              is_public,
-              creator_id
-              // creator_username
-            })
+            .update({ content })
             .eq("id", editId)
             .eq("creator_id", user.id);
 
-          if(upErr1) throw upErr1;
-
-          const hasFile = !!(document.getElementById("mediaFile").files?.[0]);
-          if(hasFile){
-            setMsg("Uploading media…");
-            const { media_url, media_type } = await uploadMedia(editId);
-
-            if(media_url){
-              const { error: upErr2 } = await onlypawsClient
-                .from("posts")
-                .update({ media_url, media_type })
-                .eq("id", editId)
-                .eq("creator_id", user.id);
-
-              if(upErr2) throw upErr2;
-            }
-          }
+          if(upErr) throw upErr;
 
           setMsg("Saved ✅");
-          document.getElementById("mediaFile").value = "";
           return;
         }
 
