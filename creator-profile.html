@@ -297,6 +297,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
 
+  <script src="supabase.likes.js"></script>
+  <script src="post-card.js"></script>
+
   <script>
     function goIndex(){ window.location.replace("index.html"); }
 
@@ -468,6 +471,50 @@
         return;
       }
 
+      // Prefer reusable post-card renderer (adds Like button etc.)
+      if(window.OnlyPawsPostCard?.renderPostCard){
+        postsEl.innerHTML = list.map(p => {
+          const uname = creatorUsername || (p?.profiles?.username || "creator");
+          const title = p.title || "Post";
+
+          const isPremium = (p.is_paid === true);
+          const isPrivate = (p.is_public === false);
+          const isMine = (ent.isSelf === true);
+
+          let canView = false;
+          if(isPrivate){
+            canView = isMine;
+          }else if(!isPremium){
+            canView = true;
+          }else{
+            canView = isMine || (ent.isSubscribed === true);
+          }
+
+          const locked = !canView;
+
+          const cardHtml = window.OnlyPawsPostCard.renderPostCard({
+            id: p.id,
+            creator_username: uname,
+            title,
+            excerpt: locked ? (p.preview || "Locked content.") : (p.content || p.preview || ""),
+            price_cents: null,
+            currency: "eur",
+            is_locked: locked,
+
+            // media
+            media_url: p.media_url || null,
+            media_type: p.media_type || null,
+          });
+
+          return cardHtml;
+        }).join("");
+
+        // Bind like buttons after render
+        window.OnlyPawsPostCard.initPostCards(postsEl);
+        return;
+      }
+
+      // Fallback (no post-card.js loaded)
       postsEl.innerHTML = list.map(p => {
         const who = creatorUsername ? `@${creatorUsername}` : "@creator";
         const title = p.title || "Post";
@@ -498,27 +545,19 @@
               <div class="badge">${esc(who)}</div>
               <div class="badge">${badgeLabel}</div>
             </div>
+
             <h3>${esc(title)}</h3>
+
             ${mediaBlock(p)}
-            <p class="postText">${esc(canView ? fullText : preview)}</p>
+
+            <div class="postText">
+              <p>${esc(canView ? fullText : preview)}</p>
+            </div>
+
             ${canView ? "" : lockedOverlayHtml()}
           </div>
         `;
       }).join("");
-
-      postsEl.querySelectorAll("[data-action='premium']").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const pb = document.getElementById("premiumBtn");
-          if(pb?.disabled){
-            const hint = document.getElementById("creatorHint");
-            if(hint){
-              hint.textContent = pb.title || "Subscriptions are not available right now.";
-            }
-            return;
-          }
-          pb.click();
-        });
-      });
     }
 
     async function loadCreatorByUsername(username){
