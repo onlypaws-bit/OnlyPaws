@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>OnlyPaws — Post</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    :root{
+      --bg1:#6B4EFF;
+      --bg2:#8B6CFF;
+      --text:#ffffff;
+      --muted:rgba(255,255,255,.85);
+      --stroke:rgba(255,255,255,.16);
+      --card:rgba(0,0,0,.16);
+      --shadow: rgba(0,0,0,.25);
+      --btn:#ffffff;
+      --btnText:#6B4EFF;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 20% 10%, rgba(255,255,255,.18), transparent 55%),
+        radial-gradient(1000px 650px at 90% 30%, rgba(0,0,0,.22), transparent 55%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
+      min-height:100vh;
+    }
+    .wrap{max-width:1040px;margin:0 auto;padding:28px 18px 70px;}
+
+    /* ===== GLOBAL FOOTER (identico) ===== */
+    .globalFooter {
+      text-align: center;
+      padding: 30px 20px;
+      font-size: 14px;
+      opacity: 0.9;
+      line-height: 1.6;
+    }
+    .globalFooter .small {
+      margin-top: 6px;
+      font-size: 13px;
+      opacity: 0.8;
+    }
+    .globalFooter .footerLinks {
+      margin-top: 14px;
+    }
+    .globalFooter a {
+      color: rgba(255,255,255,0.9);
+      text-decoration: none;
+      opacity: 0.85;
+      transition: opacity 0.2s ease, text-decoration 0.2s ease;
+    }
+    .globalFooter a:hover {
+      text-decoration: underline;
+      opacity: 1;
+    }
+
+    /* ===== NAV (identica) ===== */
+    .nav{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px;}
+    .brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:white;font-weight:900;letter-spacing:.2px;user-select:none;}
+    .brandLogo{
+      width:62px;height:62px;border-radius:14px;background:rgba(255,255,255,.16);
+      border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;overflow:hidden;
+      transition: transform .18s ease;
+    }
+    .brand:hover .brandLogo{transform: translateY(-1px) scale(1.02);}
+    .brandLogo img{width:46px;height:46px;object-fit:contain;}
+    .navRight{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
+    .navBtn{
+      display:inline-flex;align-items:center;justify-content:center;
+      padding:10px 14px;border-radius:999px;background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);color:white;text-decoration:none;font-weight:900;
+      cursor:pointer; user-select:none; transition: transform .16s ease, background .16s ease, border-color .16s ease;
+      font-size:13px; white-space:nowrap;
+    }
+    .navBtn:hover{transform: translateY(-1px); background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.22);}
+    .navBtn.primary{background:var(--btn);border:none;color:var(--btnText);box-shadow:0 14px 30px rgba(0,0,0,.20);}
+    .navBtn.primary:hover{transform: translateY(-1px) scale(1.01);}
+    .navBtn:active{transform: translateY(0px) scale(.99);}
+
+    .panel{
+      border-radius:22px;padding:22px;background:var(--card);
+      border:1px solid var(--stroke);backdrop-filter: blur(10px);
+      box-shadow:0 20px 45px var(--shadow);
+    }
+
+    .pill{
+      display:inline-flex;gap:8px;align-items:center;
+      padding:10px 14px;border-radius:999px;
+      background: rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      font-size:13px;color:rgba(255,255,255,.85);
+      white-space:nowrap;
+    }
+
+    h1{margin:10px 0 6px;font-size: clamp(2rem, 4vw, 2.6rem);line-height:1.05; letter-spacing:-0.6px;}
+    .sub{margin:0;color:var(--muted);font-size:1.02rem;line-height:1.55;}
+    .meta b{display:block;font-size:1.05rem;}
+    .meta span{display:block;color:rgba(255,255,255,.78);font-size:13px;margin-top:2px;white-space:pre-wrap;}
+
+    .btnRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center;}
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;
+      padding:12px 16px;border-radius:999px;
+      background: var(--btn);color: var(--btnText);
+      text-decoration:none;font-weight:900;border:none;cursor:pointer;
+      box-shadow:0 14px 30px rgba(0,0,0,.22);
+    }
+    .btn:disabled{opacity:.55;cursor:not-allowed;box-shadow:none;}
+    .ghost{
+      display:inline-flex;align-items:center;justify-content:center;
+      padding:12px 16px;border-radius:999px;
+      background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);
+      color:white;text-decoration:none;font-weight:900;cursor:pointer;
+      transition: transform .16s ease, background .16s ease, border-color .16s ease;
+    }
+    .ghost:hover{transform: translateY(-1px); background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.22);}
+    .ghost:active{transform: translateY(0px) scale(.99);}
+    .ghost:disabled{opacity:.55;cursor:not-allowed;}
+
+    .hint{color:rgba(255,255,255,.78);font-size:13px;line-height:1.4;margin-top:10px;white-space:pre-wrap;}
+
+    /* Media */
+    .mediaWrap{
+      margin-top:12px;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,.14);
+      background:rgba(0,0,0,.18);
+    }
+    .mediaWrap img,.mediaWrap video{
+      width:100%;
+      display:block;
+      max-height:620px;
+      object-fit:contain;
+      background:#000;
+    }
+
+    .captionBox{
+      margin-top:14px;
+      border-radius:18px;
+      padding:14px;
+      background: rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.16);
+      white-space:pre-wrap;
+      line-height:1.55;
+      color: rgba(255,255,255,.90);
+    }
+
+    .err{
+      margin-top:12px;
+      padding:12px 14px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,.18);
+      background: rgba(0,0,0,.18);
+      color: rgba(255,255,255,.92);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+
+    <div class="nav">
+      <a href="feed.html" class="brand">
+        <div class="brandLogo"><img src="logo.png" alt="OnlyPaws logo"></div>
+        <span>OnlyPaws</span>
+      </a>
+      <div class="navRight">
+        <div class="pill" id="userPill">…</div>
+
+        <a class="navBtn primary" id="navProfile" href="profile.html" style="display:none;">Profile</a>
+        <a class="navBtn" id="navFanDash" href="fan-dash.html" style="display:none;">Dashboard</a>
+        <a class="navBtn" id="navCreatorDash" href="creator-dash.html" style="display:none;">Dashboard</a>
+
+        <button class="navBtn" id="navLogout" type="button" style="display:none;">Log out</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="pill">Post</div>
+      <h1 id="pageTitle">Post</h1>
+
+      <div class="meta" style="margin-top:8px;">
+        <b id="author">@creator</b>
+        <span id="createdAt"></span>
+      </div>
+
+      <div class="mediaWrap" id="mediaBox" style="display:none;"></div>
+
+      <div class="captionBox" id="caption" style="display:none;"></div>
+
+      <div class="btnRow">
+        <button class="ghost" id="likeBtn" data-liked="false" type="button" title="like/unlike">
+          <span id="likeIcon">♡</span>
+          <span style="margin-left:6px;">Like</span>
+          <span id="likeCount" style="margin-left:10px; opacity:.9;">0</span>
+        </button>
+
+        <button class="ghost" id="copyLinkBtn" type="button">Copy link</button>
+
+        <a class="ghost" id="backBtn" href="feed.html">Back</a>
+      </div>
+
+      <div class="hint" id="hintBox">Loading…</div>
+      <div class="err" id="errBox" style="display:none;"></div>
+    </div>
+
+  </div>
+
+  <footer class="globalFooter">
+    <div class="footerTop">
+      © 2026 OnlyPaws • Built with toe beans energy 🐾
+    </div>
+
+    <div class="small">
+      OnlyPaws is an independent digital platform. Features may evolve over time.
+    </div>
+
+    <div class="footerLinks">
+      <a href="content-policy.html">Content Policy</a>
+      &nbsp;·&nbsp;
+      <a href="privacy-policy.html">Privacy Policy</a>
+      &nbsp;·&nbsp;
+      <a href="terms.html">Terms of Service</a>
+      &nbsp;·&nbsp;
+      <a href="mailto:onlypawssupp@gmail.com">Contact Us</a>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+
+  <script>
+    function goIndex(){ window.location.replace("index.html"); }
+    function $(id){ return document.getElementById(id); }
+
+    function show(el, yes){
+      if(!el) return;
+      el.style.display = yes ? "" : "none";
+    }
+
+    function esc(s){
+      return (s ?? "").toString()
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function fmtDate(iso){
+      if(!iso) return "";
+      const d = new Date(iso);
+      try{
+        return d.toLocaleString("it-IT", { year:"numeric", month:"short", day:"2-digit", hour:"2-digit", minute:"2-digit" });
+      }catch(e){
+        return d.toISOString();
+      }
+    }
+
+    function getPostId(){
+      const p = new URLSearchParams(window.location.search);
+      return (p.get("id") || "").trim();
+    }
+
+    function getClient(){
+      // prefer your project client from supabase.js
+      if(window.onlypawsClient) return window.onlypawsClient;
+
+      // fallback if you keep these on window
+      const url = window.SUPABASE_URL || "";
+      const key = window.SUPABASE_ANON_KEY || "";
+      if(url && key && window.supabase?.createClient) return window.supabase.createClient(url, key);
+
+      throw new Error("Missing onlypawsClient. Ensure supabase.js is loaded and sets window.onlypawsClient.");
+    }
+
+    async function hydrateUserPill(client){
+      try{
+        const pill = $("userPill");
+        if(!pill) return;
+
+        const { data: sessData } = await client.auth.getSession();
+        const session = sessData?.session;
+
+        if(!session){
+          pill.textContent = "Guest";
+          return;
+        }
+
+        const uid = session.user.id;
+        const email = session.user.email || "";
+
+        const { data: prof } = await client
+          .from("profiles")
+          .select("username, display_name, role")
+          .eq("user_id", uid)
+          .maybeSingle();
+
+        const uname = (prof?.username || "").trim();
+        const dname = (prof?.display_name || "").trim();
+
+        if(uname) pill.textContent = "@" + uname;
+        else if(dname) pill.textContent = dname;
+        else if(email) pill.textContent = email.split("@")[0];
+        else pill.textContent = "User";
+      }catch(e){}
+    }
+
+    async function hydrateNav(client){
+      const profileBtn = $("navProfile");
+      const fanDash = $("navFanDash");
+      const creatorDash = $("navCreatorDash");
+      const logoutBtn = $("navLogout");
+
+      show(profileBtn, true);
+      show(logoutBtn, true);
+      show(fanDash, false);
+      show(creatorDash, false);
+
+      try{
+        const { data: u } = await client.auth.getUser();
+        const userId = u?.user?.id;
+        if(!userId) return;
+
+        const { data: p } = await client
+          .from("profiles")
+          .select("role")
+          .eq("user_id", userId)
+          .maybeSingle();
+
+        if(p?.role === "creator") show(creatorDash, true);
+        else show(fanDash, true);
+      }catch(e){}
+    }
+
+    function setupLogout(client){
+      const logoutBtn = $("navLogout");
+      if(!logoutBtn) return;
+      logoutBtn.addEventListener("click", async (ev) => {
+        ev.preventDefault();
+        logoutBtn.disabled = true;
+        logoutBtn.textContent = "Logging out…";
+        try{ await client.auth.signOut(); }catch(e){}
+        goIndex();
+      });
+    }
+
+    async function boot(){
+      const hint = $("hintBox");
+      const err = $("errBox");
+      const mediaBox = $("mediaBox");
+      const captionEl = $("caption");
+      const likeBtn = $("likeBtn");
+      const likeIcon = $("likeIcon");
+      const likeCount = $("likeCount");
+
+      try{
+        const client = getClient();
+
+        // session
+        const { data: sessData } = await client.auth.getSession();
+        const session = sessData?.session;
+        if(!session){ goIndex(); return; }
+
+        setupLogout(client);
+        await hydrateNav(client);
+        await hydrateUserPill(client);
+
+        const userId = session.user.id;
+        const postId = getPostId();
+        if(!postId){
+          hint.textContent = "";
+          err.style.display = "block";
+          err.textContent = "Missing ?id= in URL";
+          return;
+        }
+
+        // fetch post (your schema)
+        async function fetchPost(){
+          const { data, error } = await client
+            .from("posts")
+            .select("id, creator_id, title, content, preview, media_url, media_type, likes_count, created_at")
+            .eq("id", postId)
+            .maybeSingle();
+          if(error) throw error;
+          return data;
+        }
+
+        let post = await fetchPost();
+        if(!post){
+          hint.textContent = "";
+          err.style.display = "block";
+          err.textContent = "Post not found";
+          return;
+        }
+
+        // title + meta
+        $("pageTitle").textContent = (post.title && post.title.trim()) ? post.title : "Post";
+        $("createdAt").textContent = fmtDate(post.created_at);
+
+        // author (profiles.user_id)
+        let authorName = "@creator";
+        try{
+          const { data: prof } = await client
+            .from("profiles")
+            .select("username")
+            .eq("user_id", post.creator_id)
+            .maybeSingle();
+          if(prof?.username) authorName = "@" + prof.username;
+        }catch(e){}
+        $("author").textContent = authorName;
+
+        // content / preview
+        const bodyText = (post.content && String(post.content).trim().length)
+          ? post.content
+          : (post.preview || "");
+        if(bodyText && String(bodyText).trim().length){
+          captionEl.style.display = "block";
+          captionEl.textContent = bodyText;
+        }else{
+          captionEl.style.display = "none";
+        }
+
+        // media
+        function renderMedia(p){
+          mediaBox.innerHTML = "";
+          const type = (p.media_type || "none").toLowerCase();
+          const url = (p.media_url || "").trim();
+
+          if(!url || type === "none"){
+            show(mediaBox, false);
+            return;
+          }
+
+          show(mediaBox, true);
+
+          if(type === "video"){
+            mediaBox.innerHTML = `<video controls playsinline preload="metadata" src="${esc(url)}"></video>`;
+          }else{
+            mediaBox.innerHTML = `<img src="${esc(url)}" alt="Post media" loading="lazy" decoding="async" referrerpolicy="no-referrer">`;
+          }
+        }
+        renderMedia(post);
+
+        // likes
+        async function refreshLikes(){
+          // refresh post.likes_count (trigger keeps it correct)
+          try{
+            const fresh = await fetchPost();
+            if(fresh) post = fresh;
+          }catch(e){}
+          likeCount.textContent = String(post.likes_count ?? 0);
+
+          // liked by me? post_likes uses fan_id
+          const { data: mine, error: mErr } = await client
+            .from("post_likes")
+            .select("id")
+            .eq("post_id", postId)
+            .eq("fan_id", userId)
+            .maybeSingle();
+
+          const liked = !!(mine && mine.id) && !mErr;
+          likeBtn.setAttribute("data-liked", liked ? "true" : "false");
+          likeIcon.textContent = liked ? "♥" : "♡";
+        }
+
+        async function toggleLike(){
+          err.style.display = "none";
+          const liked = likeBtn.getAttribute("data-liked") === "true";
+          likeBtn.disabled = true;
+
+          try{
+            if(liked){
+              const { error } = await client
+                .from("post_likes")
+                .delete()
+                .eq("post_id", postId)
+                .eq("fan_id", userId);
+              if(error) throw error;
+            }else{
+              const { error } = await client
+                .from("post_likes")
+                .insert({ post_id: postId, fan_id: userId });
+              if(error) throw error;
+            }
+
+            await refreshLikes();
+          }catch(e){
+            err.style.display = "block";
+            err.textContent = "Like error: " + (e?.message || String(e));
+          }finally{
+            likeBtn.disabled = false;
+          }
+        }
+
+        likeBtn.addEventListener("click", toggleLike);
+
+        // copy link
+        $("copyLinkBtn").addEventListener("click", async () => {
+          try{
+            await navigator.clipboard.writeText(window.location.href);
+            $("copyLinkBtn").textContent = "Copied!";
+            setTimeout(() => $("copyLinkBtn").textContent = "Copy link", 900);
+          }catch(e){
+            $("copyLinkBtn").textContent = "Nope";
+            setTimeout(() => $("copyLinkBtn").textContent = "Copy link", 900);
+          }
+        });
+
+        await refreshLikes();
+        hint.textContent = "";
+      }catch(e){
+        $("hintBox").textContent = "";
+        $("errBox").style.display = "block";
+        $("errBox").textContent = e?.message || String(e);
+      }
+    }
+
+    // react to sign-out
+    try{
+      const client = (window.onlypawsClient || null);
+      if(client?.auth?.onAuthStateChange){
+        client.auth.onAuthStateChange((event) => {
+          if(event === "SIGNED_OUT") goIndex();
+        });
+      }
+    }catch(e){}
+
+    boot();
+  </script>
+</body>
+</html>
