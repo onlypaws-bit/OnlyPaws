@@ -17,21 +17,40 @@
       --btnText:#6B4EFF;
     }
 
-    .globalFooter {
+    /* ===== GLOBAL FOOTER ===== */
+
+.globalFooter {
   text-align: center;
   padding: 30px 20px;
   font-size: 14px;
   opacity: 0.9;
+  line-height: 1.6;
 }
 
+/* Seconda frase descrittiva */
 .globalFooter .small {
   margin-top: 6px;
   font-size: 13px;
   opacity: 0.8;
 }
 
+/* Spazio tra frase e link */
 .globalFooter .footerLinks {
-  margin-top: 14px; /* ← QUESTO è lo spazietto che volevi */
+  margin-top: 14px;
+}
+
+/* Link footer */
+.globalFooter a {
+  color: rgba(255,255,255,0.9);
+  text-decoration: none;
+  opacity: 0.85;
+  transition: opacity 0.2s ease, text-decoration 0.2s ease;
+}
+
+/* Hover */
+.globalFooter a:hover {
+  text-decoration: underline;
+  opacity: 1;
 }
     *{box-sizing:border-box}
     body{
