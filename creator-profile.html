@@ -17,16 +17,28 @@
       --btnText:#6B4EFF;
     }
 
-    footer{
-      margin-top:32px;
-      padding-bottom:22px;
-      color:rgba(255,255,255,.75);
-      font-size:13px;
-      text-align:center;
-      line-height:1.5;
-    }
-    .smallLegal{display:inline-block;margin-top:6px;opacity:.85;font-size:12px;}
+    .globalFooter{
+  margin-top:40px;
+  text-align:center;
+  font-size:13px;
+  color:rgba(255,255,255,.75);
+}
 
+.globalFooter a{
+  color:white;
+  text-decoration:underline;
+  opacity:.85;
+}
+
+.globalFooter a:hover{
+  opacity:1;
+}
+
+.small{
+  font-size:12px;
+  opacity:.85;
+  margin-top:6px;
+}
     *{box-sizing:border-box}
     body{
       margin:0;
@@ -249,12 +261,22 @@
 
   </div>
 
-  <footer>
-    © 2026 OnlyPaws • Built with toe beans energy 🐾<br/>
-    <span class="smallLegal">
-      OnlyPaws is an independent digital platform. Features may evolve over time.
-    </span>
+  <footer class="globalFooter">
+  © 2026 OnlyPaws • Built with toe beans energy 🐾<br/>
+  <span class="small">
+    OnlyPaws is an independent digital platform. Features may evolve over time.
+  </span>
+  <div class="small">Last updated: 2026</div>
+  <br/>
+  <a href="content-policy.html">Content Policy</a>
+  &nbsp;·&nbsp;
+  <a href="privacy-policy.html">Privacy Policy</a>
+  &nbsp;·&nbsp;
+  <a href="terms.html">Terms of Service</a>
+  &nbsp;·&nbsp;
+  <a href="mailto:onlypawssupp@gmail.com">Contact Us</a>
   </footer>
+
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
