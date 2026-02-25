@@ -417,10 +417,6 @@
       `;
     }
 
-    // ✅ Rules:
-    // - private (is_public=false): only creator
-    // - public free: everyone
-    // - public premium: creator OR subscriber
     function renderPosts(list, creatorUsername, ent){
       const postsEl = document.getElementById("posts");
 
@@ -576,10 +572,9 @@
     function computeAccess(subRow){
       const periodEndMs = subRow?.current_period_end ? new Date(subRow.current_period_end).getTime() : 0;
 
-      // primary rule: access until period end
       let hasAccess = !!periodEndMs && periodEndMs > Date.now();
 
-      // legacy fallback: if DB doesn't have period_end but marks active, treat as access
+      // legacy fallback
       if(!hasAccess && !subRow?.current_period_end && subRow?.is_active === true) hasAccess = true;
 
       const status = (subRow?.status || "").toString().toLowerCase();
@@ -614,17 +609,14 @@
     }
 
     async function startCheckout(creator, creatorUsernameOrUParam){
-      // IMPORTANT: adjust function name if your project uses a different one
       const FN_NAME = "create-checkout-session";
 
       const { data: s } = await onlypawsClient.auth.getSession();
       const token = s?.session?.access_token;
       if(!token) throw new Error("No session");
 
-      // Return here after Stripe (keeping ?u=...)
       const base = new URL(window.location.href);
       base.searchParams.set("u", creatorUsernameOrUParam || (creator?.username || ""));
-      // The edge can append success/session_id; we just provide a baseline return URL
       const return_url = base.toString();
 
       const { data, error } = await onlypawsClient.functions.invoke(FN_NAME, {
@@ -653,7 +645,6 @@
 
       const fanId = session.user.id;
 
-      // Viewer role gate: creators cannot subscribe (for now)
       let viewerRole = "";
       try{
         const { data: vp } = await onlypawsClient
@@ -692,18 +683,14 @@
           explainCreatorCantSubscribe();
         }
 
-        // Helpful post-checkout hint
         if(success === "1" || session_id){
           setTopHint("✅ Payment received. Syncing subscription… If it doesn't update immediately, refresh in a few seconds.");
         }else{
           setTopHint("");
         }
 
-        // creator eligibility
         const status = (creator.stripe_onboarding_status || "").toString().trim().toLowerCase();
         const statusOk = (status === "completed" || status === "complete");
-
-        // ✅ FIX: fan clients may not see charges_enabled / connect id due to RLS
         const creatorEligible = (creator.role === "creator" && statusOk);
 
         if(!creatorEligible){
@@ -712,12 +699,10 @@
           premiumBtn.title = "";
         }
 
-        // Load state
         let subRow = await getSubscriptionState(creator.user_id, fanId);
         let subState = computeAccess(subRow);
         let hasAccess = subState.hasAccess;
 
-        // After returning from Stripe, retry subscription check (webhook might be slightly delayed)
         if((success === "1" || session_id) && !hasAccess){
           const waits = [1500, 3000, 5000];
           for(const w of waits){
@@ -774,7 +759,6 @@
         });
 
         function setPremiumUi(){
-          // Priority 1: viewer role gate
           if(viewerIsCreator){
             premiumBtn.textContent = "Coming soon";
             premiumBtn.disabled = true;
@@ -782,7 +766,6 @@
             return;
           }
 
-          // Priority 2: target creator readiness (Stripe)
           if(!creatorEligible){
             premiumBtn.textContent = "Creator not ready";
             premiumBtn.disabled = true;
@@ -795,7 +778,6 @@
           const isCanceling = subState.isCanceling;
           const isHardCanceled = subState.isHardCanceled;
 
-          // If canceled/expired: new checkout needed
           if(isHardCanceled){
             premiumBtn.textContent = "Subscribe again";
             premiumBtn.disabled = false;
@@ -806,7 +788,6 @@
             return;
           }
 
-          // Not subscribed / no access
           if(!hasAccess){
             premiumBtn.textContent = "Subscribe";
             premiumBtn.disabled = false;
@@ -814,7 +795,6 @@
             return;
           }
 
-          // Scheduled cancellation (still active until period end)
           if(isCanceling){
             premiumBtn.textContent = "Resume subscription";
             premiumBtn.disabled = false;
@@ -829,7 +809,6 @@
             return;
           }
 
-          // Active subscription (not canceling) -> allow cancel at period end
           premiumBtn.textContent = "Cancel subscription";
           premiumBtn.disabled = false;
           premiumBtn.title = "";
@@ -849,7 +828,7 @@
 
           subState = computeAccess(subRow);
 
-          // Resume scheduled cancellation (no new checkout)
+          // RESUME
           if(subRow && subState.isCanceling){
             if(!subRow.stripe_subscription_id){
               setTopHint("⚠️ Missing Stripe subscription id. Can't resume automatically.");
@@ -863,16 +842,20 @@
               const token = s?.session?.access_token;
               if(!token) throw new Error("No session");
 
-              const { error } = await onlypawsClient.functions.invoke("resume-subscription", {
+              const { data, error } = await onlypawsClient.functions.invoke("resume-subscription", {
                 body: { stripe_subscription_id: subRow.stripe_subscription_id },
                 headers: { Authorization: `Bearer ${token}` },
               });
 
               if(error) throw error;
 
-              // Update local state
-              subRow.status = "active";
-              subRow.cancel_at_period_end = false;
+              // ✅ TRUST STRIPE (via edge response)
+              if(subRow){
+                if(data?.current_period_end) subRow.current_period_end = data.current_period_end;
+                if(typeof data?.cancel_at_period_end === "boolean") subRow.cancel_at_period_end = data.cancel_at_period_end;
+                if(data?.status) subRow.status = data.status;
+                subRow.is_active = true;
+              }
 
               setPremiumUi();
               setTopHint("✅ Subscription resumed. Premium posts are unlocked.");
@@ -883,14 +866,15 @@
               });
 
             }catch(e){
-              alert(e?.message || String(e));
+              const msg = String(e?.message || e);
+              alert(msg);
             }finally{
               setBtnBusy(premiumBtn, false);
             }
             return;
           }
 
-          // Cancel at period end (active subscription)
+          // CANCEL (at period end)
           if(subRow && subState.hasAccess && !subRow.cancel_at_period_end){
             if(!subRow.stripe_subscription_id){
               setTopHint("⚠️ Missing Stripe subscription id. Can't cancel automatically.");
@@ -904,17 +888,49 @@
               const token = s?.session?.access_token;
               if(!token) throw new Error("No session");
 
-              // Always cancel at period end
-              const { error } = await onlypawsClient.functions.invoke("cancel-subscription", {
+              const { data, error } = await onlypawsClient.functions.invoke("cancel-subscription", {
                 body: { stripe_subscription_id: subRow.stripe_subscription_id },
                 headers: { Authorization: `Bearer ${token}` },
               });
 
-              if(error) throw error;
+              // 🔥 If Stripe says it's already canceled, handle it as hard-canceled
+              if(error){
+                const em = String(error.message || error);
+                if(em.includes("A canceled subscription can only update its cancellation_details and metadata")){
+                  // treat as already canceled
+                  subRow.status = "canceled";
+                  subRow.is_active = false;
+                  subRow.cancel_at_period_end = false;
+                  setPremiumUi();
+                  setTopHint("⚠️ This subscription is already canceled. Subscribe again to renew.");
+                  renderPosts(posts, creatorUsername || (isUUID(u) ? creatorUsername : u), {
+                    isSelf,
+                    isSubscribed: false
+                  });
+                  return;
+                }
+                throw error;
+              }
 
-              // Update local state
-              subRow.status = "active";
-              subRow.cancel_at_period_end = true;
+              // ✅ TRUST STRIPE (via edge response)
+              if(data?.already_canceled){
+                subRow.status = "canceled";
+                subRow.is_active = false;
+                subRow.cancel_at_period_end = false;
+                if(data?.current_period_end) subRow.current_period_end = data.current_period_end;
+                setPremiumUi();
+                setTopHint("⚠️ This subscription is already canceled. Subscribe again to renew.");
+                renderPosts(posts, creatorUsername || (isUUID(u) ? creatorUsername : u), {
+                  isSelf,
+                  isSubscribed: false
+                });
+                return;
+              }
+
+              subRow.status = (data?.status || "active");
+              subRow.cancel_at_period_end = (typeof data?.cancel_at_period_end === "boolean") ? data.cancel_at_period_end : true;
+              if(data?.current_period_end) subRow.current_period_end = data.current_period_end;
+              subRow.is_active = true;
 
               setPremiumUi();
 
@@ -924,14 +940,15 @@
               setTopHint(d ? `✅ Will cancel on ${d}. You can resume anytime before then.` : "✅ Will cancel at period end. You can resume anytime before then.");
 
             }catch(e){
-              alert(e?.message || String(e));
+              const msg = String(e?.message || e);
+              alert(msg);
             }finally{
               setBtnBusy(premiumBtn, false);
             }
             return;
           }
 
-          // Default: NEW checkout (Subscribe / Subscribe again)
+          // NEW checkout
           try{
             setBtnBusy(premiumBtn, true, "Opening checkout…");
             await startCheckout(creator, isUUID(u) ? (creator.username || "") : u);
