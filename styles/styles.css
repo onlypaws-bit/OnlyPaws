@@ -23,7 +23,8 @@ body{
   min-height:100vh;
 }
 
-  .wrap{
+/* ONE wrap only */
+.wrap{
   max-width:1040px;
   margin:0 auto;
   padding:12px 18px 70px;
