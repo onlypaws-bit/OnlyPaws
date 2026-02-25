@@ -24,9 +24,10 @@ body{
 }
 
 .wrap{
+  .wrap{
   max-width:1040px;
   margin:0 auto;
-  padding:28px 18px 70px;
+  padding:12px 18px 70px;
 }
 
 /* ================= HEADER ================= */
