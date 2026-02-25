@@ -17,27 +17,6 @@
       --btnText:#6B4EFF;
     }
 
-    <footer class="globalFooter">
-  <div class="footerTop">
-    © 2026 OnlyPaws • Built with toe beans energy 🐾
-  </div>
-
-  <div class="small">
-    OnlyPaws is an independent digital platform. Features may evolve over time.
-  </div>
-
-  <div class="footerLinks">
-    <a href="content-policy.html">Content Policy</a>
-    &nbsp;·&nbsp;
-    <a href="privacy-policy.html">Privacy Policy</a>
-    &nbsp;·&nbsp;
-    <a href="terms.html">Terms of Service</a>
-    &nbsp;·&nbsp;
-    <a href="mailto:onlypawssupp@gmail.com">Contact Us</a>
-  </div>
-</footer>
-    .smallLegal{display:inline-block;margin-top:6px;opacity:.85;font-size:12px;}
-
     *{box-sizing:border-box}
     body{
       margin:0;
@@ -59,7 +38,6 @@
       transition: transform .18s ease;
     }
     .brand:hover .brandLogo{transform: translateY(-1px) scale(1.02);}
-    .brandLogo img{width:46px;height:46px;object-fit:contain;}
     .navRight{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
     .navBtn{
       display:inline-flex;align-items:center;justify-content:center;
@@ -106,138 +84,73 @@
     .meta b{display:block;font-size:1.05rem;}
     .meta span{display:block;color:rgba(255,255,255,.78);font-size:13px;margin-top:2px;white-space:pre-wrap;}
 
-    .btnRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;align-items:center;}
-    .btn{
-      display:inline-flex;align-items:center;justify-content:center;
-      padding:12px 16px;border-radius:999px;
-      background: var(--btn);color: var(--btnText);
-      text-decoration:none;font-weight:900;border:none;cursor:pointer;
-      box-shadow:0 14px 30px rgba(0,0,0,.22);
-    }
-    .btn:disabled{opacity:.55;cursor:not-allowed;box-shadow:none;}
-    .ghost{
-      display:inline-flex;align-items:center;justify-content:center;
-      padding:12px 16px;border-radius:999px;
-      background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);
-      color:white;text-decoration:none;font-weight:900;cursor:pointer;
-    }
-    .ghost:disabled{opacity:.55;cursor:not-allowed;}
     .hint{color:rgba(255,255,255,.78);font-size:13px;line-height:1.4;margin-top:10px;white-space:pre-wrap;}
 
-    /* Pets */
-    .petsList{margin-top:12px;display:grid;gap:10px;}
-    .petCard{
-      border-radius:18px;padding:12px;background:rgba(255,255,255,.10);
-      border:1px solid rgba(255,255,255,.16);
-      display:flex;gap:12px;align-items:center;
-    }
-    .petAvatar{
-      width:46px;height:46px;border-radius:16px;
-      background: rgba(0,0,0,.18);
-      border:1px solid rgba(255,255,255,.14);
-      display:flex;align-items:center;justify-content:center;
-      flex:0 0 auto;font-size:18px;overflow:hidden;
-    }
-    .petAvatar img{width:100%;height:100%;object-fit:cover;display:block;}
-    .petCard b{display:block}
-    .petCard span{display:block;color:rgba(255,255,255,.78);font-size:13px;margin-top:2px;}
-
-    /* Posts */
-    .postsHeader{margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
-    .postsHeader h2{margin:0;font-size:1.15rem;}
-    .posts{margin-top:12px;display:grid;grid-template-columns:1fr;gap:12px;}
-
-    .postCard{
-      border-radius:22px;padding:18px;background:rgba(255,255,255,.10);
-      border:1px solid rgba(255,255,255,.16);
-      transition: transform .16s ease, background .16s ease, border-color .16s ease;
-      position:relative;
-      overflow:hidden;
-    }
-    .postCard:hover{transform: translateY(-1px);background: rgba(255,255,255,.12);border-color: rgba(255,255,255,.22);}
-    .postTop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;}
-    .badge{
-      display:inline-flex;align-items:center;gap:8px;
-      padding:8px 12px;border-radius:999px;background:rgba(0,0,0,.18);
-      border:1px solid rgba(255,255,255,.16);
-      font-size:12px;font-weight:900;white-space:nowrap;
-    }
-    .postCard h3{margin:10px 0 8px;font-size:1.15rem;}
-    .postCard p{margin:0;color:rgba(255,255,255,.86);line-height:1.55;white-space:pre-wrap;}
-
-    .mediaWrap{
-      margin-top:12px;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,.14);
-      background:rgba(0,0,0,.18);
-    }
-    .mediaWrap img,.mediaWrap video{width:100%;display:block;max-height:460px;object-fit:cover;}
-
-    .isLocked .mediaWrap,
-    .isLocked .postText{
-      filter: blur(10px);
-      opacity:.78;
-      user-select:none;
-      pointer-events:none;
-    }
-    .lockedOverlay{
-      position:absolute;inset:0;
-      display:flex;align-items:center;justify-content:center;
-      padding:16px;
-      background: radial-gradient(600px 260px at 50% 40%, rgba(0,0,0,.35), rgba(0,0,0,.15) 55%, rgba(0,0,0,0) 75%);
-    }
-    .lockedBox{
-      width:min(520px, 92%);
-      border-radius:18px;
-      padding:14px;
-      background: rgba(0,0,0,.30);
-      border:1px solid rgba(255,255,255,.16);
-      backdrop-filter: blur(6px);
-    }
-    .lockedBox b{display:block;font-size:14px;margin-bottom:6px;}
-    .lockedBox .small{color:rgba(255,255,255,.82);font-size:13px;line-height:1.45;}
-    .ctaRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
-      .miniGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+    .miniGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px;}
     .miniCard{
       border-radius:18px;padding:14px 14px;background:rgba(255,255,255,.10);
       border:1px solid rgba(255,255,255,.16);
     }
     .miniK{font-size:12px;opacity:.9;font-weight:700;}
     .miniV{font-size:20px;font-weight:900;margin-top:4px;}
+
     .list{display:flex;flex-direction:column;gap:10px;margin-top:12px;}
     .listItem{
       display:flex;align-items:center;gap:12px;
       padding:12px 14px;border-radius:18px;
       background:rgba(255,255,255,.10);
       border:1px solid rgba(255,255,255,.16);
+      text-decoration:none;color:inherit;
+      transition: transform .16s ease, background .16s ease, border-color .16s ease;
     }
-    .listAvatar{width:38px;height:38px;border-radius:14px;background:rgba(0,0,0,.20);display:flex;align-items:center;justify-content:center;}
+    .listItem:hover{transform: translateY(-1px);background: rgba(255,255,255,.12);border-color: rgba(255,255,255,.22);}
+    .listAvatar{
+      width:38px;height:38px;border-radius:14px;
+      background:rgba(0,0,0,.20);
+      display:flex;align-items:center;justify-content:center;
+      overflow:hidden;flex:0 0 auto;
+    }
+    .listAvatar img{width:100%;height:100%;object-fit:cover;display:block;}
     .listMeta{display:flex;flex-direction:column;min-width:0;}
     .listMeta b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
     .listMeta span{opacity:.9;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    
-@media (max-width: 860px){.grid{grid-template-columns:1fr;}}
 
+    /* Footer */
+    .globalFooter{
+      max-width:1040px;
+      margin:0 auto;
+      padding:18px 18px 34px;
+      color:rgba(255,255,255,.88);
+    }
+    .footerBox{
+      border-radius:18px;
+      background:rgba(0,0,0,.14);
+      border:1px solid rgba(255,255,255,.14);
+      padding:16px 16px;
+      backdrop-filter: blur(10px);
+    }
+    .footerTop{font-weight:900;}
+    .footerLinks{margin-top:10px;font-size:13px;opacity:.95;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+    .footerLinks a{color:rgba(255,255,255,.9);text-decoration:none;}
+    .footerLinks a:hover{text-decoration:underline;}
+    .small{margin-top:8px;font-size:12px;opacity:.85;line-height:1.5;}
   </style>
 </head>
 
 <body>
   <div class="wrap">
-
     <div class="nav">
       <a href="feed.html" class="brand">
         <div class="brandLogo" aria-hidden="true">🐾</div>
         <span>OnlyPaws</span>
       </a>
+
       <div class="navRight">
         <div class="pill" id="userPill">…</div>
 
         <a class="navBtn primary" id="navProfile" href="profile.html" style="display:none;">Profile</a>
-
-        <!-- FAN dashboard -->
         <a class="navBtn" id="navFanDash" href="fan-dash.html" style="display:none;">Dashboard</a>
-
-        <!-- CREATOR dashboard -->
         <a class="navBtn" id="navCreatorDash" href="creator-dash.html" style="display:none;">Dashboard</a>
-
         <button class="navBtn" id="navLogout" type="button" style="display:none;">Log out</button>
       </div>
     </div>
@@ -257,7 +170,7 @@
 
         <div class="hint" style="margin-top:10px;opacity:.9;">Public fan profile</div>
 
-                <div class="miniGrid" style="margin-top:14px;">
+        <div class="miniGrid">
           <div class="miniCard">
             <div class="miniK">Following</div>
             <div class="miniV" id="statFollowing">—</div>
@@ -269,34 +182,16 @@
           <div class="miniCard">
             <div class="miniK">Likes</div>
             <div class="miniV">—</div>
-            <div class="hint" style="margin-top:6px;opacity:.85;">Coming soon</div>
+            <div class="small">Coming soon</div>
           </div>
           <div class="miniCard">
             <div class="miniK">Collections</div>
             <div class="miniV">—</div>
-            <div class="hint" style="margin-top:6px;opacity:.85;">Coming soon</div>
+            <div class="small">Coming soon</div>
           </div>
         </div>
 
-<div class="miniV" >—</div>
-          </div>
-          <div class="miniCard">
-            <div class="miniK">Following</div>
-            <div class="miniV" id="statFollowing">—</div>
-          </div>
-          <div class="miniCard">
-            <div class="miniK">Likes</div>
-            <div class="miniV" >—</div>
-          </div>
-          <div class="miniCard">
-            <div class="miniK">Collections</div>
-            <div class="miniV" >—</div>
-          </div>
-        </div>
-
-      </div>
-
-        <div class="hint" id="creatorHint"></div>
+        <div class="hint" id="fanHint"></div>
       </div>
 
       <div class="panel">
@@ -306,37 +201,28 @@
         <div class="hint" id="followingHint">Loading…</div>
       </div>
     </div>
-
-    
-
   </div>
 
   <footer class="globalFooter">
-  <div class="footerTop">
-    © 2026 OnlyPaws • Built with toe beans energy 🐾
-  </div>
-
-  <div class="small">
-    OnlyPaws is an independent digital platform. Features may evolve over time.
-  </div>
-
-  <div class="footerLinks">
-    <a href="content-policy.html">Content Policy</a>
-    &nbsp;·&nbsp;
-    <a href="privacy-policy.html">Privacy Policy</a>
-    &nbsp;·&nbsp;
-    <a href="terms.html">Terms of Service</a>
-    &nbsp;·&nbsp;
-    <a href="mailto:onlypawssupp@gmail.com">Contact Us</a>
-  </div>
-</footer>
+    <div class="footerBox">
+      <div class="footerTop">© 2026 OnlyPaws • Built with toe beans energy 🐾</div>
+      <div class="small">OnlyPaws is an independent digital platform. Features may evolve over time.</div>
+      <div class="footerLinks">
+        <a href="content-policy.html">Content Policy</a>
+        <span>·</span>
+        <a href="privacy-policy.html">Privacy Policy</a>
+        <span>·</span>
+        <a href="terms.html">Terms of Service</a>
+        <span>·</span>
+        <a href="mailto:onlypawssupp@gmail.com">Contact Us</a>
+      </div>
+    </div>
+  </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
 
   <script>
-    function goIndex(){ window.location.replace("index.html"); }
-
     function show(el, yes){
       if(!el) return;
       el.style.display = yes ? "inline-flex" : "none";
@@ -353,11 +239,7 @@
 
     function getParams(){
       const p = new URLSearchParams(window.location.search);
-      return {
-        u: (p.get("u") || "").trim(),
-        success: (p.get("success") || "").trim(),
-        session_id: (p.get("session_id") || "").trim()
-      };
+      return { u: (p.get("u") || "").trim() };
     }
 
     function isUUID(v){
@@ -422,233 +304,6 @@
       }catch(e){}
     }
 
-    function mediaBlock(p){
-      if(!p.media_url) return "";
-      const isVideo = p.media_type === "video";
-      return `
-        <div class="mediaWrap">
-          ${isVideo
-            ? `<video controls playsinline src="${esc(p.media_url)}"></video>`
-            : `<img src="${esc(p.media_url)}" alt="Post media">`
-          }
-        </div>
-      `;
-    }
-
-    function renderCreator(c){
-      const name = c.display_name || c.username || "Creator";
-      const uname = c.username || "username";
-      const bio = c.bio || "";
-
-      document.getElementById("creatorName").textContent = name;
-      document.getElementById("creatorHandle").textContent = "@" + uname;
-      document.getElementById("creatorBio").textContent = bio;
-
-      const av = document.getElementById("creatorAvatar");
-      const url = (c.avatar_url || "").trim();
-      if(url){
-        av.innerHTML = `<img src="${esc(url)}" alt="Creator avatar" loading="lazy" decoding="async" referrerpolicy="no-referrer">`;
-      }else{
-        av.textContent = "🐾";
-      }
-    }
-
-    function renderPets(list){
-      const el = document.getElementById("petsList");
-      if(!list || list.length === 0){
-        el.innerHTML = "";
-        return;
-      }
-      el.innerHTML = list.map(p => {
-        const name = p.name || "Pet";
-        const line = [p.species, p.breed].filter(Boolean).join(" • ");
-        const av = (p.avatar_url || "").trim()
-          ? `<img src="${esc(p.avatar_url)}" alt="Pet avatar" loading="lazy" decoding="async" referrerpolicy="no-referrer">`
-          : "🐾";
-
-        return `
-          <div class="petCard">
-            <div class="petAvatar">${av}</div>
-            <div>
-              <b>${esc(name)}</b>
-              <span>${esc(line || " ")}</span>
-            </div>
-          </div>
-        `;
-      }).join("");
-    }
-
-    function lockedOverlayHtml(){
-      return `
-        <div class="lockedOverlay">
-          <div class="lockedBox">
-            <b>🔒 Premium post</b>
-            <div class="small">Subscribe to unlock all premium posts from this creator.</div>
-            <div class="ctaRow">
-              <button class="ghost" type="button" data-action="premium">Subscribe</button>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    // ✅ Rules:
-    // - private (is_public=false): only creator
-    // - public free: everyone
-    // - public premium: creator OR subscriber
-    function renderPosts(list, creatorUsername, ent){
-      const postsEl = document.getElementById("posts");
-
-      if(!list || list.length === 0){
-        postsEl.innerHTML = `
-          <div class="postCard">
-            <h3>No posts yet</h3>
-            <p>This creator hasn’t published anything yet.</p>
-          </div>
-        `;
-        return;
-      }
-
-      postsEl.innerHTML = list.map(p => {
-        const who = creatorUsername ? `@${creatorUsername}` : "@creator";
-        const title = p.title || "Post";
-        const fullText = p.content || p.preview || "";
-        const preview = p.preview || "Subscribe to unlock this post.";
-
-        const isPremium = (p.is_paid === true);
-        const isPrivate = (p.is_public === false);
-        const isMine = (ent.isSelf === true);
-
-        let canView = false;
-
-        if(isPrivate){
-          canView = isMine;
-        }else if(!isPremium){
-          canView = true;
-        }else{
-          canView = isMine || (ent.isSubscribed === true);
-        }
-
-        const badgeLabel = isPremium
-          ? "🔒 PREMIUM"
-          : (isPrivate ? "🙈 PRIVATE" : "🆓 FREE");
-
-        return `
-          <div class="postCard ${canView ? "" : "isLocked"}" data-postid="${esc(p.id)}">
-            <div class="postTop">
-              <div class="badge">${esc(who)}</div>
-              <div class="badge">${badgeLabel}</div>
-            </div>
-            <h3>${esc(title)}</h3>
-            ${mediaBlock(p)}
-            <p class="postText">${esc(canView ? fullText : preview)}</p>
-            ${canView ? "" : lockedOverlayHtml()}
-          </div>
-        `;
-      }).join("");
-
-      postsEl.querySelectorAll("[data-action='premium']").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const pb = document.getElementById("premiumBtn");
-          if(pb?.disabled){
-            const hint = document.getElementById("creatorHint");
-            // If the main button is disabled, show the same reason
-            if(hint){
-              hint.textContent = pb.title || "Subscriptions are not available right now.";
-            }
-            return;
-          }
-          pb.click();
-        });
-      });
-    }
-
-    async function loadCreatorByUsername(username){
-      const { data, error } = await onlypawsClient
-        .from("profiles")
-        .select("user_id, username, display_name, bio, avatar_url, role, stripe_onboarding_status, charges_enabled, stripe_connect_account_id")
-        .eq("username", username)
-        .maybeSingle();
-
-      if(error) throw error;
-      if(!data) throw new Error("Creator not found");
-      if(data.role !== "creator") throw new Error("This user is not a creator");
-      renderCreator(data);
-      return data;
-    }
-
-    async function loadCreatorByUserId(userId){
-      const { data, error } = await onlypawsClient
-        .from("profiles")
-        .select("user_id, username, display_name, bio, avatar_url, role, stripe_onboarding_status, charges_enabled, stripe_connect_account_id")
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      if(error) throw error;
-      if(!data) throw new Error("Creator not found");
-      if(data.role !== "creator") throw new Error("This user is not a creator");
-      renderCreator(data);
-      return data;
-    }
-
-    async function loadPetsByOwner(ownerId){
-      const hint = document.getElementById("petsHint");
-      hint.textContent = "Loading…";
-
-      const { data, error } = await onlypawsClient
-        .from("pets")
-        .select("id, name, species, breed, avatar_url")
-        .eq("owner_id", ownerId)
-        .order("created_at", { ascending: false });
-
-      if(error) throw error;
-
-      renderPets(data || []);
-      hint.textContent = (data && data.length) ? "" : "No pets yet.";
-    }
-
-    async function loadPostsByCreatorId(creatorId){
-      const hint = document.getElementById("postsHint");
-      hint.textContent = "Loading…";
-
-      const { data, error } = await onlypawsClient
-        .from("posts")
-        .select("id, creator_id, title, content, preview, media_url, media_type, is_paid, is_public, is_pinned, created_at")
-        .eq("creator_id", creatorId)
-        .order("is_pinned", { ascending: false })
-        .order("created_at", { ascending: false })
-        .limit(24);
-
-      if(error) throw error;
-      return data || [];
-    }
-
-    async function getFollowRowId(fanId, creatorId){
-      const { data, error } = await onlypawsClient
-        .from("followers")
-        .select("id")
-        .eq("creator_id", creatorId)
-        .eq("fan_id", fanId)
-        .maybeSingle();
-
-      if(error) throw error;
-      return data?.id || null;
-    }
-
-    async function getSubscriptionState(creatorId, fanId){
-      if(!creatorId || !fanId) return null;
-      const { data, error } = await onlypawsClient
-        .from("creator_subscriptions")
-        .select("id, status, is_active, current_period_end, stripe_subscription_id")
-        .eq("creator_id", creatorId)
-        .eq("fan_id", fanId)
-        .eq("is_active", true)
-        .maybeSingle();
-      if(error) throw error;
-      return data || null;
-    }
-
-
     function setupLogout(){
       const logoutBtn = document.getElementById("navLogout");
       if(!logoutBtn) return;
@@ -657,327 +312,176 @@
         logoutBtn.disabled = true;
         logoutBtn.textContent = "Logging out…";
         try { await onlypawsClient.auth.signOut(); } catch(e) {}
-        goIndex();
+        window.location.replace("index.html");
       });
     }
 
-    function setBtnBusy(btn, yes, txt){
-      if(!btn) return;
-      btn.disabled = !!yes;
-      if(txt != null) btn.textContent = txt;
+    function setHint(msg){
+      const el = document.getElementById("fanHint");
+      if(el) el.textContent = msg || "";
     }
 
-    function goSubscribe(creatorId){
-      if(!creatorId) return alert("❌ Missing creator id (can't open subscriptions).");
-      window.location.href = `fan-dash.html`;
+    function setFanUI(p){
+      const name = (p.display_name || p.username || "Fan").trim();
+      const uname = (p.username || "username").trim();
+      const bio = (p.bio || "").trim();
+      const url = (p.avatar_url || "").trim();
+
+      document.getElementById("fanName").textContent = name;
+      document.getElementById("fanHandle").textContent = "@" + uname;
+      document.getElementById("fanBio").textContent = bio;
+
+      const av = document.getElementById("fanAvatar");
+      if(url){
+        av.innerHTML = `<img src="${esc(url)}" alt="Fan avatar" loading="lazy" decoding="async" referrerpolicy="no-referrer">`;
+      }else{
+        av.textContent = "🐾";
+      }
     }
 
-    function setTopHint(msg){
-      const el = document.getElementById("creatorHint");
-      if(!el) return;
-      el.textContent = msg || "";
+    function renderFollowingList(creators){
+      const list = document.getElementById("followingList");
+      const hint = document.getElementById("followingHint");
+
+      if(!list || !hint) return;
+
+      if(!creators || creators.length === 0){
+        list.innerHTML = "";
+        hint.textContent = "No creators yet.";
+        return;
+      }
+
+      hint.textContent = "";
+
+      list.innerHTML = creators.map(c => {
+        const name = (c.display_name || c.username || "Creator").trim();
+        const uname = (c.username || "").trim();
+        const url = (c.avatar_url || "").trim();
+        const avatar = url
+          ? `<img src="${esc(url)}" alt="Creator avatar" loading="lazy" decoding="async" referrerpolicy="no-referrer">`
+          : "🐾";
+
+        // link to creator profile page (you already use ?u=)
+        const href = `creator-profile.html?u=${encodeURIComponent(uname || c.user_id)}`;
+
+        return `
+          <a class="listItem" href="${esc(href)}">
+            <div class="listAvatar">${avatar}</div>
+            <div class="listMeta">
+              <b>${esc(name)}</b>
+              <span>${esc(uname ? "@"+uname : c.user_id)}</span>
+            </div>
+          </a>
+        `;
+      }).join("");
     }
 
-    async function boot(){
+    async function loadFanByParam(u){
+      const sel = "user_id, username, display_name, bio, avatar_url, role";
+      const q = onlypawsClient.from("profiles").select(sel);
+
+      const { data, error } = isUUID(u)
+        ? await q.eq("user_id", u).maybeSingle()
+        : await q.eq("username", u).maybeSingle();
+
+      if(error) throw error;
+      if(!data) throw new Error("Fan not found");
+      return data;
+    }
+
+    async function countFollowing(fanUserId){
+      // followers table: rows where fan_id = fanUserId
+      const { count, error } = await onlypawsClient
+        .from("followers")
+        .select("id", { count: "exact", head: true })
+        .eq("fan_id", fanUserId);
+
+      if(error) throw error;
+      return count ?? 0;
+    }
+
+    async function countSubscriptions(fanUserId){
+      const { count, error } = await onlypawsClient
+        .from("creator_subscriptions")
+        .select("id", { count: "exact", head: true })
+        .eq("fan_id", fanUserId)
+        .eq("is_active", true);
+
+      if(error) throw error;
+      return count ?? 0;
+    }
+
+    async function loadFollowingCreators(fanUserId){
+      // 1) get creator ids from followers
+      const { data: rows, error } = await onlypawsClient
+        .from("followers")
+        .select("creator_id")
+        .eq("fan_id", fanUserId)
+        .limit(50);
+
+      if(error) throw error;
+
+      const ids = (rows || []).map(r => r.creator_id).filter(Boolean);
+      if(ids.length === 0) return [];
+
+      // 2) load profiles for those creator ids
+      const { data: creators, error: e2 } = await onlypawsClient
+        .from("profiles")
+        .select("user_id, username, display_name, avatar_url, role")
+        .in("user_id", ids)
+        .eq("role", "creator");
+
+      if(e2) throw e2;
+
+      // Keep same order as ids (optional)
+      const byId = new Map((creators || []).map(c => [c.user_id, c]));
+      return ids.map(id => byId.get(id)).filter(Boolean);
+    }
+
+    async function initFanPublic(){
       setupLogout();
-
-      const { data: sessData } = await onlypawsClient.auth.getSession();
-      const session = sessData?.session;
-      if(!session){ goIndex(); return; }
-
-      await hydrateNav();
       await hydrateUserPill();
+      await hydrateNav();
 
-      const fanId = session.user.id;
-      // Viewer role gate: creators cannot subscribe (for now)
-      let viewerRole = "";
-      try{
-        const { data: vp } = await onlypawsClient
-          .from("profiles")
-          .select("role")
-          .eq("user_id", fanId)
-          .maybeSingle();
-        viewerRole = (vp?.role || "").toString();
-      }catch(e){}
-      const viewerIsCreator = (viewerRole === "creator");
-      const { u, success, session_id } = getParams();
-      if(!u){ goIndex(); return; }
-
-      const followBtn = document.getElementById("followBtn");
-      const premiumBtn = document.getElementById("premiumBtn");
-      const actionRow = document.getElementById("actionRow");
-
-      function explainCreatorCantSubscribe(){
-        setTopHint("⏳ Creator → creator subscriptions are coming later. For now, creators can’t subscribe.");
-      }
-      function explainCreatorNotReady(){
-        setTopHint("⚠️ This creator isn’t ready for subscriptions yet (Stripe setup incomplete).");
+      const { u } = getParams();
+      if(!u){
+        document.getElementById("followingHint").textContent = "Missing ?u=username (or UUID)";
+        setHint("");
+        return;
       }
 
-
       try{
-        // ✅ support both username and UUID in ?u=
-        const creator = isUUID(u)
-          ? await loadCreatorByUserId(u)
-          : await loadCreatorByUsername(u);
+        const fan = await loadFanByParam(u);
+        setFanUI(fan);
 
-        const creatorUsername = creator.username || "";
-        const isSelf = (creator.user_id === fanId);
-        actionRow.style.display = isSelf ? "none" : "flex";
-        if(!isSelf && viewerIsCreator){
-          // creators can still follow, but subscriptions are disabled for now
-          explainCreatorCantSubscribe();
-        }
-
-        // Helpful post-checkout hint
-        if(success === "1" || session_id){
-          setTopHint("✅ Payment received. Syncing subscription… If it doesn't update immediately, refresh in a few seconds.");
+        // soft role check (don’t block, just show hint)
+        if((fan.role || "").toLowerCase() === "creator"){
+          setHint("This user is a creator (you might be looking for creator-profile.html).");
         }else{
-          setTopHint("");
+          setHint("");
         }
 
-                // creator eligibility useful for tooltip only
-        const status = (creator.stripe_onboarding_status || "").toString().trim().toLowerCase();
-        // Accept both 'complete' and 'completed' (DB may store either)
-        const statusOk = (status === "completed" || status === "complete");
-        const creatorEligible = (
-          creator.role === "creator" &&
-          statusOk &&
-          creator.charges_enabled === true &&
-          (String(creator.stripe_connect_account_id || "").trim().length > 0)
-        );
-
-        if(!creatorEligible){
-          premiumBtn.title = "Creator not ready yet (Stripe setup). Missing completion, charges_enabled, or Connect ID.";
-          // Note: in demo we block subscribe until ready to avoid failed checkouts.
-        }else{
-          premiumBtn.title = "";
-        }
-
-        // Initial load
-        let subRow = await getSubscriptionState(creator.user_id, fanId);
-        let isSub = !!subRow;
-
-        // ✅ after returning from Stripe, retry subscription check (webhook might be slightly delayed)
-        if((success === "1" || session_id) && !isSub){
-          // quick retries: 1.5s, 3s, 5s
-          const waits = [1500, 3000, 5000];
-          for(const w of waits){
-            await new Promise(r => setTimeout(r, w));
-            try{
-              subRow = await getSubscriptionState(creator.user_id, fanId);
-              isSub = !!subRow;
-              if(isSub) break;
-            }catch(e){}
-          }
-        }
-
-        const [followRowId, posts] = await Promise.all([
-          getFollowRowId(fanId, creator.user_id),
-          loadPostsByCreatorId(creator.user_id),
+        const [followingCount, subCount, creators] = await Promise.all([
+          countFollowing(fan.user_id),
+          countSubscriptions(fan.user_id),
+          loadFollowingCreators(fan.user_id),
         ]);
 
-        let currentFollowId = followRowId;
+        document.getElementById("statFollowing").textContent = String(followingCount);
+        document.getElementById("statSubscriptions").textContent = String(subCount);
 
-        function setFollowUi(){
-          followBtn.textContent = currentFollowId ? "Unfollow" : "Follow";
-        }
-        setFollowUi();
-
-        followBtn.addEventListener("click", async () => {
-          try{
-            if(currentFollowId){
-              setBtnBusy(followBtn, true, "Unfollowing…");
-              const { error } = await onlypawsClient
-                .from("followers")
-                .delete()
-                .eq("id", currentFollowId)
-                .eq("fan_id", fanId);
-              if(error) throw error;
-              currentFollowId = null;
-              setFollowUi();
-            }else{
-              setBtnBusy(followBtn, true, "Following…");
-              const { data, error } = await onlypawsClient
-                .from("followers")
-                .insert({ creator_id: creator.user_id, fan_id: fanId })
-                .select("id")
-                .maybeSingle();
-              if(error) throw error;
-              currentFollowId = data?.id || null;
-              setFollowUi();
-            }
-          }catch(e){
-            alert(e?.message || String(e));
-          }finally{
-            setBtnBusy(followBtn, false);
-          }
-        });
-
-                function setPremiumUi(){
-          // Priority 1: viewer role gate
-          if(viewerIsCreator){
-            premiumBtn.textContent = "Coming soon";
-            premiumBtn.disabled = true;
-            premiumBtn.title = "Creators can’t subscribe yet.";
-            return;
-          }
-
-          // Priority 2: target creator readiness (Stripe)
-          if(!creatorEligible){
-            premiumBtn.textContent = "Creator not ready";
-            premiumBtn.disabled = true;
-            premiumBtn.title = "Creator not ready yet (Stripe setup).";
-            return;
-          }
-
-          // Normal state
-          if(!subRow){
-            premiumBtn.textContent = "Subscribe";
-            premiumBtn.disabled = false;
-            premiumBtn.title = "";
-            return;
-          }
-
-          // Scheduled cancellation (still active until period end)
-          if(subRow.status === "canceled" && subRow.is_active){
-            premiumBtn.textContent = "Resume subscription";
-            premiumBtn.disabled = false;
-            premiumBtn.title = "";
-            // Don't override post-checkout hint
-            if(!(success === "1" || session_id)){
-              const d = subRow.current_period_end ? new Date(subRow.current_period_end).toLocaleDateString() : "";
-              setTopHint(d ? `Cancels on ${d} — resume anytime.` : "Cancels at period end — resume anytime.");
-            }
-            return;
-          }
-
-          premiumBtn.textContent = "Subscribed";
-          premiumBtn.disabled = false;
-          premiumBtn.title = "";
-        }
-        setPremiumUi();
-
-        premiumBtn.addEventListener("click", async () => {
-          if(viewerIsCreator){
-            explainCreatorCantSubscribe();
-            return;
-          }
-          if(!creatorEligible){
-            explainCreatorNotReady();
-            return;
-          }
-
-          // Resume scheduled cancellation (no new checkout)
-          if(subRow && subRow.status === "canceled" && subRow.is_active){
-            if(!subRow.stripe_subscription_id){
-              setTopHint("⚠️ Missing Stripe subscription id. Can't resume automatically.");
-              return;
-            }
-
-            try{
-              setBtnBusy(premiumBtn, true, "Resuming…");
-
-              const { data: s } = await onlypawsClient.auth.getSession();
-              const token = s?.session?.access_token;
-              if(!token) throw new Error("No session");
-
-              const { error } = await onlypawsClient.functions.invoke("resume-subscription", {
-                body: { stripe_subscription_id: subRow.stripe_subscription_id },
-                headers: { Authorization: `Bearer ${token}` },
-              });
-
-              if(error) throw error;
-
-              // Update local state + unlock posts immediately
-              subRow.status = "active";
-              isSub = true;
-              setPremiumUi();
-              setTopHint("✅ Subscription resumed. Premium posts are unlocked.");
-
-              renderPosts(posts, creatorUsername || (isUUID(u) ? creatorUsername : u), {
-                isSelf,
-                isSubscribed: true
-              });
-
-            }catch(e){
-              alert(e?.message || String(e));
-            }finally{
-              setBtnBusy(premiumBtn, false);
-            }
-            return;
-          }
-
-          // Default: go to fan dash (checkout flow lives there)
-          goSubscribe(creator.user_id);
-        });
-
-        await loadPetsByOwner(creator.user_id);
-
-        renderPosts(posts, creatorUsername || (isUUID(u) ? creatorUsername : u), {
-          isSelf,
-          isSubscribed: !!isSub
-        });
-
-        document.getElementById("postsHint").textContent = posts.length ? "" : "No posts yet.";
-
-        // If subscription became true, update hint + clean URL (optional)
-        if(isSub && (success === "1" || session_id)){
-          setTopHint("✅ Subscribed! Premium posts are now unlocked.");
-          // optional: remove noisy params but keep u
-          const clean = new URL(window.location.href);
-          clean.searchParams.delete("success");
-          clean.searchParams.delete("session_id");
-          window.history.replaceState({}, "", clean.toString());
-        }
-
+        renderFollowingList(creators);
       }catch(e){
-        document.getElementById("creatorHint").textContent = "❌ " + (e?.message || String(e));
-        document.getElementById("petsHint").textContent = "";
-        document.getElementById("postsHint").textContent = "";
+        document.getElementById("followingHint").textContent = "";
+        setHint("❌ " + (e?.message || String(e)));
       }
     }
 
     onlypawsClient.auth.onAuthStateChange((event) => {
-      if(event === "SIGNED_OUT") goIndex();
+      if(event === "SIGNED_OUT") window.location.replace("index.html");
     });
 
-    boot();
-        async function initFanPublic(){
-      await hydrateUserPill();
-
-      const { u } = getParams();
-      if(!u){
-        document.getElementById("fanName").textContent = "Fan";
-        document.getElementById("fanHandle").textContent = "@username";
-        document.getElementById("followingHint").textContent = "Missing ?u=username";
-        return;
-      }
-
-      // TODO: Replace with real queries (public fields only)
-      // Suggested:
-      // - profiles: select username, display_name, bio, avatar_url where username=u
-      // - followers: count where followed_id = fan_id
-      // - following: count where fan_id = fan_id
-      // - likes/collections: your tables if public
-
-      // Placeholder data:
-      const profile = { username: u, display_name: u, bio: "" };
-
-      document.getElementById("fanName").textContent = profile.display_name || u;
-      document.getElementById("fanHandle").textContent = "@" + (profile.username || u);
-      document.getElementById("fanBio").textContent = profile.bio || "";
-
-      document.getElementById("statFollowing").textContent = "0";
-      document.getElementById("statSubscriptions").textContent = "0";
-      const list = document.getElementById("followingList");
-      const hint = document.getElementById("followingHint");
-      if(list) list.innerHTML = "";
-      if(hint) hint.textContent = "No creators yet.";
-
-      }
-
     initFanPublic();
-</script>
+  </script>
 </body>
 </html>
