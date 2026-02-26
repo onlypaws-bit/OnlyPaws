@@ -209,6 +209,27 @@
     .lockedBox b{display:block;font-size:14px;margin-bottom:6px;}
     .lockedBox .small{color:rgba(255,255,255,.82);font-size:13px;line-height:1.45;}
     .ctaRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;}
+      /* Toast / banner */
+    .toast{
+      position:fixed;
+      left:50%;
+      bottom:18px;
+      transform:translateX(-50%);
+      background:rgba(0,0,0,.35);
+      border:1px solid rgba(255,255,255,.18);
+      backdrop-filter: blur(10px);
+      color:#fff;
+      padding:10px 14px;
+      border-radius:14px;
+      font-size:13px;
+      font-weight:800;
+      box-shadow:0 20px 45px rgba(0,0,0,.25);
+      display:none;
+      max-width:min(560px,92vw);
+      text-align:center;
+      z-index:999;
+    }
+    .toast.show{display:block;}
   </style>
 </head>
 
@@ -293,6 +314,8 @@
     <a href="mailto:onlypawssupp@gmail.com">Contact Us</a>
   </div>
 </footer>
+
+  <div class="toast" id="toast"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
@@ -686,6 +709,15 @@
       el.textContent = msg || "";
     }
 
+    const toastEl = document.getElementById("toast");
+    function toast(msg){
+      if(!toastEl) return;
+      toastEl.textContent = msg || "";
+      toastEl.classList.add("show");
+      clearTimeout(toastEl._t);
+      toastEl._t = setTimeout(()=>toastEl.classList.remove("show"), 2600);
+    }
+
     // ✅ NEW: redirect to subscriptions page (before checkout)
     function goToSubscriptions(creatorId){
       window.location.href = `subscriptions.html?creator=${encodeURIComponent(creatorId)}`;
@@ -742,7 +774,8 @@
         }
 
         if(success === "1" || session_id){
-          setTopHint("✅ Payment received. Syncing subscription… If it doesn't update immediately, refresh in a few seconds.");
+          toast("✅ Payment received — syncing subscription…");
+          setTopHint("");
         }else{
           setTopHint("");
         }
@@ -854,7 +887,7 @@
           }
 
           if(isCanceling){
-            premiumBtn.textContent = "Resume subscription";
+            premiumBtn.textContent = "Resume (keep access)";
             premiumBtn.disabled = false;
             premiumBtn.title = "";
 
@@ -867,7 +900,7 @@
             return;
           }
 
-          premiumBtn.textContent = "Cancel subscription";
+          premiumBtn.textContent = "Subscribed ✓ (Cancel)";
           premiumBtn.disabled = false;
           premiumBtn.title = "";
         }
@@ -905,7 +938,8 @@
               subRow = await getSubscriptionState(creator.user_id, fanId);
 
               setPremiumUi();
-              setTopHint("✅ Subscription resumed. Premium posts are unlocked.");
+              toast("✅ Subscription resumed.");
+              setTopHint("");
 
               renderPosts(posts, creatorUsername || (isUUID(u) ? creatorUsername : u), {
                 isSelf,
