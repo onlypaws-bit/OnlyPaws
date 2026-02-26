@@ -20,7 +20,7 @@ const STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", "OP_STRIPE_WEBHOOK_SE
 const SUPABASE_URL = env("SUPABASE_URL", "OP_SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = env(
   "SUPABASE_SERVICE_ROLE_KEY",
-  "OP_SUPABASE_SERVICE_ROLE_KEY"
+  "OP_SUPABASE_SERVICE_ROLE_KEY",
 );
 
 if (!STRIPE_SECRET_KEY) throw new Error("Missing STRIPE_SECRET_KEY / OP_STRIPE_SECRET_KEY");
@@ -41,10 +41,11 @@ async function sbAdmin(path: string, init: RequestInit) {
   headers["apikey"] = SUPABASE_SERVICE_ROLE_KEY;
   headers["Authorization"] = `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
 
-  const res = await fetch(
-    `${SUPABASE_URL}/rest/v1/${path.replace(/^\//, "")}`,
-    { ...init, headers }
-  );
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path.replace(/^\//, "")}`, {
+    ...init,
+    headers,
+  });
+
   const text = await res.text();
   let json: any = null;
   try {
@@ -54,40 +55,46 @@ async function sbAdmin(path: string, init: RequestInit) {
   }
   if (!res.ok) {
     throw new Error(
-      `Supabase error ${res.status}: ${
-        json?.message || json?.error || JSON.stringify(json)
-      }`
+      `Supabase error ${res.status}: ${json?.message || json?.error || JSON.stringify(json)}`,
     );
   }
   return json;
 }
 
-// ---------- Helpers: Stripe REST ----------
+// ---------- Helpers: Stripe REST (supports Connect) ----------
 function toFormBody(params: Record<string, string>) {
   const body = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) body.append(k, v);
   return body;
 }
 
-async function stripeGET(path: string) {
+async function stripeGET(path: string, stripeAccount?: string | null) {
+  const headers: Record<string, string> = { Authorization: `Bearer ${STRIPE_SECRET_KEY}` };
+  if (stripeAccount) headers["Stripe-Account"] = stripeAccount;
+
   const res = await fetch(`https://api.stripe.com/v1/${path}`, {
     method: "GET",
-    headers: { Authorization: `Bearer ${STRIPE_SECRET_KEY}` },
+    headers,
   });
+
   const j = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(j?.error?.message ?? JSON.stringify(j));
   return j;
 }
 
-async function stripePOST(path: string, params: Record<string, string>) {
+async function stripePOST(path: string, params: Record<string, string>, stripeAccount?: string | null) {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
+    "Content-Type": "application/x-www-form-urlencoded",
+  };
+  if (stripeAccount) headers["Stripe-Account"] = stripeAccount;
+
   const res = await fetch(`https://api.stripe.com/v1/${path}`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
+    headers,
     body: toFormBody(params),
   });
+
   const j = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(j?.error?.message ?? JSON.stringify(j));
   return j;
@@ -96,10 +103,7 @@ async function stripePOST(path: string, params: Record<string, string>) {
 // ---------- Stripe signature verification (HMAC SHA256) ----------
 function parseStripeSigHeader(sigHeader: string) {
   const parts = (sigHeader || "").split(",").map((s) => s.trim());
-  const t = parts
-    .find((p) => p.startsWith("t="))
-    ?.split("=")[1]
-    ?.trim();
+  const t = parts.find((p) => p.startsWith("t="))?.split("=")[1]?.trim();
   const v1s = parts
     .filter((p) => p.startsWith("v1="))
     .map((p) => p.split("=")[1]?.trim())
@@ -120,7 +124,7 @@ async function hmacSHA256Hex(secret: string, message: string) {
     new TextEncoder().encode(secret),
     { name: "HMAC", hash: "SHA-256" },
     false,
-    ["sign"]
+    ["sign"],
   );
   const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(message));
   const bytes = new Uint8Array(sig);
@@ -158,7 +162,6 @@ function mapStatusToDb(status: string) {
 }
 
 function mapCreatorPlanStatusToDb(status: string) {
-  // for creator_plan entitlement status, keep it simple
   const s = (status || "").toLowerCase();
   if (s === "active" || s === "trialing") return "active";
   if (s === "canceled") return "canceled";
@@ -175,6 +178,7 @@ function hasActiveAccess(status: string, currentPeriodEndIso: string | null) {
   return new Date(currentPeriodEndIso).getTime() > Date.now();
 }
 
+// ---------- DB upserts (IMPORTANT: now also updates fan_subscriptions) ----------
 async function upsertCreatorSubscriptionRow(row: {
   fan_id: string;
   creator_id: string;
@@ -208,6 +212,47 @@ async function upsertCreatorSubscriptionRow(row: {
 
 async function deleteCreatorSubscriptionByStripeSubId(subId: string) {
   await sbAdmin(`creator_subscriptions?stripe_subscription_id=eq.${subId}`, {
+    method: "DELETE",
+    headers: { Prefer: "return=minimal" },
+  });
+}
+
+async function upsertFanSubscriptionRow(row: {
+  fan_id: string;
+  creator_id: string;
+  plan_id: string | null;
+  status: string;
+  cancel_at_period_end: boolean;
+  provider_customer_id: string | null;
+  provider_subscription_id: string | null;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  canceled_at?: string | null;
+}) {
+  await sbAdmin(`fan_subscriptions?on_conflict=fan_id,creator_id`, {
+    method: "POST",
+    body: JSON.stringify([
+      {
+        fan_id: row.fan_id,
+        creator_id: row.creator_id,
+        plan_id: row.plan_id,
+        status: row.status,
+        cancel_at_period_end: row.cancel_at_period_end,
+        payment_provider: "stripe",
+        provider_customer_id: row.provider_customer_id,
+        provider_subscription_id: row.provider_subscription_id,
+        current_period_start: row.current_period_start,
+        current_period_end: row.current_period_end,
+        canceled_at: row.canceled_at ?? null,
+        updated_at: new Date().toISOString(),
+      },
+    ]),
+    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+  });
+}
+
+async function deleteFanSubscriptionByStripeSubId(subId: string) {
+  await sbAdmin(`fan_subscriptions?provider_subscription_id=eq.${subId}`, {
     method: "DELETE",
     headers: { Prefer: "return=minimal" },
   });
@@ -247,27 +292,32 @@ async function deleteEntitlementByStripeSubId(subId: string) {
   });
 }
 
-async function findCreatorIdByPriceId(priceId: string): Promise<string | null> {
+// ---- DIRECT: creator id lookup by price must use mapping table ----
+async function findCreatorIdByPriceId(priceId: string, stripeAccountId: string | null): Promise<string | null> {
+  if (!stripeAccountId) return null;
   try {
     const rows = await sbAdmin(
-      `creator_plans?select=creator_id&stripe_price_id=eq.${priceId}&limit=1`,
-      { method: "GET" }
+      `creator_plan_stripe_prices?select=creator_id&stripe_account_id=eq.${encodeURIComponent(
+        stripeAccountId,
+      )}&stripe_price_id=eq.${encodeURIComponent(priceId)}&limit=1`,
+      { method: "GET" },
     );
     const r = Array.isArray(rows) ? rows[0] : null;
     return safeStr(r?.creator_id) || null;
-  } catch (_e) {
+  } catch {
     return null;
   }
 }
 
-async function findCreatorIdBySubscription(sub: any): Promise<string | null> {
-  // prefer metadata creator_id; fallback to lookup by price_id on creator_plans
+async function findCreatorIdBySubscription(sub: any, stripeAccountId: string | null): Promise<string | null> {
+  // prefer metadata creator_id
   const metaCreatorId = safeStr(sub?.metadata?.creator_id);
   if (metaCreatorId) return metaCreatorId;
 
+  // fallback to mapping by price id (DIRECT)
   const item0 = sub?.items?.data?.[0];
   const priceId = safeStr(item0?.price?.id) || safeStr(item0?.price);
-  if (priceId) return await findCreatorIdByPriceId(priceId);
+  if (priceId) return await findCreatorIdByPriceId(priceId, stripeAccountId);
 
   return null;
 }
@@ -275,36 +325,58 @@ async function findCreatorIdBySubscription(sub: any): Promise<string | null> {
 async function findFanIdByCustomerId(customerId: string): Promise<string | null> {
   try {
     const rows = await sbAdmin(
-      `profiles?select=user_id&stripe_customer_id=eq.${customerId}&limit=1`,
-      { method: "GET" }
+      `profiles?select=user_id&stripe_customer_id=eq.${encodeURIComponent(customerId)}&limit=1`,
+      { method: "GET" },
     );
     const r = Array.isArray(rows) ? rows[0] : null;
     return safeStr(r?.user_id) || null;
-  } catch (_e) {
+  } catch {
     return null;
   }
 }
 
-async function upsertFromStripeSubscription(sub: any) {
-  const customerId = safeStr(sub?.customer) || safeStr(sub?.customer?.id) || null;
-  const stripeSubId = safeStr(sub?.id) || null;
+async function upsertFromStripeSubscription(sub: any, stripeAccountId: string | null) {
+  // sometimes event.data.object is partial
+  let s = sub;
 
-  const creatorId = await findCreatorIdBySubscription(sub);
+  const customerId = safeStr(s?.customer) || safeStr(s?.customer?.id) || null;
+  const stripeSubId = safeStr(s?.id) || null;
+
+  const missingCpe =
+    stripeSubId &&
+    s?.current_period_end == null &&
+    s?.cancel_at == null &&
+    s?.ended_at == null;
+
+  if (missingCpe && stripeSubId) {
+    s = await stripeGET(`subscriptions/${stripeSubId}`, stripeAccountId);
+  }
+
+  const creatorId = await findCreatorIdBySubscription(s, stripeAccountId);
   if (!creatorId) return;
 
-  let fanId = safeStr(sub?.metadata?.fan_id);
+  let fanId = safeStr(s?.metadata?.fan_id);
   if (!fanId && customerId) fanId = (await findFanIdByCustomerId(customerId)) || "";
-
   if (!fanId) return;
 
-  const stripeStatus = String(sub?.status || "incomplete");
-  const statusDb = mapStatusToDb(stripeStatus);
+  const planId = safeStr(s?.metadata?.plan_id) || null;
 
-  const cancelAtPeriodEnd = Boolean(sub?.cancel_at_period_end);
-  const cpe = isoFromUnix(sub?.current_period_end ?? null);
+  const stripeStatus = String(s?.status || "incomplete");
+  let statusDb = mapStatusToDb(stripeStatus);
 
-  const isActive = hasActiveAccess(statusDb, cpe);
+  const cancelAtPeriodEnd = Boolean(s?.cancel_at_period_end);
 
+  const cps = isoFromUnix((s?.current_period_start ?? null) ?? null);
+  const cpe = isoFromUnix((s?.current_period_end ?? s?.cancel_at ?? s?.ended_at) ?? null);
+
+  // normalize
+  const cpeMs = cpe ? new Date(cpe).getTime() : 0;
+  const hasAccessUntilEnd = !!cpeMs && cpeMs > Date.now();
+  if (hasAccessUntilEnd && statusDb === "canceled") statusDb = "active";
+
+  const isActive = hasAccessUntilEnd || hasActiveAccess(statusDb, cpe);
+
+  // ✅ update BOTH tables
   await upsertCreatorSubscriptionRow({
     fan_id: fanId,
     creator_id: creatorId,
@@ -316,7 +388,19 @@ async function upsertFromStripeSubscription(sub: any) {
     current_period_end: cpe,
   });
 
-  // entitlement for fan -> creator subscription
+  await upsertFanSubscriptionRow({
+    fan_id: fanId,
+    creator_id: creatorId,
+    plan_id: planId,
+    status: statusDb,
+    cancel_at_period_end: cancelAtPeriodEnd,
+    provider_customer_id: customerId,
+    provider_subscription_id: stripeSubId,
+    current_period_start: cps,
+    current_period_end: cpe,
+    canceled_at: statusDb === "canceled" ? new Date().toISOString() : null,
+  });
+
   await upsertEntitlement({
     user_id: fanId,
     key: "subscription",
@@ -332,14 +416,12 @@ async function deleteFromStripeSubscription(sub: any) {
   const stripeSubId = safeStr(sub?.id);
   if (!stripeSubId) return;
 
-  // delete subscription rows & entitlements that used this subscription_id
   await deleteCreatorSubscriptionByStripeSubId(stripeSubId);
+  await deleteFanSubscriptionByStripeSubId(stripeSubId);
   await deleteEntitlementByStripeSubId(stripeSubId);
 }
 
 async function markCreatorPlanExpired(user_id: string) {
-  // creator plan entitlement is keyed by (user_id, key) where key = creator_plan
-  // we set status=expired so UI blocks tools
   await sbAdmin(`entitlements?user_id=eq.${user_id}&key=eq.creator_plan`, {
     method: "PATCH",
     body: JSON.stringify({
@@ -352,10 +434,9 @@ async function markCreatorPlanExpired(user_id: string) {
   });
 }
 
-// ✅ upsert entitlement helper (creator_plan only)
 async function upsertCreatorPlanEntitlement(row: {
   user_id: string;
-  status: string; // active | trialing | canceled | expired
+  status: string;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   current_period_end: string | null;
@@ -379,16 +460,15 @@ async function upsertCreatorPlanEntitlement(row: {
   });
 }
 
-// ✅ fetch user_id from entitlements by stripe_subscription_id (for subscription.updated/deleted)
 async function findUserIdByCreatorPlanSubscriptionId(subId: string): Promise<string | null> {
   try {
     const rows = await sbAdmin(
       `entitlements?select=user_id&key=eq.creator_plan&stripe_subscription_id=eq.${subId}&limit=1`,
-      { method: "GET" }
+      { method: "GET" },
     );
     const r = Array.isArray(rows) ? rows[0] : null;
     return safeStr(r?.user_id) || null;
-  } catch (_e) {
+  } catch {
     return null;
   }
 }
@@ -410,30 +490,30 @@ Deno.serve(async (req) => {
     const type = safeStr(event?.type);
     const obj = event?.data?.object;
 
+    // ✅ CONNECT: which connected account emitted this event
+    const stripeAccountId =
+      safeStr(event?.account) || safeStr(req.headers.get("stripe-account")) || null;
+
     // checkout.session.completed (subscription purchase)
     if (type === "checkout.session.completed") {
       const session = obj;
       const mode = safeStr(session?.mode);
-
-      // Only subscription checkouts
       if (mode !== "subscription") return new Response("ok", { status: 200, headers: corsHeaders });
 
       const subscriptionId = safeStr(session?.subscription);
       if (!subscriptionId) return new Response("ok", { status: 200, headers: corsHeaders });
 
-      // fetch subscription (to get items, status, period end, metadata)
-      const sub = await stripeGET(`subscriptions/${subscriptionId}`);
+      // fetch subscription ON CONNECTED
+      const sub = await stripeGET(`subscriptions/${subscriptionId}`, stripeAccountId);
 
-      // ✅ Creator plan purchase flow (metadata.user_id present on creator plan checkout)
+      // creator plan flow (metadata.user_id present)
       const user_id = safeStr(sub?.metadata?.user_id);
-      const isCreatorPlan = user_id && (safeStr(sub?.metadata?.key) === "creator_plan" || true); // tolerate missing key
+      const isCreatorPlan = !!user_id && safeStr(sub?.metadata?.key) === "creator_plan";
 
       if (isCreatorPlan) {
         const customerId = safeStr(sub?.customer) || safeStr(sub?.customer?.id) || null;
         const stripeStatus = String(sub?.status || "incomplete");
         const statusDb = mapCreatorPlanStatusToDb(stripeStatus);
-
-        // fallback to cancel_at / ended_at if current_period_end missing
         const cpe = isoFromUnix((sub?.current_period_end ?? sub?.cancel_at ?? sub?.ended_at) ?? null);
 
         await upsertCreatorPlanEntitlement({
@@ -448,30 +528,24 @@ Deno.serve(async (req) => {
         return new Response("ok", { status: 200, headers: corsHeaders });
       }
 
-      // Existing behavior: fan subscribes to creator
-      await upsertFromStripeSubscription(sub);
-
+      // fan subscribes to creator
+      await upsertFromStripeSubscription(sub, stripeAccountId);
       return new Response("ok", { status: 200, headers: corsHeaders });
     }
 
     // customer.subscription.created / updated
     if (type === "customer.subscription.created" || type === "customer.subscription.updated") {
-      // sometimes obj is partial; if current_period_end missing, fetch full sub
       const subId = safeStr(obj?.id);
       const hasCpe = obj?.current_period_end != null;
-      const sub = subId && !hasCpe ? await stripeGET(`subscriptions/${subId}`) : obj;
+      const sub = subId && !hasCpe ? await stripeGET(`subscriptions/${subId}`, stripeAccountId) : obj;
 
-      // If this is a creator plan subscription, update entitlement (keeps everything in sync)
       const user_id =
-        safeStr(sub?.metadata?.user_id) ||
-        (subId ? await findUserIdByCreatorPlanSubscriptionId(subId) : null);
+        safeStr(sub?.metadata?.user_id) || (subId ? await findUserIdByCreatorPlanSubscriptionId(subId) : null);
 
       if (user_id) {
         const customerId = safeStr(sub?.customer) || safeStr(sub?.customer?.id) || null;
         const stripeStatus = String(sub?.status || "incomplete");
         const statusDb = mapCreatorPlanStatusToDb(stripeStatus);
-
-        // fallback to cancel_at / ended_at if current_period_end missing
         const cpe = isoFromUnix((sub?.current_period_end ?? sub?.cancel_at ?? sub?.ended_at) ?? null);
 
         await upsertCreatorPlanEntitlement({
@@ -486,12 +560,11 @@ Deno.serve(async (req) => {
         return new Response("ok", { status: 200, headers: corsHeaders });
       }
 
-      // Existing behavior: fan subscribes to creator
-      await upsertFromStripeSubscription(sub);
+      await upsertFromStripeSubscription(sub, stripeAccountId);
       return new Response("ok", { status: 200, headers: corsHeaders });
     }
 
-    // invoice events
+    // invoice events (ignored for now)
     if (
       type === "invoice.payment_succeeded" ||
       type === "invoice.payment_failed" ||
@@ -504,26 +577,21 @@ Deno.serve(async (req) => {
     // customer.subscription.deleted
     if (type === "customer.subscription.deleted") {
       const subId = safeStr(obj?.id);
-      const sub = subId ? obj : obj;
       const user_id =
-        safeStr(sub?.metadata?.user_id) ||
-        (subId ? await findUserIdByCreatorPlanSubscriptionId(subId) : null);
+        safeStr(obj?.metadata?.user_id) || (subId ? await findUserIdByCreatorPlanSubscriptionId(subId) : null);
 
-      // If this is creator_plan -> mark expired
       if (user_id) {
         await markCreatorPlanExpired(user_id);
         return new Response("ok", { status: 200, headers: corsHeaders });
       }
 
-      // else: fan->creator subscription cleanup
-      await deleteFromStripeSubscription(sub);
+      await deleteFromStripeSubscription(obj);
       return new Response("ok", { status: 200, headers: corsHeaders });
     }
 
-    // default: ignore
     return new Response("ok", { status: 200, headers: corsHeaders });
   } catch (e) {
     console.error("stripe-webhook error:", e);
-    return new Response(String(e?.message || e), { status: 500, headers: corsHeaders });
+    return new Response(String((e as any)?.message || e), { status: 500, headers: corsHeaders });
   }
 });
