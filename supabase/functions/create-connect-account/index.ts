@@ -49,6 +49,7 @@ Deno.serve(async (req) => {
     if (userErr || !userData?.user) return json(401, { error: "Not authenticated" });
 
     const creatorId = userData.user.id;
+    const creatorEmail = userData.user.email ?? undefined;
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -74,10 +75,41 @@ Deno.serve(async (req) => {
         (prof as any).username ||
         `creator ${creatorId.slice(0, 8)}`;
 
+      // 🔒 Preimpostazione “pet-safe” (uniforme per tutti)
+      const productDescription =
+  "Creator account on OnlyPaws, a subscription platform dedicated to pet-related digital content. The creator shares safe-for-work pet photography, lifestyle updates, and educational content about animals. All products are digital subscriptions for pet content.";
+      // Idealmente una landing pubblica (anche semplice) che spiega che è pet-only/SFW.
+      // Se non ce l’hai ancora, meglio SITE_URL che niente.
+      const businessUrl = Deno.env.get("BUSINESS_URL") || SITE_URL;
+
       const acct = await stripe.accounts.create({
         type: "express",
-        metadata: { creator_id: creatorId },
-        business_profile: { name: pretty },
+
+        // Aiuta tantissimo nelle review
+        email: creatorEmail,
+
+        metadata: {
+          creator_id: creatorId,
+          platform: "OnlyPaws",
+          content_category: "pet_sfw",
+        },
+
+        business_profile: {
+          name: pretty,
+          product_description: productDescription,
+          url: businessUrl,
+
+          // MCC tipico per subscription/continuity. Riduce ambiguità.
+          // (se mai ti desse noia, lo togliamo, ma in genere aiuta)
+          mcc: "5968",
+        },
+
+        // Se non richiedi transfers/card_payments altrove, è ok chiederli qui.
+        // (lasciare così non rompe nulla e accelera i requisiti dell’onboarding)
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
       });
 
       acctId = acct.id;
