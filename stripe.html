@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>OnlyPaws — Stripe Info</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="OnlyPaws is a subscription platform dedicated exclusively to safe-for-work pet-related digital content." />
+  <style>
+    :root{
+      --bg1:#6B4EFF;
+      --bg2:#8B6CFF;
+      --text:#ffffff;
+      --muted:rgba(255,255,255,.85);
+      --stroke:rgba(255,255,255,.16);
+      --card:rgba(0,0,0,.16);
+      --btn:#ffffff;
+      --btnText:#6B4EFF;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 20% 10%, rgba(255,255,255,.18), transparent 55%),
+        radial-gradient(1000px 650px at 90% 30%, rgba(0,0,0,.22), transparent 55%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
+      min-height:100vh;
+    }
+    a{ color: inherit; }
+    .wrap{max-width:1040px;margin:0 auto;padding:28px 18px 70px;}
+
+    .nav{
+      display:flex;align-items:center;justify-content:space-between;gap:14px;
+      margin-bottom:28px;
+    }
+    .brand{
+      display:flex;align-items:center;gap:12px;
+      text-decoration:none;color:white;font-weight:900;
+      letter-spacing:.2px;
+      user-select:none;
+    }
+    .brandLogo{
+      width:62px;height:62px;border-radius:14px;
+      background: rgba(255,255,255,.16);
+      border:1px solid rgba(255,255,255,.18);
+      display:flex;align-items:center;justify-content:center;
+      overflow:hidden;
+    }
+    .brandLogo img{width:46px;height:46px;object-fit:contain;}
+    .brandText{font-size:1.1rem;}
+    .pill{
+      padding:8px 14px;border-radius:999px;
+      background: rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      font-size:13px;color:rgba(255,255,255,.85);
+      white-space:nowrap;
+    }
+
+    .panel{
+      border-radius:22px;padding:26px;
+      background: var(--card);
+      border:1px solid var(--stroke);
+      backdrop-filter: blur(10px);
+      box-shadow:0 20px 45px rgba(0,0,0,.25);
+    }
+    h1{
+      margin:10px 0 10px;
+      font-size: clamp(2.1rem, 4vw, 2.8rem);
+      line-height:1.05;
+      letter-spacing:-0.6px;
+    }
+    .sub{
+      margin:0;
+      color:var(--muted);
+      font-size:1.08rem;
+      line-height:1.55;
+      max-width:70ch;
+    }
+
+    .hero{
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap:16px;
+      align-items:stretch;
+    }
+    @media (max-width: 920px){ .hero{grid-template-columns:1fr;} }
+
+    .list{
+      margin-top:16px;
+      display:grid;
+      gap:10px;
+      color:rgba(255,255,255,.86);
+      font-size:14px;
+      line-height:1.5;
+    }
+    .listItem{
+      background: rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.16);
+      border-radius:16px;
+      padding:12px 14px;
+    }
+
+    .btnRow{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;align-items:center;}
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;
+      padding:12px 16px;border-radius:999px;
+      background: var(--btn); color: var(--btnText);
+      text-decoration:none; font-weight:900;
+      box-shadow:0 14px 30px rgba(0,0,0,.22);
+      transition: transform .18s ease, opacity .18s ease;
+      border:none;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+    .btn:hover{transform: translateY(-1px) scale(1.02)}
+    .ghost{
+      display:inline-flex;align-items:center;justify-content:center;
+      padding:12px 16px;border-radius:999px;
+      background: rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      color: white;
+      text-decoration:none; font-weight:800;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+
+    /* Footer coerente */
+    .globalFooter {
+      text-align: center;
+      padding: 30px 20px;
+      font-size: 14px;
+      opacity: 0.9;
+      line-height: 1.6;
+    }
+    .globalFooter .small {
+      margin-top: 6px;
+      font-size: 13px;
+      opacity: 0.8;
+    }
+    .globalFooter .footerLinks {
+      margin-top: 14px;
+    }
+    .globalFooter a {
+      color: rgba(255,255,255,0.9);
+      text-decoration: none;
+      opacity: 0.85;
+      transition: opacity 0.2s ease, text-decoration 0.2s ease;
+    }
+    .globalFooter a:hover {
+      text-decoration: underline;
+      opacity: 1;
+    }
+
+    /* Micro box “Stripe-friendly” */
+    .infoBox{
+      margin-top:16px;
+      padding:16px;
+      border-radius:18px;
+      background: rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.16);
+      color:rgba(255,255,255,.88);
+      font-size:14px;
+      line-height:1.55;
+    }
+    .kbd{
+      display:inline-block;
+      padding:3px 8px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.18);
+      background: rgba(0,0,0,.16);
+      font-size:12px;
+      color: rgba(255,255,255,.9);
+      white-space:nowrap;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+
+    <div class="nav">
+      <a href="index.html" class="brand">
+        <div class="brandLogo"><img src="logo.png" alt="OnlyPaws logo"></div>
+        <span class="brandText">OnlyPaws</span>
+      </a>
+      <div class="pill">Stripe info</div>
+    </div>
+
+    <div class="hero">
+      <div class="panel">
+        <div class="pill">Pet-only • Safe-for-work • Digital subscriptions</div>
+        <h1>What OnlyPaws is</h1>
+        <p class="sub">
+          OnlyPaws is a subscription-based platform dedicated exclusively to pet-related digital content.
+          Creators share safe-for-work pet photography, lifestyle updates, and educational media about animals.
+        </p>
+
+        <div class="list">
+          <div class="listItem">📸 Digital pet photos & videos</div>
+          <div class="listItem">🐾 Pet lifestyle content and updates</div>
+          <div class="listItem">📚 Educational pet-related media</div>
+          <div class="listItem">💳 Payments and payouts handled securely via Stripe</div>
+        </div>
+
+        <div class="infoBox">
+          <strong>Business model:</strong> digital subscriptions for pet content only.<br/>
+          <strong>Content scope:</strong> pet-focused and safe-for-work.<br/>
+          <strong>Contact:</strong> <a href="mailto:onlypawssupp@gmail.com">onlypawssupp@gmail.com</a>
+        </div>
+
+        <div class="btnRow">
+          <a class="btn" href="creators.html">For creators</a>
+          <a class="ghost" href="fans.html">For fans</a>
+        </div>
+
+        <p class="sub" style="margin-top:14px;font-size:0.98rem;">
+          Tip: if you’re reviewing a creator account, look for the label
+          <span class="kbd">pet_sfw</span> in metadata.
+        </p>
+      </div>
+
+      <div class="panel">
+        <h2 style="margin:0 0 10px;">Content & compliance</h2>
+        <p class="sub" style="font-size:1rem;">
+          OnlyPaws is pet-first by design. We aim to keep the platform simple, safe, and clear.
+        </p>
+
+        <div class="list" style="margin-top:14px;">
+          <div class="listItem">✅ No adult or explicit content</div>
+          <div class="listItem">✅ No gambling services</div>
+          <div class="listItem">✅ No restricted goods or prohibited services</div>
+          <div class="listItem">✅ Digital products only (subscriptions)</div>
+        </div>
+
+        <div class="infoBox" style="margin-top:16px;">
+          <strong>Support / Compliance inquiries</strong><br/>
+          Email: <a href="mailto:onlypawssupp@gmail.com">onlypawssupp@gmail.com</a><br/>
+          (We reply as soon as possible.)
+        </div>
+
+        <div class="btnRow" style="margin-top:16px;">
+          <a class="ghost" href="content-policy.html">Content Policy</a>
+          <a class="ghost" href="privacy-policy.html">Privacy Policy</a>
+          <a class="ghost" href="terms.html">Terms</a>
+        </div>
+      </div>
+    </div>
+
+    <footer class="globalFooter">
+      <div class="footerTop">
+        © <span id="y"></span> OnlyPaws • Built with toe beans energy 🐾
+      </div>
+
+      <div class="small">
+        OnlyPaws is an independent digital platform. Features may evolve over time.
+      </div>
+
+      <div class="footerLinks">
+        <a href="content-policy.html">Content Policy</a>
+        &nbsp;·&nbsp;
+        <a href="privacy-policy.html">Privacy Policy</a>
+        &nbsp;·&nbsp;
+        <a href="terms.html">Terms of Service</a>
+        &nbsp;·&nbsp;
+        <a href="mailto:onlypawssupp@gmail.com">Contact Us</a>
+      </div>
+    </footer>
+
+  </div>
+
+  <script>
+    document.getElementById("y").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
