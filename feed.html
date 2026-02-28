@@ -468,18 +468,12 @@
             media_type: p.media_type || null,
           });
 
-          // ✅ wrapper: click routes to creator profile (outside text/media)
-          // also carries meta so we can adjust badges (premium unlocked != FREE)
           const access = (!locked && premium) ? "unlocked" : (premium ? "premium" : "free");
           return `<div class="postLinkWrap" tabindex="0" data-creator="${esc(uname)}" data-premium="${premium ? "1" : "0"}" data-locked="${locked ? "1" : "0"}" data-access="${access}">${cardHtml}</div>`;
         }).join("");
 
-        // Bind like buttons after render
         window.OnlyPawsPostCard.initPostCards(postsEl);
-
-        // Fix badge label: premium posts unlocked via subscription should show UNLOCKED (not FREE)
         patchUnlockedBadges(postsEl);
-
         return;
       }
 
@@ -599,7 +593,6 @@
       hint.textContent = creatorsAll.length ? "" : "No creators yet.";
     }
 
-    // ✅ FINAL: premium blur depends on creator_subscriptions access until period end (like creator-profile)
     async function loadLatestPosts(){
       const hint = document.getElementById("postsHint");
       hint.textContent = "Loading posts…";
@@ -655,23 +648,38 @@
 
       if(creatorIdsToCheck.length){
         const { data: subs, error: sErr } = await onlypawsClient
-          .from("creator_subscriptions")
-          .select("creator_id, is_active, current_period_end")
+          .from("fan_subscriptions")
+          .select("creator_id, status, current_period_end, cancel_at_period_end")
           .eq("fan_id", viewerId)
-          .in("creator_id", creatorIdsToCheck)
-          .eq("is_active", true);
+          .in("creator_id", creatorIdsToCheck);
 
         if(sErr){
-          console.warn("creator_subscriptions lookup error", sErr);
-          // keep defaults false
+          console.warn("fan_subscriptions lookup error", sErr);
         }else{
           const now = Date.now();
+
           for(const r of (subs || [])){
-            const endMs = r.current_period_end ? new Date(r.current_period_end).getTime() : 0;
-            // main rule: access until period end
+            const raw = r.current_period_end;
+
+            // Robust parse: ISO string / ms / seconds / numeric string
+            let endMs = 0;
+            if(raw){
+              if(typeof raw === "number" || /^\d+$/.test(String(raw))){
+                const n = Number(raw);
+                endMs = (n < 1e12) ? (n * 1000) : n; // seconds -> ms
+              }else{
+                endMs = new Date(raw).getTime();
+              }
+            }
+
             let hasAccess = !!endMs && endMs > now;
-            // legacy fallback: if no period_end but DB says active, treat as access
-            if(!hasAccess && !r.current_period_end && r.is_active === true) hasAccess = true;
+
+            // fallback: if status says active/trialing but no period_end stored
+            if(!hasAccess && !raw){
+              const st = (r.status || "").toString().toLowerCase();
+              if(st === "active" || st === "trialing") hasAccess = true;
+            }
+
             if(hasAccess) subMap.set(r.creator_id, true);
           }
         }
@@ -701,27 +709,19 @@
       hint.textContent = enriched.length ? "" : "No posts yet.";
     }
 
-    
     function patchUnlockedBadges(root){
       try{
         const wraps = root.querySelectorAll('.postLinkWrap[data-access="unlocked"]');
         wraps.forEach(w => {
-          // Try to find a "status" badge (usually the second badge in the top row)
           const badges = w.querySelectorAll(".badge");
           if(!badges || !badges.length) return;
-
-          // Prefer the last badge if there are multiple
           const b = badges[badges.length - 1];
           const t = (b.textContent || "").trim().toUpperCase();
-
-          // Only replace obvious FREE labels
           if(t.includes("FREE") || t.includes("🆓")){
             b.textContent = "🔓 UNLOCKED";
           }
         });
-      }catch(e){
-        // no-op
-      }
+      }catch(e){}
     }
 
     function openMediaModal({ type, src }){
@@ -729,7 +729,6 @@
       const img = document.getElementById("mediaModalImg");
       const vid = document.getElementById("mediaModalVid");
 
-      // reset
       img.style.display = "none";
       vid.style.display = "none";
       try{
@@ -777,17 +776,10 @@
       });
     }
 
-    /**
-     * Delegation:
-     * - click on IMG/VIDEO inside .mediaWrap (if NOT locked/blurred) => modal
-     * - click on post card wrapper => creator profile
-     *   BUT: navigate only when clicking OUTSIDE text blocks.
-     */
     function setupPostClickRouting(){
       const postsEl = document.getElementById("posts");
       if(!postsEl) return;
 
-      // Helpers: define "text zones" that should NOT navigate
       function isTextZone(el){
         return Boolean(el.closest("p, h1, h2, h3, h4, h5, h6, .postText, .postExcerpt, .postContent, .content, .excerpt, .caption"));
       }
@@ -795,13 +787,9 @@
       postsEl.addEventListener("click", (e) => {
         const target = e.target;
 
-        // Don't hijack interactive controls
         if(target.closest("a, button, input, textarea, select, label")) return;
-
-        // If user clicked in a text zone, do not navigate
         if(isTextZone(target)) return;
 
-        // 1) MEDIA CLICK => modal (only if not blurred/locked)
         const mediaWrap = target.closest(".mediaWrap");
         if(mediaWrap){
           if(mediaWrap.classList.contains("blurred")) return;
@@ -815,7 +803,6 @@
             return;
           }
 
-          // Avoid opening modal when clicking video controls
           if(vid && target.closest("video")){
             return;
           }
@@ -826,7 +813,6 @@
           }
         }
 
-        // 2) WRAPPER CLICK => creator profile
         const wrap = target.closest(".postLinkWrap");
         if(!wrap) return;
 
@@ -837,7 +823,6 @@
         window.location.href = creatorProfileUrl(uname);
       });
 
-      // Keyboard accessibility (Enter)
       postsEl.addEventListener("keydown", (e) => {
         if(e.key !== "Enter") return;
         const target = e.target;
@@ -845,13 +830,12 @@
         if(!wrap) return;
         const uname = wrap.getAttribute("data-creator") || "";
         if(!uname) return;
-        // Avoid navigating when focused inside a text zone
         if(isTextZone(target)) return;
         window.location.href = creatorProfileUrl(uname);
       });
     }
 
-async function boot(){
+    async function boot(){
       setupSearch();
       setupLogout();
 
