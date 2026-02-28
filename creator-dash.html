@@ -402,6 +402,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="onlypawsClient.js"></script>
+  <script src="supabase.likes.js"></script>
+  <script src="post-card.js"></script>
   <script>
     // ===== CONFIG =====
     const CREATOR_PLAN_URL = "https://buy.stripe.com/5kQbJ25UY5qegpM4kD5wI02";
@@ -579,6 +581,59 @@
         `;
         return;
       }
+
+      // Prefer reusable post-card renderer (adds Like button etc.)
+      if(window.OnlyPawsPostCard?.renderPostCard){
+        myPostsEl.innerHTML = list.map(p => {
+          const title = p.title || "Untitled";
+          const date = p.created_at ? new Date(p.created_at).toLocaleString() : "";
+          const id = p.id;
+
+          const cardHtml = window.OnlyPawsPostCard.renderPostCard({
+            id,
+            creator_username: (whoPill?.textContent || "creator").replace(/^@/,""),
+            title,
+            excerpt: p.content || p.preview || "",
+            price_cents: null,
+            currency: "eur",
+            is_locked: false,
+
+            // media
+            media_url: p.media_url || null,
+            media_type: p.media_type || null,
+          });
+
+          const isPaid = !!p.is_paid;
+          const vis = p.is_public ? "🌍 PUBLIC" : "🙈 PRIVATE";
+          const badge = isPaid ? "🔒 PREMIUM" : "🆓 FREE";
+
+          return `
+            <div class="rowCard" data-post-id="${esc(id)}">
+              <div class="postMeta" style="width:100%;">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+                  <span class="badge">${badge}</span>
+                  <span class="badge">${vis}</span>
+                  ${date ? `<span class="badge">${esc(date)}</span>` : ``}
+                </div>
+                ${cardHtml}
+              </div>
+              <div class="postActions">
+                <a class="ghost" href="create-post.html?edit=${encodeURIComponent(id)}">Edit</a>
+                <button class="ghost danger" type="button" data-action="delete">Delete</button>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        // Bind like buttons after render
+        window.OnlyPawsPostCard.initPostCards(myPostsEl);
+
+        // Keep delete handlers
+        bindDeleteHandlers();
+        return;
+      }
+
+      // Fallback (no post-card.js loaded)
       myPostsEl.innerHTML = list.map(p => {
         const title = p.title || "Untitled";
         const isPaid = !!p.is_paid;
@@ -607,6 +662,10 @@
         `;
       }).join("");
 
+      bindDeleteHandlers();
+    }
+
+    function bindDeleteHandlers(){
       myPostsEl.querySelectorAll('[data-action="delete"]').forEach(btn => {
         btn.addEventListener("click", async () => {
           const row = btn.closest(".rowCard");
@@ -1167,7 +1226,9 @@
         }
 
         if(!data?.url) throw new Error("Missing Stripe URL");
-        window.location.href = data.url;
+
+// apre Stripe in nuova tab
+window.open(data.url, "_blank", "noopener,noreferrer");
 
       }catch(e){
         alert("❌ Stripe open failed: " + (e?.message || String(e)));
@@ -1330,7 +1391,7 @@
                 );
                 if(error) throw error;
                 if(!data?.url) throw new Error("Missing Stripe URL");
-                window.location.href = data.url;
+                window.open(data.url, "_blank", "noopener,noreferrer");
               }catch(e){
                 buyBtn.disabled = false;
                 buyBtn.style.opacity = "1";
