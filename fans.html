@@ -156,49 +156,33 @@
     }
 
     /* ===== GLOBAL FOOTER ===== */
-
-.globalFooter {
-  text-align: center;
-  padding: 30px 20px;
-  font-size: 14px;
-  opacity: 0.9;
-  line-height: 1.6;
-}
-
-/* Seconda frase descrittiva */
-.globalFooter .small {
-  margin-top: 6px;
-  font-size: 13px;
-  opacity: 0.8;
-}
-
-/* Spazio tra frase e link */
-.globalFooter .footerLinks {
-  margin-top: 14px;
-}
-
-/* Link footer */
-.globalFooter a {
-  color: rgba(255,255,255,0.9);
-  text-decoration: none;
-  opacity: 0.85;
-  transition: opacity 0.2s ease, text-decoration 0.2s ease;
-}
-
-/* Hover */
-.globalFooter a:hover {
-  text-decoration: underline;
-  opacity: 1;
-}
+    .globalFooter {
+      text-align: center;
+      padding: 30px 20px;
+      font-size: 14px;
+      opacity: 0.9;
+      line-height: 1.6;
     }
-    .smallLegal{
-      display:inline-block;
-      margin-top:6px;
-      opacity:.85;
-      font-size:12px;
+    .globalFooter .small {
+      margin-top: 6px;
+      font-size: 13px;
+      opacity: 0.8;
+    }
+    .globalFooter .footerLinks {
+      margin-top: 14px;
+    }
+    .globalFooter a {
+      color: rgba(255,255,255,0.9);
+      text-decoration: none;
+      opacity: 0.85;
+      transition: opacity 0.2s ease, text-decoration 0.2s ease;
+    }
+    .globalFooter a:hover {
+      text-decoration: underline;
+      opacity: 1;
     }
 
-    /* added: forgot/reset UI (minimal, matches your look) */
+    /* forgot/reset UI */
     .forgotRow{
       margin-top:12px;
       display:flex;
@@ -226,15 +210,13 @@
     }
     .resetBox .btnRow{margin-top:10px}
 
-.support-image {
+    .support-image {
+      width: 100%;
+      margin-bottom: 16px;
+    }
+    .support-image img {
   width: 100%;
-  margin-bottom: 16px;
-}
-
-.support-image img {
-  width: 100%;
-  max-height: 180px;
-  object-fit: cover;
+  height: auto;
   border-radius: 16px;
   display: block;
 }
@@ -253,6 +235,7 @@
     </div>
 
     <div class="hero">
+      <!-- LEFT: AUTH -->
       <div class="panel">
         <div class="pill">Follow creators. Unlock premium.</div>
         <h1>Become a fan</h1>
@@ -274,12 +257,11 @@
             <input type="password" id="fan-password" placeholder="Password (min 6)" required />
 
             <div class="btnRow">
+              <!-- FIX: login is NOT submit; signup is its own button -->
               <button type="submit" class="btn" id="fanLoginBtn">Log in</button>
               <button type="button" class="ghost" id="fanSignupBtn">Create fan account</button>
-
             </div>
 
-            <!-- added: forgot password link -->
             <div class="forgotRow">
               <button type="button" class="tinyLink" id="forgotBtn">Forgot password?</button>
               <span style="font-size:12px;color:rgba(255,255,255,.75);">
@@ -287,7 +269,6 @@
               </span>
             </div>
 
-            <!-- added: inline reset box (optional but super useful) -->
             <div class="resetBox" id="resetBox">
               <div style="font-size:13px;color:rgba(255,255,255,.85);line-height:1.45;">
                 Send a password reset email to the address above.
@@ -303,64 +284,70 @@
         </div>
 
         <div class="note">
-          After signup/login you’ll be redirected to your profile.
+          Signup redirects to <b>profile</b>. Login redirects to <b>feed</b>.
         </div>
       </div>
+
+      <!-- RIGHT: LINKS (TOP) + SUPPORT (BOTTOM) -->
       <div class="panel">
-        <div class="support-image">
-          <img src="onlypaws-fans.png" alt="Support OnlyPaws">
-        </div>
-        <h2 style="margin:0 0 10px;">Support OnlyPaws 🐾</h2>
-        <p class="sub" style="font-size:1rem;">
-          Love OnlyPaws and want to support the project?
-Support Us. 
-This is a recurring support contribution billed every 3 months.
-It does not unlock any features or memberships.
-
-It simply helps us keep OnlyPaws alive, improve the platform,
-and take care of our furry friends 💜
-        </p>
-
-        <a class="btn"
-           href="https://buy.stripe.com/4gM14ocjm5qec9w04n5wI05"
-           target="_blank"
-           rel="noopener"
-           style="margin-top:14px;">
-          Support OnlyPaws 🐾
-        </a>
-
-        <div class="note">Cancel anytime • Secure payments via Stripe</div>
-
-        <div class="btnRow" style="margin-top:16px;">
+        <!-- requested: buttons above -->
+        <div class="btnRow" style="margin-top:0;">
           <a class="ghost" href="faq-fans.html">Fan FAQ</a>
           <a class="ghost" href="creators.html">I’m a creator</a>
         </div>
 
-        <div class="note">
-          Need help? Email us at <b>onlypawssupp@gmail.com</b>.
+        <!-- requested: support part below -->
+        <div style="margin-top:16px;">
+          <div class="support-image">
+            <img src="onlypaws-fans.png" alt="Support OnlyPaws">
+          </div>
+          <h2 style="margin:0 0 10px;">Support OnlyPaws 🐾</h2>
+          <p class="sub" style="font-size:1rem;">
+            Love OnlyPaws and want to support the project?<br>
+            Support Us.<br>
+            This is a recurring support contribution billed every 3 months.<br>
+            It does not unlock any features or memberships.<br><br>
+            It simply helps us keep OnlyPaws alive, improve the platform,
+            and take care of our furry friends 💜
+          </p>
+
+          <a class="btn"
+             href="https://buy.stripe.com/4gM14ocjm5qec9w04n5wI05"
+             target="_blank"
+             rel="noopener"
+             style="margin-top:14px;">
+            Support OnlyPaws 🐾
+          </a>
+
+          <div class="note">Cancel anytime • Secure payments via Stripe</div>
+
+          <div class="note">
+            Need help? Email us at <b>onlypawssupp@gmail.com</b>.
+          </div>
         </div>
       </div>
     </div>
 
-   <footer class="globalFooter">
-  <div class="footerTop">
-    © 2026 OnlyPaws • Built with toe beans energy 🐾
-  </div>
+    <footer class="globalFooter">
+      <div class="footerTop">
+        © 2026 OnlyPaws • Built with toe beans energy 🐾
+      </div>
 
-  <div class="small">
-    OnlyPaws is an independent digital platform. Features may evolve over time.
-  </div>
+      <div class="small">
+        OnlyPaws is an independent digital platform. Features may evolve over time.
+      </div>
 
-  <div class="footerLinks">
-    <a href="content-policy.html">Content Policy</a>
-    &nbsp;·&nbsp;
-    <a href="privacy-policy.html">Privacy Policy</a>
-    &nbsp;·&nbsp;
-    <a href="terms.html">Terms of Service</a>
-    &nbsp;·&nbsp;
-    <a href="mailto:onlypawssupp@gmail.com">Contact Us</a>
-  </div>
-</footer>
+      <div class="footerLinks">
+        <a href="content-policy.html">Content Policy</a>
+        &nbsp;·&nbsp;
+        <a href="privacy-policy.html">Privacy Policy</a>
+        &nbsp;·&nbsp;
+        <a href="terms.html">Terms of Service</a>
+        &nbsp;·&nbsp;
+        <a href="mailto:onlypawssupp@gmail.com">Contact Us</a>
+      </div>
+    </footer>
+
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -381,15 +368,6 @@ and take care of our furry friends 💜
 
     function setMsg(t){ msg.textContent = t || ""; }
 
-    function getNextPath(){
-      const next = new URLSearchParams(window.location.search).get("next");
-      if(!next) return "profile.html";
-      if(next === "feed") return "feed.html";
-      if(next === "profile") return "profile.html";
-      if(next.endsWith(".html")) return next;
-      return "profile.html";
-    }
-
     function setBusy(b){
       signupBtn.disabled = b;
       loginBtn.disabled = b;
@@ -409,9 +387,7 @@ and take care of our furry friends 💜
       console.error("onlypawsClient is undefined.");
     }
 
-    
     async function bootstrapUser(role) {
-      // crea/aggiorna profiles + wallets (idempotente)
       const { data: uData, error: uErr } = await onlypawsClient.auth.getUser();
       if (uErr) throw uErr;
       const user = uData?.user;
@@ -420,7 +396,6 @@ and take care of our furry friends 💜
       const uid = user.id;
       const now = new Date().toISOString();
 
-      // profiles
       const pRes = await onlypawsClient
         .from("profiles")
         .upsert({ user_id: uid, role, updated_at: now }, { onConflict: "user_id" })
@@ -428,7 +403,6 @@ and take care of our furry friends 💜
         .maybeSingle();
       if (pRes.error) throw pRes.error;
 
-      // wallets (PK = profile_id)
       const wRes = await onlypawsClient
         .from("wallets")
         .upsert({ profile_id: uid }, { onConflict: "profile_id" })
@@ -436,31 +410,32 @@ and take care of our furry friends 💜
         .maybeSingle();
       if (wRes.error) throw wRes.error;
 
-      // NOTE: entitlements are paid memberships/plans. Do NOT auto-grant anything here.
-
       return { profile: pRes.data, wallet: wRes.data };
     }
 
-async function redirectAfterAuth(){
-      const next = getNextPath();
-      window.location.href = next;
+    function redirectAfterSignup(){
+      window.location.href = "profile.html";
     }
 
-    // ✅ On page load: if session exists (persisted), bootstrap + redirect.
+    function redirectAfterLogin(){
+      window.location.href = "feed.html";
+    }
+
+    // ✅ On page load: if session exists, take them to FEED (login behavior)
     (async () => {
       try {
         const { data: s } = await onlypawsClient.auth.getSession();
         if (s?.session) {
           await bootstrapUser('fan');
-          redirectAfterAuth();
+          redirectAfterLogin();
         }
       } catch (e) {
         console.warn("auto-redirect skipped:", e);
       }
     })();
-// Forgot password (UI)
+
+    // Forgot password UI
     forgotBtn.addEventListener("click", () => {
-      // prefill: user can type email then click
       showResetBox(true);
       setMsg("");
     });
@@ -470,7 +445,6 @@ async function redirectAfterAuth(){
       setMsg("");
     });
 
-    // Send reset email
     sendResetBtn.addEventListener("click", async () => {
       setBusy(true);
       try{
@@ -479,9 +453,6 @@ async function redirectAfterAuth(){
           setMsg("Please enter your email first.");
           return;
         }
-
-        // Where user will land after clicking email link
-        // (you can change file name if yours is different)
         const redirectTo = window.location.origin + "/reset-password.html";
 
         setMsg("Sending reset email…");
@@ -499,47 +470,8 @@ async function redirectAfterAuth(){
       }
     });
 
-    // SIGN UP
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      setMsg("Creating your fan account…");
-      setBusy(true);
-
-      try{
-        const email = (emailEl.value || "").trim();
-        const password = passEl.value || "";
-
-        if(!email){ setMsg("Please enter your email."); return; }
-        if(password.length < 6){ setMsg("Password must be at least 6 characters."); return; }
-
-        const { data, error } = await onlypawsClient.auth.signUp({
-  email,
-  password,
-  options: {
-    data: { role: "fan" },
-    emailRedirectTo: window.location.origin + "/email-confirmed.html"
-  }
-});
-
-        if(error){
-          setMsg("❌ " + error.message);
-          return;
-        }
-
-        if(data?.session){
-          await bootstrapUser('fan');
-          await redirectAfterAuth();
-          return;
-        }
-
-        setMsg("✅ Account created. Check your email to confirm 🐾");
-      } finally {
-        setBusy(false);
-      }
-    });
-
-    // LOG IN
-    loginBtn.addEventListener("click", async () => {
+    // LOGIN on submit (Enter key too)
+    async function loginFlow(){
       setMsg("Logging in…");
       setBusy(true);
 
@@ -559,16 +491,60 @@ async function redirectAfterAuth(){
 
         if(data?.session){
           await bootstrapUser('fan');
-          await redirectAfterAuth();
+          redirectAfterLogin(); // ✅ login -> feed
           return;
         }
 
         setMsg("Logged in. Redirecting…");
-        await redirectAfterAuth();
+        redirectAfterLogin();
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      await loginFlow();
+    });
+
+    // SIGNUP
+    signupBtn.addEventListener("click", async () => {
+      setMsg("Creating your fan account…");
+      setBusy(true);
+
+      try{
+        const email = (emailEl.value || "").trim();
+        const password = passEl.value || "";
+
+        if(!email){ setMsg("Please enter your email."); return; }
+        if(password.length < 6){ setMsg("Password must be at least 6 characters."); return; }
+
+        const { data, error } = await onlypawsClient.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { role: "fan" },
+            emailRedirectTo: window.location.origin + "/email-confirmed.html"
+          }
+        });
+
+        if(error){
+          setMsg("❌ " + error.message);
+          return;
+        }
+
+        // If Supabase returns a session immediately (email confirmations off), go profile
+        if(data?.session){
+          await bootstrapUser('fan');
+          redirectAfterSignup(); // ✅ signup -> profile
+          return;
+        }
+
+        setMsg("✅ Account created. Check your email to confirm 🐾");
       } finally {
         setBusy(false);
       }
     });
   </script>
 </body>
-</html>      
+</html>
