@@ -209,7 +209,7 @@
       filter: blur(18px);
       transform: scale(1.03);
     }
-  
+
     /* Clickable post wrapper */
     .postLinkWrap{ border-radius:22px; }
     .postLinkWrap:focus-visible{ outline:2px solid rgba(255,255,255,.55); outline-offset:4px; }
@@ -376,6 +376,10 @@
       return `creator-profile.html?u=${encodeURIComponent(username)}`;
     }
 
+    function postUrl(postId){
+      return `post.html?id=${encodeURIComponent(postId)}`;
+    }
+
     function avatarHtml(c){
       const url = (c?.avatar_url || "").trim();
       if(url){
@@ -469,7 +473,7 @@
           });
 
           const access = (!locked && premium) ? "unlocked" : (premium ? "premium" : "free");
-          return `<div class="postLinkWrap" tabindex="0" data-creator="${esc(uname)}" data-premium="${premium ? "1" : "0"}" data-locked="${locked ? "1" : "0"}" data-access="${access}">${cardHtml}</div>`;
+          return `<div class="postLinkWrap" tabindex="0" data-post-id="${esc(p.id)}" data-creator="${esc(uname)}" data-premium="${premium ? "1" : "0"}" data-locked="${locked ? "1" : "0"}" data-access="${access}">${cardHtml}</div>`;
         }).join("");
 
         window.OnlyPawsPostCard.initPostCards(postsEl);
@@ -661,7 +665,6 @@
           for(const r of (subs || [])){
             const raw = r.current_period_end;
 
-            // Robust parse: ISO string / ms / seconds / numeric string
             let endMs = 0;
             if(raw){
               if(typeof raw === "number" || /^\d+$/.test(String(raw))){
@@ -674,7 +677,6 @@
 
             let hasAccess = !!endMs && endMs > now;
 
-            // fallback: if status says active/trialing but no period_end stored
             if(!hasAccess && !raw){
               const st = (r.status || "").toString().toLowerCase();
               if(st === "active" || st === "trialing") hasAccess = true;
@@ -688,18 +690,15 @@
       const enriched = posts.map(p => {
         const isMine = (p.creator_id === viewerId);
 
-        // private: only creator can view
         if(p.is_public === false){
           const locked = !isMine;
           return { ...p, can_view: !locked, is_locked: locked };
         }
 
-        // free public: everyone
         if(p.is_paid !== true){
           return { ...p, can_view: true, is_locked: false };
         }
 
-        // premium public: creator OR subscriber access
         const isSub = (subMap.get(p.creator_id) === true);
         const locked = !(isMine || isSub);
         return { ...p, can_view: !locked, is_locked: locked };
@@ -724,122 +723,76 @@
       }catch(e){}
     }
 
-    function openMediaModal({ type, src }){
-      const modal = document.getElementById("mediaModal");
-      const img = document.getElementById("mediaModalImg");
-      const vid = document.getElementById("mediaModalVid");
-
-      img.style.display = "none";
-      vid.style.display = "none";
-      try{
-        vid.pause();
-        vid.removeAttribute("src");
-        vid.load();
-      }catch(e){}
-
-      if(type === "video"){
-        vid.src = src;
-        vid.style.display = "block";
-      }else{
-        img.src = src;
-        img.style.display = "block";
-      }
-
-      modal.classList.add("open");
-      modal.setAttribute("aria-hidden", "false");
-    }
-
-    function closeMediaModal(){
-      const modal = document.getElementById("mediaModal");
-      const vid = document.getElementById("mediaModalVid");
-      modal.classList.remove("open");
-      modal.setAttribute("aria-hidden", "true");
-      try{
-        vid.pause();
-        vid.removeAttribute("src");
-        vid.load();
-      }catch(e){}
-    }
-
-    function setupMediaModal(){
-      const modal = document.getElementById("mediaModal");
-      const closeBtn = document.getElementById("mediaModalClose");
-      if(!modal || !closeBtn) return;
-
-      closeBtn.addEventListener("click", closeMediaModal);
-      modal.addEventListener("click", (e) => {
-        if(e.target === modal) closeMediaModal();
-      });
-
-      window.addEventListener("keydown", (e) => {
-        if(e.key === "Escape") closeMediaModal();
-      });
-    }
-
+    /**
+     * Routing:
+     * - click on @username badge => creator profile
+     * - click anywhere else on the post card (including image) => post page
+     */
     function setupPostClickRouting(){
       const postsEl = document.getElementById("posts");
       if(!postsEl) return;
 
-      function isTextZone(el){
-        return Boolean(el.closest("p, h1, h2, h3, h4, h5, h6, .postText, .postExcerpt, .postContent, .content, .excerpt, .caption"));
+      function isCreatorClick(target){
+        const badge = target.closest(".badge");
+        if(!badge) return false;
+        const txt = (badge.textContent || "").trim();
+        if(!txt.startsWith("@")) return false;
+
+        const wrap = badge.closest(".postLinkWrap");
+        const uname = wrap?.getAttribute("data-creator") || "";
+        if(!uname) return false;
+
+        window.location.href = creatorProfileUrl(uname);
+        return true;
+      }
+
+      function goPost(wrap){
+        const postId = wrap?.getAttribute("data-post-id") || "";
+        if(postId){
+          window.location.href = postUrl(postId);
+          return;
+        }
+        const uname = wrap?.getAttribute("data-creator") || "";
+        if(uname) window.location.href = creatorProfileUrl(uname);
       }
 
       postsEl.addEventListener("click", (e) => {
         const target = e.target;
 
+        // Don't hijack interactive controls
         if(target.closest("a, button, input, textarea, select, label")) return;
-        if(isTextZone(target)) return;
 
-        const mediaWrap = target.closest(".mediaWrap");
-        if(mediaWrap){
-          if(mediaWrap.classList.contains("blurred")) return;
-
-          const img = mediaWrap.querySelector("img");
-          const vid = mediaWrap.querySelector("video");
-
-          if(img && target.closest("img")){
-            e.preventDefault();
-            openMediaModal({ type:"image", src: img.getAttribute("src") });
-            return;
-          }
-
-          if(vid && target.closest("video")){
-            return;
-          }
-          if(vid){
-            e.preventDefault();
-            openMediaModal({ type:"video", src: vid.getAttribute("src") });
-            return;
-          }
+        // Username -> creator profile
+        if(isCreatorClick(target)){
+          e.preventDefault();
+          return;
         }
 
+        // Otherwise -> post page
         const wrap = target.closest(".postLinkWrap");
         if(!wrap) return;
 
-        const uname = wrap.getAttribute("data-creator") || "";
-        if(!uname) return;
-
         e.preventDefault();
-        window.location.href = creatorProfileUrl(uname);
+        goPost(wrap);
       });
 
       postsEl.addEventListener("keydown", (e) => {
         if(e.key !== "Enter") return;
         const target = e.target;
+
+        if(isCreatorClick(target)) return;
+
         const wrap = target.closest(".postLinkWrap");
         if(!wrap) return;
-        const uname = wrap.getAttribute("data-creator") || "";
-        if(!uname) return;
-        if(isTextZone(target)) return;
-        window.location.href = creatorProfileUrl(uname);
+
+        e.preventDefault();
+        goPost(wrap);
       });
     }
 
     async function boot(){
       setupSearch();
       setupLogout();
-
-      setupMediaModal();
       setupPostClickRouting();
 
       const { data, error } = await onlypawsClient.auth.getSession();
@@ -865,7 +818,7 @@
     window.addEventListener('DOMContentLoaded', boot);
   </script>
 
-  <!-- Media modal -->
+  <!-- Media modal (left here, not used by routing right now) -->
   <div id="mediaModal" class="mediaModal" aria-hidden="true">
     <div class="mediaModalInner" role="dialog" aria-modal="true" aria-label="Media preview">
       <button id="mediaModalClose" class="mediaModalClose" type="button">✕</button>
