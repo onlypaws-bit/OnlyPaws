@@ -84,6 +84,21 @@
       font-size:13px;color:rgba(255,255,255,.85);
       white-space:nowrap;
     }
+.pill{
+      display:inline-flex;gap:8px;align-items:center;
+      padding:10px 14px;border-radius:999px;
+      background: rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      font-size:13px;color:rgba(255,255,255,.85);
+      white-space:nowrap;
+    }
+
+    .postItem{display:block;}
+    .postCreatorRow{margin-top:12px;margin-bottom:10px;display:flex;justify-content:flex-start;}
+    .postCreatorPill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background: rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);font-size:13px;color:rgba(255,255,255,.88);text-decoration:none;max-width:100%;}
+    .postCreatorPill:hover{background: rgba(255,255,255,.16);border-color: rgba(255,255,255,.24);}
+    .postCreatorPill:active{transform: translateY(1px);}
+    .postCreatorPill:focus-visible{outline:2px solid rgba(255,255,255,.55);outline-offset:2px;}
 
     .hint{color:rgba(255,255,255,.78);font-size:13px;line-height:1.4;margin-top:12px;}
 
@@ -438,6 +453,14 @@
         </div>
       `;
     }
+    function wirePostCreatorPills(root){
+      (root || document).querySelectorAll(".postCreatorPill").forEach(a => {
+        const stop = (e) => { e.stopPropagation(); };
+        a.addEventListener("click", stop);
+        a.addEventListener("mousedown", stop);
+        a.addEventListener("touchstart", stop, {passive:true});
+      });
+    }
 
     function renderPosts(list){
       const postsEl = document.getElementById("posts");
@@ -473,11 +496,12 @@
           });
 
           const access = (!locked && premium) ? "unlocked" : (premium ? "premium" : "free");
-          return `<div class="postLinkWrap" tabindex="0" data-post-id="${esc(p.id)}" data-creator="${esc(uname)}" data-premium="${premium ? "1" : "0"}" data-locked="${locked ? "1" : "0"}" data-access="${access}">${cardHtml}</div>`;
+          return `<div class="postItem"><div class="postCreatorRow"><a class="postCreatorPill" href="${creatorProfileUrl(uname)}">@${esc(uname)}</a></div><div class="postLinkWrap" tabindex="0" data-post-id="${esc(p.id)}" data-creator="${esc(uname)}" data-premium="${premium ? "1" : "0"}" data-locked="${locked ? "1" : "0"}" data-access="${access}">${cardHtml}</div></div>`;
         }).join("");
 
         window.OnlyPawsPostCard.initPostCards(postsEl);
         patchUnlockedBadges(postsEl);
+        wirePostCreatorPills(document);
         return;
       }
 
@@ -492,7 +516,7 @@
         return `
           <div class="postCard">
             <div class="postTop">
-              <div class="badge">${esc(who)}</div>
+              <a class="postCreatorPill" href="${creatorProfileUrl(uname)}" onclick="event.stopPropagation();">@${esc(uname)}</a>
               <div class="badge">${paidBadge}</div>
             </div>
             <h3>${esc(title)}</h3>
