@@ -733,18 +733,38 @@
       if(!postsEl) return;
 
       function isCreatorClick(target){
-        const badge = target.closest(".badge");
-        if(!badge) return false;
-        const txt = (badge.textContent || "").trim();
-        if(!txt.startsWith("@")) return false;
+        // If user clicked media, keep post navigation
+        if(target.closest("img, video, .mediaWrap")) return false;
 
-        const wrap = badge.closest(".postLinkWrap");
-        const uname = wrap?.getAttribute("data-creator") || "";
+        const wrap = target.closest(".postLinkWrap");
+        if(!wrap) return false;
+
+        // Try to detect a username/handle element inside the post card (works with post-card.js and fallback)
+        const handleEl =
+          target.closest('[data-username],[data-handle],[data-creator-username],[data-creator],.badge,.username,.handle,.author,.creator,[role="link"]');
+
+        const raw = (handleEl?.textContent || target.textContent || "").trim();
+
+        // Require an @handle in the clicked text
+        const m = raw.match(/@([a-zA-Z0-9_\.]+)/);
+        if(!m) return false;
+
+        // Prefer explicit dataset, otherwise fallback to wrapper data-creator, then parsed handle
+        let uname =
+          (handleEl?.getAttribute?.("data-username") || "") ||
+          (handleEl?.getAttribute?.("data-handle") || "") ||
+          (handleEl?.getAttribute?.("data-creator-username") || "") ||
+          "";
+
+        if(!uname) uname = wrap.getAttribute("data-creator") || "";
+        if(!uname) uname = m[1];
+
         if(!uname) return false;
 
         window.location.href = creatorProfileUrl(uname);
         return true;
       }
+
 
       function goPost(wrap){
         const postId = wrap?.getAttribute("data-post-id") || "";
