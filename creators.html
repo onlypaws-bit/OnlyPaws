@@ -391,13 +391,14 @@ and take care of our furry friends 💜
 
     // Default after auth: FEED (evita loading infinito)
     function getNextPath(){
-      const next = new URLSearchParams(window.location.search).get("next");
-      if(!next) return "feed.html";
-      if(next === "feed") return "feed.html";
-      if(next === "profile") return "profile.html";
-      if(next.endsWith(".html")) return next;
-      return "feed.html";
-    }
+  const next = new URLSearchParams(window.location.search).get("next");
+  if(next === "profile") return "profile.html";
+  if(next === "feed") return "feed.html";
+  if(next && next.endsWith(".html")) return next;
+
+  // DEFAULT = FEED
+  return "feed.html";
+}
 
     function setBusy(b){
       signupBtn.disabled = b;
@@ -531,10 +532,10 @@ const { data, error } = await onlypawsClient.auth.signUp({
         }
 
         if(data?.session){
-          await bootstrapCreatorIdentity();
-          redirectAfterAuth();
-          return;
-        }
+  await bootstrapCreatorIdentity();
+  window.location.href = "profile.html";
+  return;
+}
 
         setMsg("✅ Account created. Check your email to confirm 🐾");
       } catch (err) {
@@ -557,16 +558,18 @@ const { data, error } = await onlypawsClient.auth.signUp({
         if(!email){ setMsg("Please enter your email."); return; }
         if(!password){ setMsg("Please enter your password."); return; }
 
-        const { error } = await onlypawsClient.auth.signInWithPassword({ email, password });
+        const { data, error } = await onlypawsClient.auth.signInWithPassword({ email, password });
 
         if(error){
           setMsg("❌ " + error.message);
           return;
         }
 
-        await bootstrapCreatorIdentity();
-        setMsg("✅ Logged in. Redirecting…");
-        redirectAfterAuth();
+        if(data?.session){
+  await bootstrapCreatorIdentity();
+  window.location.href = "feed.html";
+  return;
+}
       } catch (err) {
         setMsg("❌ " + (err?.message || String(err)));
       } finally {
