@@ -1198,48 +1198,49 @@
 
     // ✅ Stripe Connect: onboarding if not onboarded, otherwise login link
     async function openPayoutSetup(){
-      try{
-        if(!enablePayoutBtn) return;
+  try{
+    if(!enablePayoutBtn) return;
 
-        const isOnboarded = !!__payoutEnabled;
+    const isOnboarded = !!__payoutEnabled;
 
-        enablePayoutBtn.textContent = isOnboarded ? "Opening Stripe…" : "Opening onboarding…";
-        enablePayoutBtn.style.pointerEvents = "none";
-        enablePayoutBtn.style.opacity = ".75";
+    enablePayoutBtn.textContent = isOnboarded ? "Opening Stripe…" : "Opening onboarding…";
+    enablePayoutBtn.style.pointerEvents = "none";
+    enablePayoutBtn.style.opacity = ".75";
 
-        let data, error;
+    let data, error;
 
-        if(isOnboarded){
-          ({ data, error } = await onlypawsClient.functions.invoke("connect-login", { body: {} }));
-        }else{
-          const returnUrl = window.location.origin + "/payouts-setup.html?done=1";
-          const refreshUrl = window.location.origin + "/payouts-setup.html?retry=1";
-          ({ data, error } = await onlypawsClient.functions.invoke("connect-update", {
-            body: { return_url: returnUrl, refresh_url: refreshUrl }
-          }));
-        }
+    if(isOnboarded){
+      // creator already onboarded -> login link
+      ({ data, error } = await onlypawsClient.functions.invoke("connect-login", { body: {} }));
+    }else{
+      // onboarding link (paths only; edge builds full URL from SITE_URL)
+      const returnPath = "/payouts-setup.html?done=1";
+      const refreshPath = "/payouts-setup.html?retry=1";
 
-        if(error){
-          const ctxBody = error?.context?.body;
-          const extra = ctxBody ? (typeof ctxBody === "string" ? ctxBody : JSON.stringify(ctxBody)) : "";
-          throw new Error((error.message || "Stripe error") + (extra ? " — " + extra : ""));
-        }
-
-        if(!data?.url) throw new Error("Missing Stripe URL");
-
-// apre Stripe in nuova tab
-window.open(data.url, "_blank", "noopener,noreferrer");
-
-      }catch(e){
-        alert("❌ Stripe open failed: " + (e?.message || String(e)));
-      }finally{
-        if(enablePayoutBtn){
-          enablePayoutBtn.textContent = (__payoutEnabled ? "Open Stripe" : "Complete onboarding (Stripe)");
-          enablePayoutBtn.style.pointerEvents = "auto";
-          enablePayoutBtn.style.opacity = "1";
-        }
-      }
+      ({ data, error } = await onlypawsClient.functions.invoke("update-connect-account", {
+        body: { return_path: returnPath, refresh_path: refreshPath }
+      }));
     }
+
+    if(error){
+      const ctxBody = error?.context?.body;
+      const extra = ctxBody ? (typeof ctxBody === "string" ? ctxBody : JSON.stringify(ctxBody)) : "";
+      throw new Error((error.message || "Stripe error") + (extra ? " — " + extra : ""));
+    }
+
+    if(!data?.url) throw new Error("Missing Stripe URL");
+
+    window.open(data.url, "_blank", "noopener,noreferrer");
+  }catch(e){
+    alert("❌ Stripe open failed: " + (e?.message || String(e)));
+  }finally{
+    if(enablePayoutBtn){
+      enablePayoutBtn.textContent = (__payoutEnabled ? "Open Stripe" : "Complete onboarding (Stripe)");
+      enablePayoutBtn.style.pointerEvents = "auto";
+      enablePayoutBtn.style.opacity = "1";
+    }
+  }
+}
 
     // ===== MAIN LOAD =====
     async function load(){
