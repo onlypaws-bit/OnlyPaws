@@ -1,5 +1,5 @@
-// supabase/functions/connect-update/index.ts
-import Stripe from "https://esm.sh/stripe@14.21.0";
+// supabase/functions/update-connect-account/index.ts
+import Stripe from "https://esm.sh/stripe@14.25.0?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
@@ -22,16 +22,60 @@ function getBearerToken(req: Request) {
   return auth.slice("Bearer ".length).trim();
 }
 
+function normalizeSiteUrl(raw: string) {
+  return raw.replace(/\/+$/, "");
+}
+
+function safePath(p?: string, fallback = "/payouts-setup.html") {
+  if (!p) return fallback;
+  if (!p.startsWith("/")) return fallback;
+  if (p.startsWith("//")) return fallback;
+  if (p.includes(":")) return fallback;
+  return p;
+}
+
+function buildUrl(siteUrl: string, path: string) {
+  return `${siteUrl}${path}`;
+}
+
+// keep aligned with stripe.html
+const PLATFORM_PRODUCT_DESCRIPTION =
+  "OnlyPaws is a recurring digital subscription platform dedicated exclusively to pet-related content. Creators publish safe-for-work pet photography, pet lifestyle updates, and educational pet-related media. Products are digital subscriptions and tips for pet content. No adult content.";
+
+function platformBusinessUrl(siteUrl: string) {
+  return buildUrl(siteUrl, "/stripe.html");
+}
+
+async function applyPlatformPrefill(stripe: Stripe, accountId: string, siteUrl: string, userId: string) {
+  await stripe.accounts.update(accountId, {
+    business_profile: {
+      url: platformBusinessUrl(siteUrl),
+      product_description: PLATFORM_PRODUCT_DESCRIPTION,
+      mcc: "5968",
+    },
+    metadata: {
+      platform: "OnlyPaws",
+      content_category: "pet_sfw",
+      user_id: userId,
+    },
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { status: 200, headers: corsHeaders });
   if (req.method !== "POST") return json(405, { error: "Method not allowed" });
 
   try {
-    const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
+    const STRIPE_SECRET_KEY =
+      Deno.env.get("STRIPE_SECRET_KEY") || Deno.env.get("OP_STRIPE_SECRET_KEY");
+
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (!STRIPE_SECRET_KEY) return json(500, { error: "Missing STRIPE_SECRET_KEY" });
+    const SITE_URL_RAW = Deno.env.get("SITE_URL") || "https://onlypaws-psi.vercel.app";
+    const SITE_URL = normalizeSiteUrl(SITE_URL_RAW);
+
+    if (!STRIPE_SECRET_KEY) return json(500, { error: "Missing Stripe secret key" });
     if (!SUPABASE_URL) return json(500, { error: "Missing SUPABASE_URL" });
     if (!SUPABASE_SERVICE_ROLE_KEY) return json(500, { error: "Missing SUPABASE_SERVICE_ROLE_KEY" });
 
@@ -48,17 +92,23 @@ Deno.serve(async (req) => {
 
     const user = userRes.user;
     const userId = user.id;
-    const userEmail = user.email ?? null;
+    const userEmail = user.email ?? undefined;
 
-    const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2023-10-16" });
+    const stripe = new Stripe(STRIPE_SECRET_KEY, {
+      apiVersion: "2023-10-16",
+      httpClient: Stripe.createFetchHttpClient(),
+    });
 
     const body = await req.json().catch(() => ({}));
-    const return_url =
-      (typeof body?.return_url === "string" && body.return_url) ||
-      "https://onlypaws-psi.vercel.app/payouts-setup.html?done=1";
-    const refresh_url =
-      (typeof body?.refresh_url === "string" && body.refresh_url) ||
-      "https://onlypaws-psi.vercel.app/payouts-setup.html?retry=1";
+
+    // ✅ only allow relative paths; always build from SITE_URL
+    const returnPath =
+      safePath(typeof body?.return_path === "string" ? body.return_path : undefined, "/payouts-setup.html?done=1");
+    const refreshPath =
+      safePath(typeof body?.refresh_path === "string" ? body.refresh_path : undefined, "/payouts-setup.html?retry=1");
+
+    const return_url = buildUrl(SITE_URL, returnPath);
+    const refresh_url = buildUrl(SITE_URL, refreshPath);
 
     // 1) read profile
     const { data: profile, error: pErr } = await supabaseAdmin
@@ -70,9 +120,6 @@ Deno.serve(async (req) => {
     if (pErr) return json(500, { error: pErr.message });
     if (!profile) return json(404, { error: "Profile not found for user" });
 
-    // opzionale: blocca chi non è creator
-    // if (profile.role !== "creator") return json(403, { error: "Not a creator" });
-
     let accountId: string | null = profile.stripe_connect_account_id ?? null;
 
     async function saveConnectAccount(newId: string) {
@@ -80,7 +127,7 @@ Deno.serve(async (req) => {
         .from("profiles")
         .update({
           stripe_connect_account_id: newId,
-          stripe_onboarding_status: "pending",
+          stripe_onboarding_status: "in_progress",
           charges_enabled: false,
           payouts_enabled: false,
           stripe_onboarded: false,
@@ -90,47 +137,50 @@ Deno.serve(async (req) => {
       if (upErr) throw new Error("Failed to update profile: " + upErr.message);
     }
 
-    // 2) create account if missing
-    if (!accountId) {
+    async function accountExists(id: string) {
+      try {
+        await stripe.accounts.retrieve(id);
+        return true;
+      } catch (e: any) {
+        const code = e?.code ?? "";
+        const status = e?.statusCode ?? 0;
+        if (code === "resource_missing" || status === 404) return false;
+        throw e;
+      }
+    }
+
+    // 2) create account if missing (or if invalid)
+    if (!accountId || !(await accountExists(accountId))) {
       const acct = await stripe.accounts.create({
         type: "express",
-        email: userEmail ?? undefined,
-        metadata: { user_id: userId },
+        email: userEmail,
+        metadata: { user_id: userId, platform: "OnlyPaws", content_category: "pet_sfw" },
+        // leaving capabilities requested is fine; direct charges logic lives elsewhere
         capabilities: {
           transfers: { requested: true },
           card_payments: { requested: true },
+        },
+        business_profile: {
+          url: platformBusinessUrl(SITE_URL),
+          product_description: PLATFORM_PRODUCT_DESCRIPTION,
+          mcc: "5968",
         },
       });
 
       accountId = acct.id;
       await saveConnectAccount(accountId);
     } else {
-      // sanity check: if saved id doesn't exist on Stripe, recreate it
-      try {
-        await stripe.accounts.retrieve(accountId);
-      } catch {
-        const acct = await stripe.accounts.create({
-          type: "express",
-          email: userEmail ?? undefined,
-          metadata: { user_id: userId },
-          capabilities: {
-            transfers: { requested: true },
-            card_payments: { requested: true },
-          },
-        });
-
-        accountId = acct.id;
-        await saveConnectAccount(accountId);
-      }
-
-      // se accountId esiste ed è valido, mettiamo comunque pending (così UI coerente)
+      // ensure UI stays consistent but don't blindly overwrite verified states
       await supabaseAdmin
         .from("profiles")
-        .update({ stripe_onboarding_status: "pending" })
+        .update({ stripe_onboarding_status: "in_progress" })
         .eq("user_id", userId);
     }
 
-    // 3) create onboarding link
+    // 3) force platform prefill before onboarding link
+    await applyPlatformPrefill(stripe, accountId!, SITE_URL, userId);
+
+    // 4) create onboarding link
     const link = await stripe.accountLinks.create({
       account: accountId!,
       type: "account_onboarding",
@@ -144,10 +194,11 @@ Deno.serve(async (req) => {
       stripe_connect_account_id: accountId,
       return_url,
       refresh_url,
+      business_url: platformBusinessUrl(SITE_URL),
     });
-  } catch (e) {
+  } catch (e: any) {
     console.error("CONNECT UPDATE ERROR:", e);
-    const msg = (e as any)?.raw?.message || (e as any)?.message || String(e);
+    const msg = e?.raw?.message || e?.message || String(e);
     return json(500, { error: msg });
   }
 });
