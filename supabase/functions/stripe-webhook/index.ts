@@ -23,6 +23,13 @@ const SUPABASE_SERVICE_ROLE_KEY = env(
   "OP_SUPABASE_SERVICE_ROLE_KEY",
 );
 
+// Optional but strongly recommended (set in Supabase function env): a public landing URL
+const BUSINESS_URL = env("BUSINESS_URL", "SITE_URL");
+
+const STANDARD_PRODUCT_DESCRIPTION =
+  "Creator account on OnlyPaws, a subscription platform dedicated to pet-related digital content. The creator shares safe-for-work pet photography, lifestyle updates, and educational content about animals. All products are digital subscriptions for pet content.";
+const STANDARD_MCC = "5968"; // Direct Marketing - Continuity/Subscription Merchants
+
 if (!STRIPE_SECRET_KEY) throw new Error("Missing STRIPE_SECRET_KEY / OP_STRIPE_SECRET_KEY");
 if (!STRIPE_WEBHOOK_SECRET)
   throw new Error("Missing STRIPE_WEBHOOK_SECRET / OP_STRIPE_WEBHOOK_SECRET");
@@ -72,7 +79,8 @@ async function stripeGET(path: string, stripeAccount?: string | null) {
   const headers: Record<string, string> = { Authorization: `Bearer ${STRIPE_SECRET_KEY}` };
   if (stripeAccount) headers["Stripe-Account"] = stripeAccount;
 
-  const res = await fetch(`https://api.stripe.com/v1/${path}`, {
+  const cleanPath = path.replace(/^\//, "");
+  const res = await fetch(`https://api.stripe.com/v1/${cleanPath}`, {
     method: "GET",
     headers,
   });
@@ -82,7 +90,11 @@ async function stripeGET(path: string, stripeAccount?: string | null) {
   return j;
 }
 
-async function stripePOST(path: string, params: Record<string, string>, stripeAccount?: string | null) {
+async function stripePOST(
+  path: string,
+  params: Record<string, string>,
+  stripeAccount?: string | null,
+) {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${STRIPE_SECRET_KEY}`,
     "Content-Type": "application/x-www-form-urlencoded",
@@ -100,7 +112,34 @@ async function stripePOST(path: string, params: Record<string, string>, stripeAc
   return j;
 }
 
-// ---------- Stripe signature verification (HMAC SHA256) ----------
+// ---------- Connect hardening ----------
+async function ensureStandardBusinessProfile(accountObj: any) {
+  const accountId = safeStr(accountObj?.id);
+  if (!accountId) return;
+
+  const currentDesc = safeStr(accountObj?.business_profile?.product_description);
+  const currentUrl = safeStr(accountObj?.business_profile?.url);
+  const currentMcc = safeStr(accountObj?.business_profile?.mcc);
+
+  const targetUrl = (BUSINESS_URL || currentUrl || "").trim();
+
+  const needsFix =
+    currentDesc !== STANDARD_PRODUCT_DESCRIPTION ||
+    (targetUrl && currentUrl !== targetUrl) ||
+    currentMcc !== STANDARD_MCC;
+
+  if (!needsFix) return;
+
+  const params: Record<string, string> = {
+    "business_profile[product_description]": STANDARD_PRODUCT_DESCRIPTION,
+    "business_profile[mcc]": STANDARD_MCC,
+  };
+  if (targetUrl) params["business_profile[url]"] = targetUrl;
+
+  await stripePOST(`accounts/${accountId}`, params);
+}
+
+// ---------- Stripe signature verification ----------
 function parseStripeSigHeader(sigHeader: string) {
   const parts = (sigHeader || "").split(",").map((s) => s.trim());
   const t = parts.find((p) => p.startsWith("t="))?.split("=")[1]?.trim();
@@ -146,9 +185,11 @@ function safeStr(x: unknown) {
   return (typeof x === "string" ? x : "").trim();
 }
 
-function isoFromUnix(sec?: number | null) {
-  if (!sec) return null;
-  return new Date(sec * 1000).toISOString();
+function isoFromUnix(sec?: any) {
+  if (sec == null) return null;
+  const n = Number(sec);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return new Date(n * 1000).toISOString();
 }
 
 function mapStatusToDb(status: string) {
@@ -170,53 +211,7 @@ function mapCreatorPlanStatusToDb(status: string) {
   return s || "canceled";
 }
 
-function hasActiveAccess(status: string, currentPeriodEndIso: string | null) {
-  const st = (status || "").toLowerCase();
-  if (st === "active") return true;
-  if (st !== "canceled") return false;
-  if (!currentPeriodEndIso) return false;
-  return new Date(currentPeriodEndIso).getTime() > Date.now();
-}
-
-// ---------- DB upserts (IMPORTANT: now also updates fan_subscriptions) ----------
-async function upsertCreatorSubscriptionRow(row: {
-  fan_id: string;
-  creator_id: string;
-  status: string;
-  is_active: boolean;
-  cancel_at_period_end: boolean;
-  stripe_customer_id: string | null;
-  stripe_subscription_id: string | null;
-  current_period_end: string | null;
-  creator_plan_id?: string | null;
-}) {
-  await sbAdmin(`creator_subscriptions?on_conflict=fan_id,creator_id`, {
-    method: "POST",
-    body: JSON.stringify([
-      {
-        fan_id: row.fan_id,
-        creator_id: row.creator_id,
-        status: row.status,
-        is_active: row.is_active,
-        cancel_at_period_end: row.cancel_at_period_end,
-        stripe_customer_id: row.stripe_customer_id,
-        stripe_subscription_id: row.stripe_subscription_id,
-        current_period_end: row.current_period_end,
-        creator_plan_id: row.creator_plan_id ?? null,
-        updated_at: new Date().toISOString(),
-      },
-    ]),
-    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-  });
-}
-
-async function deleteCreatorSubscriptionByStripeSubId(subId: string) {
-  await sbAdmin(`creator_subscriptions?stripe_subscription_id=eq.${subId}`, {
-    method: "DELETE",
-    headers: { Prefer: "return=minimal" },
-  });
-}
-
+// ---------- DB upserts (FAN ONLY) ----------
 async function upsertFanSubscriptionRow(row: {
   fan_id: string;
   creator_id: string;
@@ -229,7 +224,8 @@ async function upsertFanSubscriptionRow(row: {
   current_period_end: string | null;
   canceled_at?: string | null;
 }) {
-  await sbAdmin(`fan_subscriptions?on_conflict=fan_id,creator_id`, {
+  // FAN ONLY: upsert by Stripe subscription id
+  await sbAdmin(`fan_subscriptions?on_conflict=provider_subscription_id`, {
     method: "POST",
     body: JSON.stringify([
       {
@@ -267,14 +263,15 @@ async function upsertEntitlement(row: {
   stripe_subscription_id?: string | null;
   current_period_end?: string | null;
 }) {
-  await sbAdmin(`entitlements?on_conflict=user_id,key,creator_id`, {
+  // NOTE: some DBs don't have entitlements.creator_id (older schema).
+  // We upsert only by user_id+key to stay compatible.
+  await sbAdmin(`entitlements?on_conflict=user_id,key`, {
     method: "POST",
     body: JSON.stringify([
       {
         user_id: row.user_id,
         key: row.key,
         status: row.status,
-        creator_id: row.creator_id ?? null,
         stripe_customer_id: row.stripe_customer_id ?? null,
         stripe_subscription_id: row.stripe_subscription_id ?? null,
         current_period_end: row.current_period_end ?? null,
@@ -293,7 +290,10 @@ async function deleteEntitlementByStripeSubId(subId: string) {
 }
 
 // ---- DIRECT: creator id lookup by price must use mapping table ----
-async function findCreatorIdByPriceId(priceId: string, stripeAccountId: string | null): Promise<string | null> {
+async function findCreatorIdByPriceId(
+  priceId: string,
+  stripeAccountId: string | null,
+): Promise<string | null> {
   if (!stripeAccountId) return null;
   try {
     const rows = await sbAdmin(
@@ -335,12 +335,77 @@ async function findFanIdByCustomerId(customerId: string): Promise<string | null>
   }
 }
 
+function normalizePeriod(
+  cps: string | null,
+  cpe: string | null,
+): { cps: string | null; cpe: string | null } {
+  // If end exists but start missing: set start to end - 60s so (end > start) passes.
+  if (!cps && cpe) {
+    const endMs = new Date(cpe).getTime();
+    if (Number.isFinite(endMs) && endMs > 0) {
+      return { cps: new Date(endMs - 60_000).toISOString(), cpe };
+    }
+  }
+
+  if (cps && cpe) {
+    const startMs = new Date(cps).getTime();
+    const endMs = new Date(cpe).getTime();
+    if (Number.isFinite(startMs) && Number.isFinite(endMs) && endMs <= startMs) {
+      return { cps: new Date(endMs - 60_000).toISOString(), cpe };
+    }
+  }
+
+  return { cps, cpe };
+}
+
+// --- Fallback helpers: derive current_period_end when Stripe doesn't send it ---
+function addInterval(startIso: string, interval: string, count: number) {
+  const d = new Date(startIso);
+  const n = Math.max(1, Number(count) || 1);
+
+  if (interval === "day") d.setUTCDate(d.getUTCDate() + n);
+  else if (interval === "week") d.setUTCDate(d.getUTCDate() + 7 * n);
+  else if (interval === "month") d.setUTCMonth(d.getUTCMonth() + n);
+  else if (interval === "year") d.setUTCFullYear(d.getUTCFullYear() + n);
+  else return null;
+
+  const ms = d.getTime();
+  return Number.isFinite(ms) ? d.toISOString() : null;
+}
+
+function deriveCpeFromRecurring(sub: any, cpsIso: string | null) {
+  if (!cpsIso) return null;
+  const item0 = sub?.items?.data?.[0];
+  const recurring = item0?.price?.recurring;
+  const interval = safeStr(recurring?.interval);
+  const intervalCount = Number(recurring?.interval_count ?? 1);
+  if (!interval) return null;
+  return addInterval(cpsIso, interval, intervalCount);
+}
+
+// ✅ NEW: derive current_period_end from latest_invoice line periods
+function deriveCpeFromLatestInvoice(sub: any) {
+  const lines = sub?.latest_invoice?.lines?.data;
+  if (!Array.isArray(lines) || !lines.length) return null;
+
+  const ends = lines
+    .map((l: any) => l?.period?.end)
+    .filter((x: any) => typeof x === "number" && x > 0);
+
+  if (!ends.length) return null;
+  const maxEnd = Math.max(...ends);
+  return isoFromUnix(maxEnd);
+}
+
 async function upsertFromStripeSubscription(sub: any, stripeAccountId: string | null) {
   // sometimes event.data.object is partial
   let s = sub;
 
   const customerId = safeStr(s?.customer) || safeStr(s?.customer?.id) || null;
   const stripeSubId = safeStr(s?.id) || null;
+
+  // can't upsert without a stable key
+  if (!stripeSubId) return;
 
   const missingCpe =
     stripeSubId &&
@@ -366,27 +431,70 @@ async function upsertFromStripeSubscription(sub: any, stripeAccountId: string | 
 
   const cancelAtPeriodEnd = Boolean(s?.cancel_at_period_end);
 
-  const cps = isoFromUnix((s?.current_period_start ?? null) ?? null);
-  const cpe = isoFromUnix((s?.current_period_end ?? s?.cancel_at ?? s?.ended_at) ?? null);
+  let cps = isoFromUnix((s?.current_period_start ?? null) ?? null);
+  let cpe = isoFromUnix((s?.current_period_end ?? s?.cancel_at ?? s?.ended_at) ?? null);
 
-  // normalize
+  // normalize cps/cpe so DB constraint end > start never fails (when end exists)
+  ({ cps, cpe } = normalizePeriod(cps, cpe));
+
+  // ✅ IMPORTANT: DB constraint
+  // (status in ['checkout_pending','incomplete'] => current_period_end MUST be NULL)
+  if (statusDb === "incomplete" || statusDb === "checkout_pending") {
+    cpe = null;
+  } else {
+    if (!cpe) {
+      // last attempt: refetch full sub (sometimes object is partial)
+      console.log("REFETCH sub", { stripeSubId, stripeAccountId });
+
+      // ✅ Expand latest_invoice + lines so we can derive period end if Stripe omits it
+      const full = await stripeGET(
+        `subscriptions/${stripeSubId}?expand[]=latest_invoice&expand[]=latest_invoice.lines`,
+        stripeAccountId,
+      );
+
+      const cpe2 = isoFromUnix((full?.current_period_end ?? full?.cancel_at ?? full?.ended_at) ?? null);
+      const cps2 = isoFromUnix((full?.current_period_start ?? null) ?? null);
+
+      if (!cps && cps2) cps = cps2;
+      cpe = cpe2;
+
+      ({ cps, cpe } = normalizePeriod(cps, cpe));
+
+      // ✅ invoice fallback
+      if (!cpe) {
+        const fromInv = deriveCpeFromLatestInvoice(full);
+        if (fromInv) {
+          cpe = fromInv;
+          ({ cps, cpe } = normalizePeriod(cps, cpe));
+        }
+      }
+
+      // fallback: derive end from recurring price
+      if (!cpe) {
+        const derived = deriveCpeFromRecurring(full, cps);
+        if (derived) {
+          cpe = derived;
+          ({ cps, cpe } = normalizePeriod(cps, cpe));
+        }
+      }
+    }
+
+    // still missing? bail out safely
+    if (!cpe) {
+      console.error("Missing current_period_end for non-incomplete status", {
+        stripeSubId,
+        statusDb,
+        stripeStatus,
+        stripeAccountId,
+      });
+      return;
+    }
+  }
+
+  // normalize: if canceled but still access until cpe, treat as active for app access
   const cpeMs = cpe ? new Date(cpe).getTime() : 0;
   const hasAccessUntilEnd = !!cpeMs && cpeMs > Date.now();
   if (hasAccessUntilEnd && statusDb === "canceled") statusDb = "active";
-
-  const isActive = hasAccessUntilEnd || hasActiveAccess(statusDb, cpe);
-
-  // ✅ update BOTH tables
-  await upsertCreatorSubscriptionRow({
-    fan_id: fanId,
-    creator_id: creatorId,
-    status: statusDb,
-    is_active: isActive,
-    cancel_at_period_end: cancelAtPeriodEnd,
-    stripe_customer_id: customerId,
-    stripe_subscription_id: stripeSubId,
-    current_period_end: cpe,
-  });
 
   await upsertFanSubscriptionRow({
     fan_id: fanId,
@@ -400,27 +508,17 @@ async function upsertFromStripeSubscription(sub: any, stripeAccountId: string | 
     current_period_end: cpe,
     canceled_at: statusDb === "canceled" ? new Date().toISOString() : null,
   });
-
-  await upsertEntitlement({
-    user_id: fanId,
-    key: "subscription",
-    status: statusDb,
-    creator_id: creatorId,
-    stripe_customer_id: customerId,
-    stripe_subscription_id: stripeSubId,
-    current_period_end: cpe,
-  });
 }
 
 async function deleteFromStripeSubscription(sub: any) {
   const stripeSubId = safeStr(sub?.id);
   if (!stripeSubId) return;
 
-  await deleteCreatorSubscriptionByStripeSubId(stripeSubId);
   await deleteFanSubscriptionByStripeSubId(stripeSubId);
   await deleteEntitlementByStripeSubId(stripeSubId);
 }
 
+// ---------- creator plan entitlement (kept, separate flow) ----------
 async function markCreatorPlanExpired(user_id: string) {
   await sbAdmin(`entitlements?user_id=eq.${user_id}&key=eq.creator_plan`, {
     method: "PATCH",
@@ -490,11 +588,16 @@ Deno.serve(async (req) => {
     const type = safeStr(event?.type);
     const obj = event?.data?.object;
 
-    // ✅ CONNECT: which connected account emitted this event
     const stripeAccountId =
       safeStr(event?.account) || safeStr(req.headers.get("stripe-account")) || null;
 
-    // checkout.session.completed (subscription purchase)
+    console.log("WEBHOOK META", {
+      type,
+      eventAccount: safeStr(event?.account),
+      headerStripeAccount: safeStr(req.headers.get("stripe-account")),
+      stripeAccountId,
+    });
+
     if (type === "checkout.session.completed") {
       const session = obj;
       const mode = safeStr(session?.mode);
@@ -503,10 +606,8 @@ Deno.serve(async (req) => {
       const subscriptionId = safeStr(session?.subscription);
       if (!subscriptionId) return new Response("ok", { status: 200, headers: corsHeaders });
 
-      // fetch subscription ON CONNECTED
       const sub = await stripeGET(`subscriptions/${subscriptionId}`, stripeAccountId);
 
-      // creator plan flow (metadata.user_id present)
       const user_id = safeStr(sub?.metadata?.user_id);
       const isCreatorPlan = !!user_id && safeStr(sub?.metadata?.key) === "creator_plan";
 
@@ -528,19 +629,18 @@ Deno.serve(async (req) => {
         return new Response("ok", { status: 200, headers: corsHeaders });
       }
 
-      // fan subscribes to creator
       await upsertFromStripeSubscription(sub, stripeAccountId);
       return new Response("ok", { status: 200, headers: corsHeaders });
     }
 
-    // customer.subscription.created / updated
     if (type === "customer.subscription.created" || type === "customer.subscription.updated") {
       const subId = safeStr(obj?.id);
       const hasCpe = obj?.current_period_end != null;
       const sub = subId && !hasCpe ? await stripeGET(`subscriptions/${subId}`, stripeAccountId) : obj;
 
       const user_id =
-        safeStr(sub?.metadata?.user_id) || (subId ? await findUserIdByCreatorPlanSubscriptionId(subId) : null);
+        safeStr(sub?.metadata?.user_id) ||
+        (subId ? await findUserIdByCreatorPlanSubscriptionId(subId) : null);
 
       if (user_id) {
         const customerId = safeStr(sub?.customer) || safeStr(sub?.customer?.id) || null;
@@ -564,7 +664,6 @@ Deno.serve(async (req) => {
       return new Response("ok", { status: 200, headers: corsHeaders });
     }
 
-    // invoice events (ignored for now)
     if (
       type === "invoice.payment_succeeded" ||
       type === "invoice.payment_failed" ||
@@ -574,11 +673,11 @@ Deno.serve(async (req) => {
       return new Response("ok", { status: 200, headers: corsHeaders });
     }
 
-    // customer.subscription.deleted
     if (type === "customer.subscription.deleted") {
       const subId = safeStr(obj?.id);
       const user_id =
-        safeStr(obj?.metadata?.user_id) || (subId ? await findUserIdByCreatorPlanSubscriptionId(subId) : null);
+        safeStr(obj?.metadata?.user_id) ||
+        (subId ? await findUserIdByCreatorPlanSubscriptionId(subId) : null);
 
       if (user_id) {
         await markCreatorPlanExpired(user_id);
@@ -589,9 +688,15 @@ Deno.serve(async (req) => {
       return new Response("ok", { status: 200, headers: corsHeaders });
     }
 
+    if (type === "account.updated") {
+      await ensureStandardBusinessProfile(obj);
+      return new Response("ok", { status: 200, headers: corsHeaders });
+    }
+
     return new Response("ok", { status: 200, headers: corsHeaders });
   } catch (e) {
     console.error("stripe-webhook error:", e);
-    return new Response(String((e as any)?.message || e), { status: 500, headers: corsHeaders });
+    // IMPORTANT: do not return 500 or Stripe will retry forever
+    return new Response("ok", { status: 200, headers: corsHeaders });
   }
 });
