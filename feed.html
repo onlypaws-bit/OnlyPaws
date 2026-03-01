@@ -84,7 +84,7 @@
       font-size:13px;color:rgba(255,255,255,.85);
       white-space:nowrap;
     }
-.pill{
+    .pill{
       display:inline-flex;gap:8px;align-items:center;
       padding:10px 14px;border-radius:999px;
       background: rgba(255,255,255,.12);
@@ -156,39 +156,39 @@
 
     /* ===== GLOBAL FOOTER ===== */
 
-.globalFooter {
-  text-align: center;
-  padding: 30px 20px;
-  font-size: 14px;
-  opacity: 0.9;
-  line-height: 1.6;
-}
+    .globalFooter {
+      text-align: center;
+      padding: 30px 20px;
+      font-size: 14px;
+      opacity: 0.9;
+      line-height: 1.6;
+    }
 
-/* Seconda frase descrittiva */
-.globalFooter .small {
-  margin-top: 6px;
-  font-size: 13px;
-  opacity: 0.8;
-}
+    /* Seconda frase descrittiva */
+    .globalFooter .small {
+      margin-top: 6px;
+      font-size: 13px;
+      opacity: 0.8;
+    }
 
-/* Spazio tra frase e link */
-.globalFooter .footerLinks {
-  margin-top: 14px;
-}
+    /* Spazio tra frase e link */
+    .globalFooter .footerLinks {
+      margin-top: 14px;
+    }
 
-/* Link footer */
-.globalFooter a {
-  color: rgba(255,255,255,0.9);
-  text-decoration: none;
-  opacity: 0.85;
-  transition: opacity 0.2s ease, text-decoration 0.2s ease;
-}
+    /* Link footer */
+    .globalFooter a {
+      color: rgba(255,255,255,0.9);
+      text-decoration: none;
+      opacity: 0.85;
+      transition: opacity 0.2s ease, text-decoration 0.2s ease;
+    }
 
-/* Hover */
-.globalFooter a:hover {
-  text-decoration: underline;
-  opacity: 1;
-}
+    /* Hover */
+    .globalFooter a:hover {
+      text-decoration: underline;
+      opacity: 1;
+    }
     .smallLegal{display:inline-block;margin-top:6px;opacity:.85;font-size:12px;}
 
     /* Debug pill */
@@ -272,8 +272,7 @@
       cursor:pointer;
     }
     .mediaModalClose:hover{ background: rgba(255,255,255,.18); }
-
-</style>
+  </style>
 </head>
 
 <body>
@@ -330,24 +329,24 @@
     </div>
 
     <footer class="globalFooter">
-  <div class="footerTop">
-    © 2026 OnlyPaws • Built with toe beans energy 🐾
-  </div>
+      <div class="footerTop">
+        © 2026 OnlyPaws • Built with toe beans energy 🐾
+      </div>
 
-  <div class="small">
-    OnlyPaws is an independent digital platform. Features may evolve over time.
-  </div>
+      <div class="small">
+        OnlyPaws is an independent digital platform. Features may evolve over time.
+      </div>
 
-  <div class="footerLinks">
-    <a href="content-policy.html">Content Policy</a>
-    &nbsp;·&nbsp;
-    <a href="privacy-policy.html">Privacy Policy</a>
-    &nbsp;·&nbsp;
-    <a href="terms.html">Terms of Service</a>
-    &nbsp;·&nbsp;
-    <a href="mailto:onlypawssupp@gmail.com">Contact Us</a>
-  </div>
-</footer>
+      <div class="footerLinks">
+        <a href="content-policy.html">Content Policy</a>
+        &nbsp;·&nbsp;
+        <a href="privacy-policy.html">Privacy Policy</a>
+        &nbsp;·&nbsp;
+        <a href="terms.html">Terms of Service</a>
+        &nbsp;·&nbsp;
+        <a href="mailto:onlypawssupp@gmail.com">Contact Us</a>
+      </div>
+    </footer>
 
   </div>
 
@@ -453,6 +452,7 @@
         </div>
       `;
     }
+
     function wirePostCreatorPills(root){
       (root || document).querySelectorAll(".postCreatorPill").forEach(a => {
         const stop = (e) => { e.stopPropagation(); };
@@ -501,6 +501,7 @@
 
         window.OnlyPawsPostCard.initPostCards(postsEl);
         patchUnlockedBadges(postsEl);
+        removeInnerUserIfPillExists(postsEl);
         wirePostCreatorPills(document);
         return;
       }
@@ -747,6 +748,27 @@
       }catch(e){}
     }
 
+    // NEW: if pill exists above the post, remove any inner "@username" elements inside the card
+    function removeInnerUserIfPillExists(root){
+      try{
+        const items = (root || document).querySelectorAll(".postItem");
+        items.forEach(item => {
+          const hasPill = item.querySelector(".postCreatorPill");
+          if(!hasPill) return;
+
+          const wrap = item.querySelector(".postLinkWrap");
+          if(!wrap) return;
+
+          wrap.querySelectorAll("*").forEach(el => {
+            const txt = (el.textContent || "").trim();
+            if(/^@[a-zA-Z0-9_.]+$/.test(txt)){
+              el.remove();
+            }
+          });
+        });
+      }catch(e){}
+    }
+
     /**
      * Routing:
      * - click on @username badge => creator profile
@@ -788,7 +810,6 @@
         window.location.href = creatorProfileUrl(uname);
         return true;
       }
-
 
       function goPost(wrap){
         const postId = wrap?.getAttribute("data-post-id") || "";
