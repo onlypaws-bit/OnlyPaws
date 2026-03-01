@@ -7,24 +7,40 @@
 
   <style>
     :root{
-      --bg1:#6B4EFF; --bg2:#8B6CFF; --text:#fff;
+      --bg1:#6B4EFF;
+      --bg2:#8B6CFF;
+      --text:#fff;
       --muted:rgba(255,255,255,.85);
       --stroke:rgba(255,255,255,.16);
       --card:rgba(0,0,0,.16);
-      --btn:#fff; --btnText:#6B4EFF;
+      --btn:#fff;
+      --btnText:#6B4EFF;
     }
+
     *{box-sizing:border-box}
+
     body{
-      margin:0; font-family:Arial,sans-serif; color:var(--text);
+      margin:0;
+      font-family:Arial,sans-serif;
+      color:var(--text);
+
       background:
         radial-gradient(1200px 700px at 20% 10%, rgba(255,255,255,.18), transparent 55%),
         radial-gradient(1000px 650px at 90% 30%, rgba(0,0,0,.22), transparent 55%),
         linear-gradient(135deg,var(--bg1),var(--bg2));
+
       min-height:100vh;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .centerWrap{
+      flex:1;
       display:grid;
       place-items:center;
       padding:24px;
     }
+
     .card{
       width:100%;
       max-width:520px;
@@ -36,92 +52,142 @@
       box-shadow:0 20px 45px rgba(0,0,0,.25);
       text-align:center;
     }
-    h1{margin:8px 0 12px;letter-spacing:-.6px;}
-    p{margin:0;color:var(--muted);line-height:1.5;}
-    .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px;justify-content:center;}
+
+    h1{
+      margin:8px 0 12px;
+      letter-spacing:-.6px;
+    }
+
+    p{
+      margin:0;
+      color:var(--muted);
+      line-height:1.5;
+    }
+
+    .row{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:22px;
+      justify-content:center;
+    }
+
     .btn{
-      display:inline-flex;align-items:center;justify-content:center;
-      padding:12px 20px;border-radius:999px;
-      background:var(--btn);color:var(--btnText);
-      text-decoration:none;font-weight:900;border:none;cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:12px 20px;
+      border-radius:999px;
+      background:var(--btn);
+      color:var(--btnText);
+      text-decoration:none;
+      font-weight:900;
+      border:none;
+      cursor:pointer;
       box-shadow:0 14px 30px rgba(0,0,0,.22);
     }
+
     .ghost{
-      display:inline-flex;align-items:center;justify-content:center;
-      padding:12px 20px;border-radius:999px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:12px 20px;
+      border-radius:999px;
       background:rgba(255,255,255,.12);
       border:1px solid rgba(255,255,255,.18);
-      color:white;text-decoration:none;font-weight:800;cursor:pointer;
+      color:white;
+      text-decoration:none;
+      font-weight:800;
+      cursor:pointer;
     }
+
     .tiny{
       margin-top:18px;
       font-size:12px;
       color:rgba(255,255,255,.75);
       line-height:1.4;
     }
-<footer class="globalFooter">
-  <div class="footerTop">
-    © 2026 OnlyPaws • Built with toe beans energy 🐾
-  </div>
 
-  <div class="small">
-    OnlyPaws is an independent digital platform. Features may evolve over time.
-  </div>
+    /* ===== GLOBAL FOOTER ===== */
 
-  <div class="footerLinks">
-    <a href="content-policy.html">Content Policy</a>
-    &nbsp;·&nbsp;
-    <a href="privacy-policy.html">Privacy Policy</a>
-    &nbsp;·&nbsp;
-    <a href="terms.html">Terms of Service</a>
-    &nbsp;·&nbsp;
-    <a href="mailto:onlypawssupp@gmail.com">Contact Us</a>
-  </div>
-</footer>
+    .globalFooter {
+      text-align:center;
+      padding:30px 20px;
+      font-size:14px;
+      opacity:0.9;
+      line-height:1.6;
+    }
+
+    .globalFooter .small{
+      margin-top:6px;
+      font-size:13px;
+      opacity:0.8;
+    }
+
+    .globalFooter .footerLinks{
+      margin-top:14px;
+    }
+
+    .globalFooter a{
+      color:rgba(255,255,255,0.9);
+      text-decoration:none;
+      opacity:0.85;
+      transition:opacity .2s ease, text-decoration .2s ease;
+    }
+
+    .globalFooter a:hover{
+      text-decoration:underline;
+      opacity:1;
+    }
+
   </style>
 </head>
 
 <body>
-  <div class="card">
-    <div style="font-size:42px;">🐾</div>
 
-    <h1>Email verified successfully</h1>
-    <p>
-      Your OnlyPaws account is now confirmed.<br>
-      You can log in as a <strong>Creator</strong> or <strong>Fan</strong>
-      using your credentials.
-    </p>
+  <div class="centerWrap">
+    <div class="card">
+      <div style="font-size:42px;">🐾</div>
 
-    <div class="row">
-      <a class="btn" href="index.html">Go to homepage</a>
-      <a class="ghost" href="creators.html">Creator login</a>
-      <a class="ghost" href="fans.html">Fan login</a>
+      <h1>Email verified successfully</h1>
+
+      <p>
+        Your OnlyPaws account is now confirmed.<br>
+        You can log in as a <strong>Creator</strong> or <strong>Fan</strong>
+        using your credentials.
+      </p>
+
+      <div class="row">
+        <a class="btn" href="index.html">Go to homepage</a>
+        <a class="ghost" href="creators.html">Creator login</a>
+        <a class="ghost" href="fans.html">Fan login</a>
+      </div>
+
+      <div class="tiny">
+        If you were redirected here automatically, your verification was successful.
+      </div>
+    </div>
+  </div>
+
+  <footer class="globalFooter">
+    <div>
+      © 2026 OnlyPaws • Built with toe beans energy 🐾
     </div>
 
-    <div class="tiny">
-      If you were redirected here automatically, your verification was successful.
+    <div class="small">
+      OnlyPaws is an independent digital platform. Features may evolve over time.
     </div>
-  </div>
 
-<footer class="globalFooter">
-  <div class="footerTop">
-    © 2026 OnlyPaws • Built with toe beans energy 🐾
-  </div>
+    <div class="footerLinks">
+      <a href="content-policy.html">Content Policy</a>
+      &nbsp;·&nbsp;
+      <a href="privacy-policy.html">Privacy Policy</a>
+      &nbsp;·&nbsp;
+      <a href="terms.html">Terms of Service</a>
+      &nbsp;·&nbsp;
+      <a href="mailto:onlypawssupp@gmail.com">Contact Us</a>
+    </div>
+  </footer>
 
-  <div class="small">
-    OnlyPaws is an independent digital platform. Features may evolve over time.
-  </div>
-
-  <div class="footerLinks">
-    <a href="content-policy.html">Content Policy</a>
-    &nbsp;·&nbsp;
-    <a href="privacy-policy.html">Privacy Policy</a>
-    &nbsp;·&nbsp;
-    <a href="terms.html">Terms of Service</a>
-    &nbsp;·&nbsp;
-    <a href="mailto:onlypawssupp@gmail.com">Contact Us</a>
-  </div>
-</footer>
-  
 </body>
 </html>
