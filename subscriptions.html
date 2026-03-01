@@ -183,7 +183,6 @@
     .btn:active{ transform: translateY(0px) scale(.99); }
     .btn[disabled]{opacity:.6;cursor:not-allowed}
 
-    /* Footer EXACT like index.html */
     footer{
       margin-top:22px;
       color: rgba(255,255,255,.75);
@@ -216,7 +215,6 @@
 
 <body>
   <div class="wrap">
-
     <div class="nav">
       <a href="feed.html" class="brand">
         <div class="brandLogo"><img src="logo.png" alt="OnlyPaws logo"></div>
@@ -234,7 +232,6 @@
       <h1>Choose your plan 🐾</h1>
       <div class="subline" id="subline">Loading…</div>
 
-      <!-- ONLY ONE PLAN (5€/month) -->
       <div class="plans" id="plans">
         <div class="plan featured" id="vipPlan">
           <img class="planIcon" src="paw-crown.png" alt="VIPaws">
@@ -316,7 +313,7 @@
       return data?.display_name || data?.username || null;
     }
 
-    // Load ONLY the 5€/month active plan (for UI display)
+    // Load the latest ACTIVE monthly plan (for UI display)
     async function loadVipPlan(){
       const c = supa();
 
@@ -326,8 +323,7 @@
         .eq("creator_id", CREATOR_ID)
         .eq("is_active", true)
         .eq("billing_period", "monthly")
-        .eq("price_cents", 500)
-        .order("created_at", { ascending: true })
+        .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
@@ -350,7 +346,6 @@
 
       const cancelUrl = new URL(location.href);
 
-      // IMPORTANT: price comes from DB inside the edge (auto-heal)
       const { data, error } = await c.functions.invoke("create-fan-subscription", {
         body: {
           creator_id,
@@ -420,24 +415,21 @@
 
       if(!plan){
         setButtonBusy(true, "Unavailable");
-        toast("VIP plan not available");
+        toast("Creator has no active plan yet");
         return;
       }
 
-      // Optional: reflect DB name/desc
       if(plan.name) planNameEl.textContent = plan.name;
       if(plan.description) planDescEl.textContent = plan.description;
 
-      // Price label from DB
-      const euro = (plan.price_cents ?? 500) / 100;
+      const cents = Number.isFinite(plan.price_cents) ? plan.price_cents : 500;
+      const euro = (cents / 100).toFixed(2).replace(".00","");
       planPriceEl.textContent = `€${euro} / month`;
 
-      // Subscribe click
       subscribeBtn.addEventListener("click", async ()=> {
         try{
           setButtonBusy(true, "Opening checkout…");
           await createFanCheckout({ creator_id: CREATOR_ID });
-          // If redirect happens, code stops here.
           setButtonBusy(false, "Subscribe");
         }catch(e){
           console.error(e);
