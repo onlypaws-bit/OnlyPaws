@@ -1,7 +1,7 @@
 // supabase/functions/close-stripe-connected-account/index.ts
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
+import Stripe from "https://esm.sh/stripe@11.2.0?target=deno";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -47,13 +47,24 @@ function allZero(obj: Record<string, number>) {
   return Object.values(obj).every((v) => (Number(v) || 0) === 0);
 }
 
+type TombSnapshot = {
+  profile?: unknown;
+  meta?: Record<string, unknown>;
+  [k: string]: unknown;
+};
+
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "OPTIONS") {
+    return new Response("ok", {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "text/plain" },
+    });
+  }
   if (req.method !== "POST") return json(405, { error: "Method not allowed" });
 
   try {
     const SUPABASE_URL = env("SUPABASE_URL");
-    const SERVICE_ROLE = env("SUPABASE_SERVICE_ROLE_KEY");
+    const SERVICE_ROLE = env("SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_SERVICE_ROLE_KEY");
     const STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY");
     const ADMIN_SECRET = env("ADMIN_SECRET", "OP_ADMIN_SECRET");
 
@@ -74,12 +85,7 @@ serve(async (req) => {
     }
 
     let body: Body | null = null;
-    try {
-      body = await req.json();
-    } catch {
-      body = null;
-    }
-
+    try { body = await req.json(); } catch { body = null; }
     if (body?.confirm !== true) return json(400, { error: "Missing confirm=true" });
 
     const userId = (body?.user_id ?? "").trim();
@@ -106,6 +112,16 @@ serve(async (req) => {
       deletedRow = data;
       connectId = String(data.stripe_connect_account_id ?? "").trim();
       if (!connectId) return json(400, { error: "No stripe_connect_account_id in deleted_profiles" });
+    } else if (!userId) {
+      // Optional convenience: if only connect_id is provided, try to find matching deleted_profiles row
+      const { data } = await admin
+        .from("deleted_profiles")
+        .select("user_id, stripe_connect_account_id, snapshot")
+        .eq("stripe_connect_account_id", connectId)
+        .maybeSingle();
+      if (data) {
+        deletedRow = data;
+      }
     }
 
     // ---- 1) Balance check (available + pending must be 0 for ALL currencies)
@@ -115,7 +131,6 @@ serve(async (req) => {
     const pendingByCcy = sumMoneyByCurrency((bal.pending ?? []) as any);
 
     // ---- 2) Payouts check: no payouts pending/in_transit
-    // Use higher limit to reduce false-ok cases.
     const payouts = await stripe.payouts.list(
       { limit: 100 },
       { stripeAccount: connectId },
@@ -159,7 +174,6 @@ serve(async (req) => {
     try {
       del = await stripe.accounts.del(connectId);
     } catch (e: any) {
-      // Stripe can refuse closure even if our checks pass (rare edge cases).
       return json(409, {
         ok: false,
         error: "Stripe refused to delete the account.",
@@ -170,32 +184,45 @@ serve(async (req) => {
       });
     }
 
-    // ---- 4) Update deleted_profiles snapshot with closure info (best-effort)
-    if (userId) {
-      const nowIso = new Date().toISOString();
+    // ---- 4) Update deleted_profiles snapshot meta with closure info (best-effort)
+    // Keep {profile, meta} structure; do not flatten/overwrite profile.
+    const nowIso = new Date().toISOString();
+    const targetUserId = (userId || String(deletedRow?.user_id ?? "").trim()) || "";
 
+    if (targetUserId) {
       try {
-        // fetch current snapshot if not already
         if (!deletedRow) {
           const { data } = await admin
             .from("deleted_profiles")
             .select("user_id, snapshot")
-            .eq("user_id", userId)
+            .eq("user_id", targetUserId)
             .maybeSingle();
           deletedRow = data ?? null;
         }
 
-        const snapshot = (deletedRow?.snapshot ?? {}) as Record<string, unknown>;
-        const mergedSnapshot = {
-          ...snapshot,
-          stripe_connect_closed_at: nowIso,
-          stripe_connect_close_result: del,
+        const existingSnap = (deletedRow?.snapshot ?? {}) as TombSnapshot;
+
+        const normalized: TombSnapshot =
+          typeof existingSnap === "object" && existingSnap !== null
+            ? existingSnap
+            : {};
+
+        const nextSnap: TombSnapshot = {
+          ...normalized,
+          // preserve profile if present; if not present, keep whatever is there
+          profile: ("profile" in normalized) ? normalized.profile : (normalized as any).profile,
+          meta: {
+            ...(normalized.meta ?? {}),
+            stripe_connect_closed_at: nowIso,
+            stripe_connect_deleted: true,
+            stripe_connect_close_result: del,
+          },
         };
 
         await admin
           .from("deleted_profiles")
-          .update({ snapshot: mergedSnapshot })
-          .eq("user_id", userId);
+          .update({ snapshot: nextSnap })
+          .eq("user_id", targetUserId);
       } catch {
         // do not fail the whole request if DB update fails
       }
@@ -206,6 +233,7 @@ serve(async (req) => {
       connect_id: connectId,
       stripe_account_deleted: true,
       stripe_delete_result: del,
+      tombstone_updated: !!(userId || deletedRow?.user_id),
     });
   } catch (e: any) {
     return json(500, { error: e?.message ?? String(e) });
