@@ -1,14 +1,13 @@
 // supabase/functions/create-checkout-session/index.ts
-import Stripe from "https://esm.sh/stripe@14.21.0";
+import Stripe from "https://esm.sh/stripe@14.25.0?target=deno";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 type Body = {
   creator_id: string;
   plan_id: string;
-  // opzionale: se il frontend lo passa (meglio), usiamo questo per redirect
   creator_username?: string;
-  success_path?: string;
-  cancel_path?: string;
+  success_path?: string; // MUST be relative, e.g. "/creator-profile.html?..."
+  cancel_path?: string;  // MUST be relative, e.g. "/subscriptions.html?..."
 };
 
 const corsHeaders = {
@@ -36,9 +35,24 @@ function safeStr(v: unknown) {
   return s.length ? s : null;
 }
 
+function normalizeSiteUrl(raw: string) {
+  return raw.replace(/\/+$/, "");
+}
+
+function safePath(p?: string, fallback = "/") {
+  if (!p) return fallback;
+  if (!p.startsWith("/")) return fallback;
+  if (p.startsWith("//")) return fallback;
+  if (p.includes(":")) return fallback; // blocks "https:" "javascript:" etc.
+  return p;
+}
+
+function buildUrl(siteUrl: string, path: string) {
+  return `${siteUrl}${path}`;
+}
+
 function isNoSuchPriceError(err: unknown) {
   const msg = String((err as any)?.message ?? err ?? "");
-  // Stripe tipicamente: "No such price: 'price_...'"
   return msg.toLowerCase().includes("no such price") || msg.toLowerCase().includes("resource_missing");
 }
 
@@ -52,7 +66,7 @@ async function stripeCreateCheckoutSessionDirect(
     headers: {
       Authorization: `Bearer ${stripeSecret}`,
       "Content-Type": "application/x-www-form-urlencoded",
-      // ✅ DIRECT: crea la session sul connected account
+      // ✅ DIRECT: creates the session on the connected account
       "Stripe-Account": stripeAccount,
     },
     body: toForm(params),
@@ -94,12 +108,18 @@ Deno.serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
 
+    const SITE_URL_RAW = Deno.env.get("SITE_URL") || "http://localhost:3000";
+    const SITE_URL = normalizeSiteUrl(SITE_URL_RAW);
+
     if (!STRIPE_SECRET_KEY) return json(500, { error: "Missing STRIPE secret key" });
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !SUPABASE_ANON_KEY) {
       return json(500, { error: "Missing Supabase env vars" });
     }
 
-    const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2023-10-16" });
+    const stripe = new Stripe(STRIPE_SECRET_KEY, {
+      apiVersion: "2023-10-16",
+      httpClient: Stripe.createFetchHttpClient(),
+    });
 
     // --- auth utente (fan) ---
     const authHeader = req.headers.get("Authorization") ?? "";
@@ -112,7 +132,7 @@ Deno.serve(async (req) => {
 
     const fanId = userData.user.id;
 
-    const body = (await req.json()) as Body;
+    const body = (await req.json().catch(() => ({}))) as Body;
 
     const creator_id = safeStr(body?.creator_id);
     const plan_id = safeStr(body?.plan_id);
@@ -121,13 +141,11 @@ Deno.serve(async (req) => {
     if (!creator_id || !plan_id) return json(400, { error: "Missing creator_id or plan_id" });
     if (creator_id === fanId) return json(400, { error: "fan_id cannot equal creator_id" });
 
-    const origin = req.headers.get("Origin") ?? "http://localhost:3000";
-
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       auth: { persistSession: false },
     });
 
-    // ✅ 0.5) VIEWER ROLE GATE: creators cannot subscribe (for now)
+    // ✅ VIEWER ROLE GATE: creators cannot subscribe (for now)
     const { data: viewerProf, error: viewerErr } = await admin
       .from("profiles")
       .select("role")
@@ -143,7 +161,7 @@ Deno.serve(async (req) => {
       return json(403, { error: "CREATOR_CANNOT_SUBSCRIBE_YET" });
     }
 
-    // 0) creator username fallback (se non passato dal frontend)
+    // creator username fallback (se non passato dal frontend)
     let creator_username: string | null = creator_username_from_body;
     if (!creator_username) {
       const { data: cprof } = await admin
@@ -157,15 +175,20 @@ Deno.serve(async (req) => {
     // ✅ redirect target: prefer username
     const uParam = encodeURIComponent(creator_username ?? creator_id);
 
-    // default success/cancel
     const successDefault =
       `/creator-profile.html?u=${uParam}&success=1&session_id={CHECKOUT_SESSION_ID}`;
-    const cancelDefault = `/subscriptions.html?creator=${encodeURIComponent(creator_id)}`;
+    const cancelDefault =
+      `/subscriptions.html?creator=${encodeURIComponent(creator_id)}`;
 
-    const successUrl = origin + (body.success_path ?? successDefault);
-    const cancelUrl = origin + (body.cancel_path ?? cancelDefault);
+    // ✅ only allow RELATIVE paths from body
+    const successPath = safePath(body?.success_path, successDefault);
+    const cancelPath = safePath(body?.cancel_path, cancelDefault);
 
-    // 1) plan (prima lettura)
+    // ✅ use SITE_URL, not Origin
+    const successUrl = buildUrl(SITE_URL, successPath);
+    const cancelUrl = buildUrl(SITE_URL, cancelPath);
+
+    // 1) plan
     const planRes1 = await admin
       .from("creator_plans")
       .select("id, creator_id, is_active, billing_period, stripe_price_id")
@@ -197,7 +220,7 @@ Deno.serve(async (req) => {
       return json(409, { error: "CREATOR_NOT_READY", reason: "missing_stripe_connect_account_id" });
     }
 
-    // 4) ✅ verifica stato reale su Stripe
+    // 4) ✅ verify state on Stripe (platform call is fine)
     const acc = await stripe.accounts.retrieve(connectId);
 
     const ready =
@@ -229,6 +252,7 @@ Deno.serve(async (req) => {
         success_url: successUrl,
         cancel_url: cancelUrl,
 
+        // (optional) if you want strictly card-only keep it; otherwise remove.
         "payment_method_types[0]": "card",
 
         "line_items[0][price]": priceId,
@@ -246,11 +270,11 @@ Deno.serve(async (req) => {
         "subscription_data[metadata][creator_id]": creator_id,
         "subscription_data[metadata][plan_id]": plan_id,
 
-        // ✅ OP fee 35% (creator vede netto e basta)
+        // ✅ OP fee 35% (direct charges; platform takes fee, creator gets remainder)
         "subscription_data[application_fee_percent]": "35",
       }) as Record<string, string>;
 
-    // Se price manca già in DB, prova subito ensure (evitiamo roundtrip)
+    // If price missing in DB, ensure first
     if (!stripe_price_id) {
       await callEnsureCreatorPrices(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, creator_id);
 
@@ -276,7 +300,6 @@ Deno.serve(async (req) => {
       );
       return json(200, { url: session1.url, id: session1.id });
     } catch (e) {
-      // fallback solo se è "no such price"
       if (!isNoSuchPriceError(e)) throw e;
 
       // ✅ ensure prices on connected + reload plan + retry once

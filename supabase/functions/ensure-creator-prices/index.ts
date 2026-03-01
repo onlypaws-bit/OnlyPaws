@@ -1,3 +1,4 @@
+// supabase/functions/ensure-creator-prices/index.ts
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -32,14 +33,30 @@ async function stripePost(
       Authorization: `Bearer ${secret}`,
       "Content-Type": "application/x-www-form-urlencoded",
       ...(idemKey ? { "Idempotency-Key": idemKey } : {}),
-      // ✅ create on connected account (DIRECT)
       ...(stripeAccount ? { "Stripe-Account": stripeAccount } : {}),
     },
     body: toForm(params),
   });
-  const j = await res.json();
+
+  const j = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(`Stripe error on ${path}: ${JSON.stringify(j)}`);
   return j;
+}
+
+function normalizeCurrency(v: unknown) {
+  const c = String(v ?? "eur").trim().toLowerCase();
+  if (!/^[a-z]{3}$/.test(c)) return "eur";
+  return c;
+}
+
+function assertPriceCents(v: unknown) {
+  const n = Number(v);
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n <= 0) {
+    throw new Error("Invalid price_cents on plan");
+  }
+  // opzionale: Stripe min varies by currency; keep it simple:
+  if (n < 50) throw new Error("price_cents too low");
+  return n;
 }
 
 type Body = { creator_id: string };
@@ -50,8 +67,7 @@ Deno.serve(async (req) => {
 
   try {
     const STRIPE_SECRET =
-      Deno.env.get("STRIPE_SECRET_KEY") ||
-      Deno.env.get("OP_STRIPE_SECRET_KEY"); // compat col tuo naming
+      Deno.env.get("STRIPE_SECRET_KEY") || Deno.env.get("OP_STRIPE_SECRET_KEY");
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -61,8 +77,8 @@ Deno.serve(async (req) => {
       return json(500, { error: "Missing env vars" });
     }
 
-    // Auth: consenti solo al creator stesso (per sicurezza).
-    // (In pratica la chiameremo anche server-side da create-checkout-session col service role)
+    // If called from browser, only allow the creator itself.
+    // If called server-to-server with service role, authedUserId will be null and we allow it.
     const authHeader = req.headers.get("Authorization") ?? "";
     const supaUser = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       global: { headers: { Authorization: authHeader } },
@@ -70,17 +86,16 @@ Deno.serve(async (req) => {
     const { data: userData } = await supaUser.auth.getUser();
     const authedUserId = userData?.user?.id ?? null;
 
-    const { creator_id } = (await req.json()) as Body;
+    const { creator_id } = (await req.json().catch(() => ({}))) as Body;
     if (!creator_id) return json(400, { error: "Missing creator_id" });
 
-    // Se c'è auth (dal browser), richiedi che sia il creator
     if (authedUserId && authedUserId !== creator_id) {
       return json(403, { error: "Not allowed" });
     }
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // ✅ 0) serve connect account id: i price DEVONO vivere sul connected per DIRECT checkout
+    // connect id required (prices live on connected for DIRECT flow)
     const { data: creatorProf, error: creatorProfErr } = await admin
       .from("profiles")
       .select("user_id, stripe_connect_account_id, username, display_name")
@@ -94,26 +109,23 @@ Deno.serve(async (req) => {
       return json(409, { error: "CREATOR_NOT_READY", reason: "missing_stripe_connect_account_id" });
     }
 
-    // 1) carica i 3 piani monthly/attivi del creator
+    // Load ALL active plans (monthly + yearly)
     const { data: plans, error: plansErr } = await admin
       .from("creator_plans")
-      .select(
-        "id, creator_id, name, description, price_cents, currency, billing_period, is_active, stripe_price_id, stripe_product_id"
-      )
+      .select("id, creator_id, name, description, price_cents, currency, billing_period, is_active, stripe_price_id, stripe_product_id")
       .eq("creator_id", creator_id)
-      .eq("billing_period", "monthly")
       .eq("is_active", true)
-      .in("price_cents", [300, 500, 800]);
+      .in("billing_period", ["monthly", "yearly"]);
 
     if (plansErr) throw plansErr;
-    if (!plans || plans.length < 3) {
-      return json(400, { error: "Missing one or more creator plans (need 300/500/800 monthly active)" });
+    if (!plans || plans.length === 0) {
+      return json(400, { error: "No active creator plans found" });
     }
 
-    // 2) prendi un product id già esistente se c'è
+    // pick existing product if any
     let stripeProductId = plans.find((p) => p.stripe_product_id)?.stripe_product_id ?? null;
 
-    // 3) se manca product, crealo (1 per creator) — SUL CONNECTED
+    // create product (one per creator) on CONNECTED
     if (!stripeProductId) {
       const pretty =
         (creatorProf as any)?.display_name ||
@@ -125,48 +137,54 @@ Deno.serve(async (req) => {
         STRIPE_SECRET,
         {
           name: `OnlyPaws Membership • ${pretty}`,
-          description: "Creator memberships on OnlyPaws",
+          description: "Creator memberships on OnlyPaws (digital subscriptions, pet-only, safe-for-work).",
           "metadata[creator_id]": creator_id,
+          "metadata[platform]": "OnlyPaws",
+          "metadata[content_category]": "pet_sfw",
         },
-        // idempotency per connected (così non duplichi se retry)
         `op_${connectId}_prod_${creator_id}`,
         connectId
       );
 
       stripeProductId = product.id;
 
-      // salva product id su TUTTI i piani (stesso product per creator)
+      // save product id on active plans that are missing it
       await admin
         .from("creator_plans")
         .update({ stripe_product_id: stripeProductId })
         .eq("creator_id", creator_id)
-        .eq("billing_period", "monthly")
-        .in("price_cents", [300, 500, 800]);
+        .eq("is_active", true)
+        .is("stripe_product_id", null);
     }
 
-    // 4) per ogni piano senza stripe_price_id → crea price monthly — SUL CONNECTED
-    const created: Array<{ plan_id: string; price_id: string; price_cents: number }> = [];
+    // create missing prices per plan
+    const created: Array<{ plan_id: string; price_id: string; price_cents: number; billing_period: string }> = [];
 
     for (const p of plans) {
       if (p.stripe_price_id) continue;
 
-      const currency = (p.currency || "eur").toLowerCase();
-      const nickname = p.name || `${p.price_cents / 100}€/month`;
+      const priceCents = assertPriceCents(p.price_cents);
+      const currency = normalizeCurrency(p.currency);
+      const nickname = p.name || `${priceCents / 100} ${currency.toUpperCase()}/${p.billing_period}`;
+
+      const interval = p.billing_period === "yearly" ? "year" : "month";
 
       const price = await stripePost(
         "prices",
         STRIPE_SECRET,
         {
-          unit_amount: String(p.price_cents),
+          unit_amount: String(priceCents),
           currency,
           product: stripeProductId!,
-          "recurring[interval]": "month",
+          "recurring[interval]": interval,
           nickname,
           "metadata[creator_id]": creator_id,
           "metadata[plan_id]": p.id,
-          "metadata[price_cents]": String(p.price_cents),
+          "metadata[price_cents]": String(priceCents),
+          "metadata[billing_period]": String(p.billing_period),
+          "metadata[platform]": "OnlyPaws",
+          "metadata[content_category]": "pet_sfw",
         },
-        // idempotency per plan sul connected
         `op_${connectId}_price_${creator_id}_${p.id}`,
         connectId
       );
@@ -176,16 +194,14 @@ Deno.serve(async (req) => {
         .update({ stripe_price_id: price.id, stripe_product_id: stripeProductId })
         .eq("id", p.id);
 
-      created.push({ plan_id: p.id, price_id: price.id, price_cents: p.price_cents });
+      created.push({ plan_id: p.id, price_id: price.id, price_cents: priceCents, billing_period: p.billing_period });
     }
 
-    // 5) ritorna stato
     const { data: finalPlans } = await admin
       .from("creator_plans")
-      .select("id, price_cents, stripe_product_id, stripe_price_id")
+      .select("id, price_cents, billing_period, stripe_product_id, stripe_price_id, is_active")
       .eq("creator_id", creator_id)
-      .eq("billing_period", "monthly")
-      .in("price_cents", [300, 500, 800]);
+      .eq("is_active", true);
 
     return json(200, {
       ok: true,

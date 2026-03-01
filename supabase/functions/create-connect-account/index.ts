@@ -1,3 +1,4 @@
+// supabase/functions/create-connect-account/index.ts
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@14.25.0?target=deno";
 
@@ -16,9 +17,58 @@ function json(status: number, data: unknown) {
 }
 
 type Body = {
-  return_path?: string;  // where to come back after onboarding
-  refresh_path?: string; // where to retry onboarding if user quits
+  return_path?: string;  // MUST be relative path like "/profile.html"
+  refresh_path?: string; // MUST be relative path like "/profile.html"
 };
+
+function normalizeSiteUrl(raw: string) {
+  return raw.replace(/\/+$/, "");
+}
+
+function safePath(p?: string, fallback = "/profile.html") {
+  if (!p) return fallback;
+  if (!p.startsWith("/")) return fallback;
+  if (p.startsWith("//")) return fallback;
+  if (p.includes(":")) return fallback; // blocks "https:", "javascript:", etc.
+  return p;
+}
+
+function buildUrl(siteUrl: string, path: string) {
+  return `${siteUrl}${path}`;
+}
+
+function stripeErrToString(e: any) {
+  const msg = e?.message ?? String(e);
+  const type = e?.type ? ` (${e.type})` : "";
+  const code = e?.code ? ` code=${e.code}` : "";
+  const status = e?.statusCode ? ` status=${e.statusCode}` : "";
+  return `${msg}${type}${code}${status}`.trim();
+}
+
+// Keep this aligned with stripe.html content
+const PLATFORM_PRODUCT_DESCRIPTION =
+  "OnlyPaws is a recurring digital subscription platform dedicated exclusively to pet-related content. Creators publish safe-for-work pet photography, pet lifestyle updates, and educational pet-related media. Products are digital subscriptions and tips for pet content. No adult content.";
+
+function platformBusinessUrl(siteUrl: string) {
+  // ✅ canonical Stripe business page
+  return buildUrl(siteUrl, "/stripe.html");
+}
+
+async function applyPlatformPrefill(stripe: Stripe, accountId: string, siteUrl: string) {
+  const url = platformBusinessUrl(siteUrl);
+
+  await stripe.accounts.update(accountId, {
+    business_profile: {
+      url,
+      product_description: PLATFORM_PRODUCT_DESCRIPTION,
+      mcc: "5968",
+    },
+    metadata: {
+      platform: "OnlyPaws",
+      content_category: "pet_sfw",
+    },
+  });
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -32,13 +82,22 @@ Deno.serve(async (req) => {
     const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    // IMPORTANT: set this to your vercel domain for correct redirects
-    const SITE_URL = Deno.env.get("SITE_URL") || "http://localhost:3000";
+    const SITE_URL_RAW = Deno.env.get("SITE_URL") || "http://localhost:3000";
+    const SITE_URL = normalizeSiteUrl(SITE_URL_RAW);
 
     if (!STRIPE_SECRET_KEY) return json(500, { error: "Missing Stripe secret key" });
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
       return json(500, { error: "Missing Supabase env vars" });
     }
+
+    // Body is optional
+    const body = (await req.json().catch(() => ({}))) as Body;
+
+    const returnPath = safePath(body.return_path, "/profile.html");
+    const refreshPath = safePath(body.refresh_path, "/profile.html");
+
+    const returnUrl = buildUrl(SITE_URL, returnPath);
+    const refreshUrl = buildUrl(SITE_URL, refreshPath);
 
     const authHeader = req.headers.get("Authorization") ?? "";
     const supaUser = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -75,37 +134,21 @@ Deno.serve(async (req) => {
         (prof as any).username ||
         `creator ${creatorId.slice(0, 8)}`;
 
-      // 🔒 Preimpostazione “pet-safe” (uniforme per tutti)
-      const productDescription =
-  "Creator account on OnlyPaws, a subscription platform dedicated to pet-related digital content. The creator shares safe-for-work pet photography, lifestyle updates, and educational content about animals. All products are digital subscriptions for pet content.";
-      // Idealmente una landing pubblica (anche semplice) che spiega che è pet-only/SFW.
-      // Se non ce l’hai ancora, meglio SITE_URL che niente.
-      const businessUrl = Deno.env.get("BUSINESS_URL") || SITE_URL;
-
       const acct = await stripe.accounts.create({
         type: "express",
-
-        // Aiuta tantissimo nelle review
         email: creatorEmail,
-
         metadata: {
           creator_id: creatorId,
           platform: "OnlyPaws",
           content_category: "pet_sfw",
         },
-
         business_profile: {
+          // Account is the creator’s Stripe account, but we keep the platform business context consistent
           name: pretty,
-          product_description: productDescription,
-          url: businessUrl,
-
-          // MCC tipico per subscription/continuity. Riduce ambiguità.
-          // (se mai ti desse noia, lo togliamo, ma in genere aiuta)
+          product_description: PLATFORM_PRODUCT_DESCRIPTION,
+          url: platformBusinessUrl(SITE_URL), // ✅ stripe.html
           mcc: "5968",
         },
-
-        // Se non richiedi transfers/card_payments altrove, è ok chiederli qui.
-        // (lasciare così non rompe nulla e accelera i requisiti dell’onboarding)
         capabilities: {
           card_payments: { requested: true },
           transfers: { requested: true },
@@ -114,7 +157,7 @@ Deno.serve(async (req) => {
 
       acctId = acct.id;
 
-      await admin
+      const { error: upErr } = await admin
         .from("profiles")
         .update({
           stripe_connect_account_id: acctId,
@@ -122,24 +165,35 @@ Deno.serve(async (req) => {
           charges_enabled: false,
         })
         .eq("user_id", creatorId);
+
+      if (upErr) {
+        return json(500, {
+          error: "Created Stripe account but failed to store it",
+          details: upErr.message,
+        });
+      }
     }
 
-    // 2) Create Account Link (onboarding)
-    const body = (await req.json().catch(() => ({}))) as Body;
+    // 2) Force platform prefill before generating onboarding link (important)
+    await applyPlatformPrefill(stripe, acctId!, SITE_URL);
 
-    const returnUrl = SITE_URL + (body.return_path ?? "/profile.html");
-    const refreshUrl = SITE_URL + (body.refresh_path ?? "/profile.html");
-
+    // 3) Create Account Link (onboarding)
     const link = await stripe.accountLinks.create({
-      account: acctId,
+      account: acctId!,
       type: "account_onboarding",
       return_url: returnUrl,
       refresh_url: refreshUrl,
     });
 
-    return json(200, { url: link.url, account_id: acctId });
-  } catch (e) {
+    return json(200, {
+      url: link.url,
+      account_id: acctId,
+      business_url: platformBusinessUrl(SITE_URL),
+      return_url: returnUrl,
+      refresh_url: refreshUrl,
+    });
+  } catch (e: any) {
     console.error(e);
-    return json(500, { error: "Server error", details: String(e?.message ?? e) });
+    return json(500, { error: "Server error", details: stripeErrToString(e) });
   }
 });
