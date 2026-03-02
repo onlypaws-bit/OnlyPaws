@@ -43,6 +43,20 @@ async function stripePost(
   return j;
 }
 
+async function stripeGet(path: string, secret: string, stripeAccount?: string | null) {
+  const res = await fetch(`https://api.stripe.com/v1/${path}`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${secret}`,
+      ...(stripeAccount ? { "Stripe-Account": stripeAccount } : {}),
+    },
+  });
+
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(`Stripe error on GET ${path}: ${JSON.stringify(j)}`);
+  return j;
+}
+
 function normalizeCurrency(v: unknown) {
   const c = String(v ?? "eur").trim().toLowerCase();
   if (!/^[a-z]{3}$/.test(c)) return "eur";
@@ -112,7 +126,9 @@ Deno.serve(async (req) => {
     // Load ALL active plans (monthly + yearly)
     const { data: plans, error: plansErr } = await admin
       .from("creator_plans")
-      .select("id, creator_id, name, description, price_cents, currency, billing_period, is_active, stripe_price_id, stripe_product_id")
+      .select(
+        "id, creator_id, name, description, price_cents, currency, billing_period, is_active, stripe_price_id, stripe_product_id"
+      )
       .eq("creator_id", creator_id)
       .eq("is_active", true)
       .in("billing_period", ["monthly", "yearly"]);
@@ -157,17 +173,50 @@ Deno.serve(async (req) => {
         .is("stripe_product_id", null);
     }
 
-    // create missing prices per plan
-    const created: Array<{ plan_id: string; price_id: string; price_cents: number; billing_period: string }> = [];
+    // create OR fix prices per plan (monthly + yearly)
+    const created: Array<{
+      plan_id: string;
+      price_id: string;
+      price_cents: number;
+      billing_period: string;
+      replaced?: boolean;
+    }> = [];
 
     for (const p of plans) {
-      if (p.stripe_price_id) continue;
-
       const priceCents = assertPriceCents(p.price_cents);
       const currency = normalizeCurrency(p.currency);
+      const interval = p.billing_period === "yearly" ? "year" : "month";
       const nickname = p.name || `${priceCents / 100} ${currency.toUpperCase()}/${p.billing_period}`;
 
-      const interval = p.billing_period === "yearly" ? "year" : "month";
+      let needsNew = !p.stripe_price_id;
+
+      // If a price exists, verify it matches the plan (amount/currency/interval)
+      if (p.stripe_price_id) {
+        try {
+          const sp = await stripeGet(
+            `prices/${encodeURIComponent(p.stripe_price_id)}`,
+            STRIPE_SECRET,
+            connectId
+          );
+
+          const okAmount = Number(sp?.unit_amount) === Number(priceCents);
+          const okCurrency = String(sp?.currency || "").toLowerCase() === currency;
+
+          const okRecurring =
+            sp?.type === "recurring" &&
+            String(sp?.recurring?.interval || "").toLowerCase() === interval &&
+            Number(sp?.recurring?.interval_count || 1) === 1;
+
+          if (!(okAmount && okCurrency && okRecurring)) {
+            needsNew = true;
+          }
+        } catch {
+          // price missing/deleted/inaccessible => recreate
+          needsNew = true;
+        }
+      }
+
+      if (!needsNew) continue;
 
       const price = await stripePost(
         "prices",
@@ -185,7 +234,8 @@ Deno.serve(async (req) => {
           "metadata[platform]": "OnlyPaws",
           "metadata[content_category]": "pet_sfw",
         },
-        `op_${connectId}_price_${creator_id}_${p.id}`,
+        // idempotency key should change when amount/interval/currency changes
+        `op_${connectId}_price_${creator_id}_${p.id}_${priceCents}_${interval}_${currency}`,
         connectId
       );
 
@@ -194,7 +244,13 @@ Deno.serve(async (req) => {
         .update({ stripe_price_id: price.id, stripe_product_id: stripeProductId })
         .eq("id", p.id);
 
-      created.push({ plan_id: p.id, price_id: price.id, price_cents: priceCents, billing_period: p.billing_period });
+      created.push({
+        plan_id: p.id,
+        price_id: price.id,
+        price_cents: priceCents,
+        billing_period: p.billing_period,
+        replaced: !!p.stripe_price_id,
+      });
     }
 
     const { data: finalPlans } = await admin
