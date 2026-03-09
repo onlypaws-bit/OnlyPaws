@@ -50,7 +50,7 @@
       grid-template-columns:1.1fr .9fr;
       gap:16px;
       align-items:stretch;
-      margin-top:18px;
+      margin-top:6px;
     }
 
     @media (max-width: 920px){
@@ -287,9 +287,9 @@
 
 <body>
   <div class="pageShell">
-    <div id="header-placeholder"></div>
-
     <div class="wrap">
+      <div id="header-placeholder"></div>
+
       <div class="hero">
         <div class="panel">
           <div class="pill">Publish pet content. Earn support.</div>
@@ -382,15 +382,12 @@
             </p>
 
             <div class="btnRow" style="margin-top:14px;">
-              <a
-                class="btn"
-                href="https://buy.stripe.com/4gM14ocjm5qec9w04n5wI05"
-                target="_blank"
-                rel="noopener"
-              >
+              <button class="btn" id="supportUsBtn" type="button">
                 Support OnlyPaws 🐾
-              </a>
+              </button>
             </div>
+
+            <div id="supportUsMsg" class="authMsg"></div>
           </div>
         </div>
       </div>
@@ -403,9 +400,22 @@
   <script src="supabase.js"></script>
   <script src="js/nav.js"></script>
   <script src="js/partials.js"></script>
+  <script src="js/support-us.js"></script>
 
   <script>
     loadMarketingLayout();
+
+    window.addEventListener("DOMContentLoaded", async () => {
+      if (typeof initSupportUsButton === "function") {
+        await initSupportUsButton({
+          buttonId: "supportUsBtn",
+          messageId: "supportUsMsg",
+          loginRedirect: "fans.html?support=1",
+          successPath: "/thank-you.html",
+          cancelPath: "/creators.html"
+        });
+      }
+    });
 
     const form = document.getElementById("creator-auth-form");
     const msg = document.getElementById("creatorMsg");
