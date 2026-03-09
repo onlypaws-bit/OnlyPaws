@@ -53,13 +53,16 @@ function buildUrl(siteUrl: string, path: string) {
 
 function isNoSuchPriceError(err: unknown) {
   const msg = String((err as any)?.message ?? err ?? "");
-  return msg.toLowerCase().includes("no such price") || msg.toLowerCase().includes("resource_missing");
+  return (
+    msg.toLowerCase().includes("no such price") ||
+    msg.toLowerCase().includes("resource_missing")
+  );
 }
 
 async function stripeCreateCheckoutSessionDirect(
   stripeSecret: string,
   stripeAccount: string,
-  params: Record<string, string>
+  params: Record<string, string>,
 ) {
   const res = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",
@@ -80,7 +83,7 @@ async function stripeCreateCheckoutSessionDirect(
 async function callEnsureCreatorPrices(
   supabaseUrl: string,
   serviceRoleKey: string,
-  creator_id: string
+  creator_id: string,
 ) {
   const res = await fetch(`${supabaseUrl}/functions/v1/ensure-creator-prices`, {
     method: "POST",
@@ -94,6 +97,63 @@ async function callEnsureCreatorPrices(
   const j = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(`ensure-creator-prices failed: ${JSON.stringify(j)}`);
   return j;
+}
+
+/**
+ * Creates or refreshes a checkout_pending row for this fan+creator+plan.
+ * We do NOT use upsert because you have a partial unique index on (fan_id, creator_id)
+ * which cannot be targeted safely by ON CONFLICT.
+ */
+async function markCheckoutPending(
+  admin: any,
+  payload: { fan_id: string; creator_id: string; plan_id: string },
+) {
+  // Try to reuse the latest pending/incomplete row for this exact pair+plan
+  const { data: existing, error: exErr } = await admin
+    .from("fan_subscriptions")
+    .select("id, status")
+    .eq("fan_id", payload.fan_id)
+    .eq("creator_id", payload.creator_id)
+    .eq("plan_id", payload.plan_id)
+    .in("status", ["checkout_pending", "incomplete"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (exErr) throw exErr;
+
+  if (existing?.id) {
+    const { error: updErr } = await admin
+      .from("fan_subscriptions")
+      .update({
+        status: "checkout_pending",
+        updated_at: new Date().toISOString(),
+        // keep current_period_end null (constraint expects null for pending/incomplete)
+        current_period_end: null,
+      })
+      .eq("id", existing.id);
+
+    if (updErr) throw updErr;
+    return existing.id as string;
+  }
+
+  // Otherwise insert a fresh pending row
+  const { data: inserted, error: insErr } = await admin
+    .from("fan_subscriptions")
+    .insert({
+      fan_id: payload.fan_id,
+      creator_id: payload.creator_id,
+      plan_id: payload.plan_id,
+      status: "checkout_pending",
+      payment_provider: "stripe",
+      current_period_end: null,
+      cancel_at_period_end: false,
+    })
+    .select("id")
+    .single();
+
+  if (insErr) throw insErr;
+  return inserted?.id as string;
 }
 
 Deno.serve(async (req) => {
@@ -245,35 +305,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 6) params checkout subscription DIRECT
-    const buildParams = (priceId: string) =>
-      ({
-        mode: "subscription",
-        success_url: successUrl,
-        cancel_url: cancelUrl,
-
-        // (optional) if you want strictly card-only keep it; otherwise remove.
-        "payment_method_types[0]": "card",
-
-        "line_items[0][price]": priceId,
-        "line_items[0][quantity]": "1",
-
-        allow_promotion_codes: "true",
-
-        client_reference_id: fanId,
-
-        "metadata[fan_id]": fanId,
-        "metadata[creator_id]": creator_id,
-        "metadata[plan_id]": plan_id,
-
-        "subscription_data[metadata][fan_id]": fanId,
-        "subscription_data[metadata][creator_id]": creator_id,
-        "subscription_data[metadata][plan_id]": plan_id,
-
-        // ✅ OP fee 35% (direct charges; platform takes fee, creator gets remainder)
-        "subscription_data[application_fee_percent]": "35",
-      }) as Record<string, string>;
-
     // If price missing in DB, ensure first
     if (!stripe_price_id) {
       await callEnsureCreatorPrices(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, creator_id);
@@ -291,14 +322,69 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ✅ ensure we have a pending row BEFORE redirecting to Stripe
+    const fanSubscriptionId = await markCheckoutPending(admin, {
+      fan_id: fanId,
+      creator_id,
+      plan_id,
+    });
+
+    // 6) params checkout subscription DIRECT
+    const buildParams = (priceId: string) =>
+      ({
+        mode: "subscription",
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+
+        // (optional) if you want strictly card-only keep it; otherwise remove.
+        "payment_method_types[0]": "card",
+
+        "line_items[0][price]": priceId,
+        "line_items[0][quantity]": "1",
+
+        allow_promotion_codes: "true",
+
+        client_reference_id: fanId,
+
+        // ✅ correlation key (CRITICAL)
+        "metadata[fan_subscription_id]": fanSubscriptionId,
+        "subscription_data[metadata][fan_subscription_id]": fanSubscriptionId,
+
+        "metadata[fan_id]": fanId,
+        "metadata[creator_id]": creator_id,
+        "metadata[plan_id]": plan_id,
+
+        "subscription_data[metadata][fan_id]": fanId,
+        "subscription_data[metadata][creator_id]": creator_id,
+        "subscription_data[metadata][plan_id]": plan_id,
+
+        // ✅ OP fee 35% (direct charges; platform takes fee, creator gets remainder)
+        "subscription_data[application_fee_percent]": "35",
+      }) as Record<string, string>;
+
     // ✅ TRY 1
     try {
       const session1 = await stripeCreateCheckoutSessionDirect(
         STRIPE_SECRET_KEY,
         connectId,
-        buildParams(stripe_price_id)
+        buildParams(stripe_price_id),
       );
-      return json(200, { url: session1.url, id: session1.id });
+
+      // OPTIONAL but very helpful: store session id for debugging/repair
+      // (requires a stripe_checkout_session_id column; if you don't have it, this will fail)
+      try {
+        await admin
+          .from("fan_subscriptions")
+          .update({
+            stripe_checkout_session_id: session1.id,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", fanSubscriptionId);
+      } catch (_) {
+        // ignore if column doesn't exist
+      }
+
+      return json(200, { url: session1.url, id: session1.id, fan_subscription_id: fanSubscriptionId });
     } catch (e) {
       if (!isNoSuchPriceError(e)) throw e;
 
@@ -319,10 +405,23 @@ Deno.serve(async (req) => {
       const session2 = await stripeCreateCheckoutSessionDirect(
         STRIPE_SECRET_KEY,
         connectId,
-        buildParams(newPriceId)
+        buildParams(newPriceId),
       );
 
-      return json(200, { url: session2.url, id: session2.id });
+      // OPTIONAL: store session id (best effort)
+      try {
+        await admin
+          .from("fan_subscriptions")
+          .update({
+            stripe_checkout_session_id: session2.id,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", fanSubscriptionId);
+      } catch (_) {
+        // ignore if column doesn't exist
+      }
+
+      return json(200, { url: session2.url, id: session2.id, fan_subscription_id: fanSubscriptionId });
     }
   } catch (e) {
     console.error(e);
