@@ -414,12 +414,16 @@ h2{
   margin-top:10px;
   border-radius:12px;
   overflow:hidden;
+  aspect-ratio:16/9;
 }
 
 .mediaWrap img,
 .mediaWrap video{
   width:100%;
+  height:100%;
+  object-fit:contain;
   display:block;
+  background:black;
 }
 
 /* ===== DEBUG ===== */
