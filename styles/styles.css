@@ -80,6 +80,10 @@ body{
 
 /* ===== MARKETING NAV ===== */
 
+.marketingNav{
+  margin:12px 0 8px;
+}
+
 .marketingLinks{
   display:flex;
   align-items:center;
@@ -93,6 +97,12 @@ body{
   align-items:center;
   justify-content:center;
   min-width:88px;
+}
+
+.activeNavLink{
+  background:rgba(255,255,255,.22);
+  border:1px solid rgba(255,255,255,.28);
+  color:#fff;
 }
 
 /* ===== PILLS ===== */
@@ -159,6 +169,9 @@ h2{
 }
 
 .ghost{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
   padding:12px 16px;
   border-radius:999px;
   background: rgba(255,255,255,.12);
@@ -412,4 +425,7 @@ h2{
     justify-content:flex-start;
   }
 
+  .navLink{
+    min-width:auto;
+  }
 }
