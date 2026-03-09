@@ -7,10 +7,10 @@
   </a>
 
   <div class="navRight marketingLinks">
-    <a class="ghost navLink" href="index.html">Home</a>
-    <a class="ghost navLink" href="creators.html">Creators</a>
-    <a class="ghost navLink" href="fans.html">Fans</a>
-    <a class="ghost navLink" href="feed.html">Feed</a>
+    <a class="ghost navLink" href="index.html" data-page="index">Home</a>
+    <a class="ghost navLink" href="creators.html" data-page="creators">Creators</a>
+    <a class="ghost navLink" href="fans.html" data-page="fans">Fans</a>
+    <a class="ghost navLink" href="feed.html" data-page="feed">Feed</a>
 
     <a class="btn navLink" id="navProfile" href="profile.html" style="display:none;">Profile</a>
     <a class="btn navLink" id="navFanDash" href="fan-dash.html" style="display:none;">Dashboard</a>
@@ -18,3 +18,22 @@
     <button class="btn navLink" id="navLogout" type="button" style="display:none;">Log out</button>
   </div>
 </div>
+
+<script>
+  (function () {
+    const path = window.location.pathname.toLowerCase();
+    let current = "index";
+
+    if (path.endsWith("/")) current = "index";
+    else if (path.includes("creators")) current = "creators";
+    else if (path.includes("fans")) current = "fans";
+    else if (path.includes("feed")) current = "feed";
+    else if (path.includes("index")) current = "index";
+
+    document.querySelectorAll("[data-page]").forEach(link => {
+      if (link.dataset.page === current) {
+        link.classList.add("activeNavLink");
+      }
+    });
+  })();
+</script>
