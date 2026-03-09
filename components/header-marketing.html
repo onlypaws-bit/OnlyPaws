@@ -20,19 +20,22 @@
 </div>
 
 <script>
-  (function () {
-    const path = window.location.pathname.toLowerCase();
-    let current = "index";
+(function () {
 
-    if (path.endsWith("/") || path.includes("index")) current = "index";
-    else if (path.includes("creators")) current = "creators";
-    else if (path.includes("fans")) current = "fans";
-    else if (path.includes("feed")) current = "feed";
+  const path = window.location.pathname.toLowerCase();
+  let current = "index";
 
-    document.querySelectorAll("[data-page]").forEach(link => {
-      if (link.dataset.page === current) {
-        link.classList.add("activeMarketingTextLink");
-      }
-    });
-  })();
+  if (path.includes("creators")) current = "creators";
+  else if (path.includes("fans")) current = "fans";
+  else if (path.includes("index") || path.endsWith("/")) current = "index";
+
+  document.querySelectorAll("[data-page]").forEach(link => {
+
+    if (link.dataset.page === current) {
+      link.style.display = "none";
+    }
+
+  });
+
+})();
 </script>
