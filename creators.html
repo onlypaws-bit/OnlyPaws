@@ -403,8 +403,24 @@
   <script src="js/support-us.js"></script>
 
   <script>
+    function hideCurrentMarketingLink() {
+      const path = window.location.pathname.toLowerCase();
+      let current = "index";
+
+      if (path.includes("creators")) current = "creators";
+      else if (path.includes("fans")) current = "fans";
+      else if (path.includes("index") || path.endsWith("/")) current = "index";
+
+      document.querySelectorAll("[data-page]").forEach(link => {
+        if (link.dataset.page === current) {
+          link.remove();
+        }
+      });
+    }
+
     window.addEventListener("DOMContentLoaded", async () => {
       await loadMarketingLayout();
+      hideCurrentMarketingLink();
 
       if (typeof initNav === "function") {
         await initNav();
