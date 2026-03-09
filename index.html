@@ -5,112 +5,351 @@
   <title>OnlyPaws</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <link rel="stylesheet" href="styles/styles.css">
+  <link rel="stylesheet" href="styles/styles.css" />
+
+  <style>
+    :root{
+      --bg1:#6B4EFF;
+      --bg2:#8B6CFF;
+      --text:#ffffff;
+      --muted:rgba(255,255,255,.85);
+      --stroke:rgba(255,255,255,.16);
+      --card:rgba(0,0,0,.16);
+      --btn:#ffffff;
+      --btnText:#6B4EFF;
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      font-family: Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 20% 10%, rgba(255,255,255,.18), transparent 55%),
+        radial-gradient(1000px 650px at 90% 30%, rgba(0,0,0,.22), transparent 55%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
+      min-height:100vh;
+    }
+
+    .pageShell{
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .wrap{
+      max-width:1040px;
+      margin:0 auto;
+      padding:0 18px 70px;
+      width:100%;
+    }
+
+    .hero{
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:16px;
+      align-items:stretch;
+      margin-top:6px;
+    }
+
+    @media (max-width: 920px){
+      .hero{grid-template-columns:1fr;}
+    }
+
+    .panel{
+      border-radius:22px;
+      padding:26px;
+      background:var(--card);
+      border:1px solid var(--stroke);
+      backdrop-filter:blur(10px);
+      box-shadow:0 20px 45px rgba(0,0,0,.25);
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:8px 14px;
+      border-radius:999px;
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      font-size:13px;
+      color:rgba(255,255,255,.88);
+      white-space:nowrap;
+    }
+
+    h1{
+      margin:12px 0 10px;
+      font-size:clamp(2.1rem, 4vw, 2.8rem);
+      line-height:1.05;
+      letter-spacing:-0.6px;
+    }
+
+    .sub{
+      margin:0;
+      color:var(--muted);
+      font-size:1.05rem;
+      line-height:1.55;
+      max-width:60ch;
+    }
+
+    .cardsStack{
+      margin-top:16px;
+      display:grid;
+      gap:14px;
+    }
+
+    .card{
+      border-radius:22px;
+      padding:18px;
+      background:rgba(255,255,255,.09);
+      border:1px solid var(--stroke);
+    }
+
+    .card h2{
+      margin:0 0 10px;
+      font-size:1.35rem;
+    }
+
+    .card p{
+      margin:0;
+      color:rgba(255,255,255,.86);
+      line-height:1.6;
+      font-size:14px;
+    }
+
+    .btnRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:18px;
+      align-items:center;
+    }
+
+    .btn,
+    .ghost{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:12px 16px;
+      border-radius:999px;
+      text-decoration:none;
+      font-weight:900;
+      white-space:nowrap;
+      transition:transform .18s ease, opacity .18s ease, background .18s ease;
+      cursor:pointer;
+      font-size:14px;
+    }
+
+    .btn{
+      background:var(--btn);
+      color:var(--btnText);
+      border:none;
+      box-shadow:0 14px 30px rgba(0,0,0,.22);
+    }
+
+    .btn:hover,
+    .ghost:hover{
+      transform:translateY(-1px) scale(1.02);
+    }
+
+    .ghost{
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      color:#fff;
+    }
+
+    .mini{
+      margin-top:18px;
+      border-radius:22px;
+      padding:16px;
+      background:rgba(0,0,0,.14);
+      border:1px solid var(--stroke);
+      font-size:14px;
+      text-align:center;
+    }
+
+    .brandImage{
+      border-radius:18px;
+      background:rgba(255,255,255,.08);
+      border:1px solid var(--stroke);
+      padding:14px;
+      text-align:center;
+    }
+
+    .brandImage img{
+      width:100%;
+      max-width:420px;
+      border-radius:16px;
+      display:block;
+      margin:0 auto;
+    }
+
+    .supportCard{
+      margin-top:18px;
+      padding:16px;
+      border-radius:18px;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.16);
+    }
+
+    .supportCard h3{
+      margin:0 0 10px;
+      font-size:1.2rem;
+    }
+
+    .supportCard p{
+      margin:0;
+      color:rgba(255,255,255,.86);
+      line-height:1.6;
+      font-size:14px;
+    }
+
+    .authMsg{
+      margin-top:10px;
+      font-size:13px;
+      color:rgba(255,255,255,.85);
+      min-height:18px;
+      white-space:pre-wrap;
+    }
+
+    .footerWrap{
+      margin-top:28px;
+    }
+  </style>
 </head>
 
 <body>
+  <div class="pageShell">
+    <div class="wrap">
+      <div id="header-placeholder"></div>
 
-  <div class="wrap">
+      <div class="hero">
+        <div class="panel">
+          <div class="pill">Cute content. Serious platform.</div>
 
-    <!-- HEADER -->
-    <div id="header-placeholder"></div>
+          <h1>OnlyPaws</h1>
 
-    <div class="hero">
+          <p class="sub">
+            A subscription platform built for pet creators and pet lovers.
+            Creators publish exclusive content, fans subscribe to support and enjoy it — all in one place.
+          </p>
 
-      <!-- LEFT -->
-      <div class="panel">
-        <div class="pill">Cute content. Serious platform.</div>
+          <div class="cardsStack">
+            <div class="card">
+              <h2>For fans</h2>
+              <p>
+                Subscribe to your favorite pet creators and unlock exclusive content.
+              </p>
 
-        <h1>OnlyPaws</h1>
+              <div class="btnRow" style="margin-top:12px;">
+                <a class="btn" href="fans.html">Fan area →</a>
+                <a class="ghost" href="faq-fans.html">Fan FAQ</a>
+              </div>
+            </div>
 
-        <p class="sub">
-          A subscription platform built for pet creators and pet lovers.
-          Creators publish exclusive content, fans subscribe to support and enjoy it — all in one place.
-        </p>
+            <div class="card">
+              <h2>For creators</h2>
+              <p>
+                Build your creator profile, publish posts, and monetize with subscriptions.
+              </p>
 
-        <div class="cardsStack">
-
-          <div class="card">
-            <h2>For fans</h2>
-            <p>
-              Subscribe to your favorite pet creators and unlock exclusive content.
-            </p>
-            <div class="btnRow" style="margin-top:12px;">
-              <a class="btn" href="fans.html">Fan area →</a>
-              <a class="ghost" href="faq-fans.html">Fan FAQ</a>
+              <div class="btnRow" style="margin-top:12px;">
+                <a class="btn" href="creators.html">Creator area →</a>
+                <a class="ghost" href="faq-creators.html">Creator FAQ</a>
+              </div>
             </div>
           </div>
 
-          <div class="card">
-            <h2>For creators</h2>
-            <p>
-              Build your creator profile, publish posts, and monetize with subscriptions.
-            </p>
-            <div class="btnRow" style="margin-top:12px;">
-              <a class="btn" href="creators.html">Creator area →</a>
-              <a class="ghost" href="faq-creators.html">Creator FAQ</a>
-            </div>
+          <div class="mini">
+            Support: <b>onlypawssupp@gmail.com</b>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="brandImage">
+            <img src="assets/onlypaws-index.png" alt="OnlyPaws thumbnail" />
           </div>
 
-        </div>
+          <div class="supportCard">
+            <h3>Support OnlyPaws 🐾</h3>
 
-        <div class="mini">
-          Support: <b>onlypawssupp@gmail.com</b>
+            <p>
+              This is a recurring support contribution billed every 3 months.
+              It does not unlock any features or memberships.
+              It simply helps us keep OnlyPaws alive, improve the platform,
+              and take care of our furry friends 💜
+            </p>
+
+            <div class="btnRow" style="margin-top:14px;">
+              <button class="btn" id="supportUsBtn" type="button">
+                Support OnlyPaws 🐾
+              </button>
+            </div>
+
+            <div id="supportUsMsg" class="authMsg"></div>
+
+            <div style="margin-top:10px;color:rgba(255,255,255,.78);font-size:13px;line-height:1.5;">
+              Cancel anytime • Secure payments via Stripe
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- RIGHT -->
-      <div class="panel">
-
-        <div class="brandImage">
-          <img src="assets/onlypaws-index.png" alt="OnlyPaws thumbnail">
-        </div>
-
-        <h2 style="margin:14px 0 10px;">Support OnlyPaws</h2>
-
-        <p class="sub" style="font-size:1rem;">
-          This is a recurring support contribution billed every 3 months.
-          It does not unlock any features or memberships.
-          It simply helps us keep OnlyPaws alive,
-          improve the platform, and take care of our furry friends 💜
-        </p>
-
-        <a class="btn"
-           href="https://buy.stripe.com/4gM14ocjm5qec9w04n5wI05"
-           target="_blank"
-           style="margin-top:14px;">
-          Support OnlyPaws
-        </a>
-
-        <div style="margin-top:10px;color:rgba(255,255,255,.78);font-size:13px;line-height:1.5;">
-          Cancel anytime • Secure payments via Stripe
-        </div>
-
-      </div>
+      <div class="footerWrap" id="footer-placeholder"></div>
     </div>
-
   </div>
 
-  <!-- FOOTER -->
-  <div id="footer-placeholder"></div>
-
-  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
+  <script src="js/nav.js"></script>
   <script src="js/partials.js"></script>
+  <script src="js/support-us.js"></script>
 
   <script>
-    (async () => {
+    function hideCurrentMarketingLink() {
+      const path = window.location.pathname.toLowerCase();
+      let current = "index";
+
+      if (path.includes("creators")) current = "creators";
+      else if (path.includes("fans")) current = "fans";
+      else if (path.includes("index") || path.endsWith("/")) current = "index";
+
+      document.querySelectorAll("[data-page]").forEach(link => {
+        if (link.dataset.page === current) {
+          link.remove();
+        }
+      });
+    }
+
+    window.addEventListener("DOMContentLoaded", async () => {
       await loadMarketingLayout();
+      hideCurrentMarketingLink();
+
+      if (typeof initNav === "function") {
+        await initNav();
+      }
+
+      if (typeof initSupportUsButton === "function") {
+        await initSupportUsButton({
+          buttonId: "supportUsBtn",
+          messageId: "supportUsMsg",
+          loginRedirect: "fans.html?support=1",
+          successPath: "/thank-you.html",
+          cancelPath: "/index.html"
+        });
+      }
 
       try {
         const { data } = await onlypawsClient.auth.getSession();
         if (data?.session) {
           window.location.href = "feed.html";
         }
-      } catch (e) {}
-    })();
+      } catch (e) {
+        console.warn("auto-redirect skipped:", e);
+      }
+    });
   </script>
-
 </body>
 </html>
