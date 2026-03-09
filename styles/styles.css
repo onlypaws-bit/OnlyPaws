@@ -10,18 +10,24 @@
   --shadow: rgba(0,0,0,.25);
 }
 
-*{box-sizing:border-box}
+*{
+  box-sizing:border-box;
+}
 
 body{
   margin:0;
   font-family: Arial, sans-serif;
   color:var(--text);
+
   background:
     radial-gradient(1200px 700px at 20% 10%, rgba(255,255,255,.18), transparent 55%),
     radial-gradient(1000px 650px at 90% 30%, rgba(0,0,0,.22), transparent 55%),
     linear-gradient(135deg, var(--bg1), var(--bg2));
+
   min-height:100vh;
 }
+
+/* ===== WRAP ===== */
 
 .wrap{
   max-width:1040px;
@@ -29,12 +35,14 @@ body{
   padding:0 18px 70px;
 }
 
+/* ===== NAV ===== */
+
 .nav{
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap:14px;
-  margin:18px 0;
+  margin:12px 0 8px;
 }
 
 .brand{
@@ -70,6 +78,25 @@ body{
   gap:10px;
 }
 
+/* ===== MARKETING NAV ===== */
+
+.marketingLinks{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.navLink{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:88px;
+}
+
+/* ===== PILLS ===== */
+
 .pill{
   padding:10px 14px;
   border-radius:999px;
@@ -79,6 +106,8 @@ body{
   color:rgba(255,255,255,.85);
 }
 
+/* ===== PANELS ===== */
+
 .panel{
   border-radius:22px;
   padding:26px;
@@ -87,6 +116,8 @@ body{
   backdrop-filter: blur(10px);
   box-shadow:0 20px 45px var(--shadow);
 }
+
+/* ===== TYPO ===== */
 
 h1{
   margin:10px 0;
@@ -103,6 +134,8 @@ h2{
   font-size:1.08rem;
   line-height:1.55;
 }
+
+/* ===== BUTTONS ===== */
 
 .btnRow{
   display:flex;
@@ -135,6 +168,8 @@ h2{
   font-weight:800;
 }
 
+/* ===== HERO ===== */
+
 .hero{
   display:grid;
   grid-template-columns:1.1fr .9fr;
@@ -142,8 +177,12 @@ h2{
 }
 
 @media (max-width:920px){
-  .hero{grid-template-columns:1fr;}
+  .hero{
+    grid-template-columns:1fr;
+  }
 }
+
+/* ===== STACK ===== */
 
 .cardsStack{
   margin-top:16px;
@@ -168,6 +207,8 @@ h2{
   text-align:center;
 }
 
+/* ===== BRAND IMAGE ===== */
+
 .brandImage{
   border-radius:18px;
   background: rgba(255,255,255,.08);
@@ -181,6 +222,8 @@ h2{
   max-width:420px;
   border-radius:16px;
 }
+
+/* ===== AUTH ===== */
 
 .authMsg{
   margin-top:10px;
@@ -200,6 +243,8 @@ h2{
   font-size:13px;
   color:rgba(255,255,255,.75);
 }
+
+/* ===== FOOTER ===== */
 
 .globalFooter{
   text-align:center;
@@ -258,6 +303,8 @@ h2{
   justify-content:center;
 }
 
+/* ===== POSTS ===== */
+
 .posts{
   display:grid;
   gap:16px;
@@ -302,11 +349,15 @@ h2{
   width:100%;
 }
 
+/* ===== DEBUG ===== */
+
 .debug{
   margin-top:10px;
   font-size:12px;
   color:#ffdede;
 }
+
+/* ===== MEDIA MODAL ===== */
 
 .mediaModal{
   position:fixed;
@@ -338,4 +389,27 @@ h2{
   font-size:28px;
   color:white;
   cursor:pointer;
+}
+
+/* ===== MOBILE ===== */
+
+@media (max-width:820px){
+
+  .nav{
+    flex-direction:column;
+    align-items:flex-start;
+    gap:12px;
+  }
+
+  .navRight{
+    width:100%;
+    justify-content:flex-start;
+    flex-wrap:wrap;
+  }
+
+  .marketingLinks{
+    width:100%;
+    justify-content:flex-start;
+  }
+
 }
