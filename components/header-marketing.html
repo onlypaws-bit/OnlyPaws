@@ -7,28 +7,14 @@
   </a>
 
   <div class="navRight marketingLinks">
-    <a class="ghost navLink" href="index.html" data-marketing-link="index">Home</a>
-    <a class="ghost navLink" href="creators.html" data-marketing-link="creators">Creators</a>
-    <a class="ghost navLink" href="fans.html" data-marketing-link="fans">Fans</a>
-    <a class="ghost navLink" href="feed.html" data-marketing-link="feed">Feed</a>
+    <a class="ghost navLink" href="index.html">Home</a>
+    <a class="ghost navLink" href="creators.html">Creators</a>
+    <a class="ghost navLink" href="fans.html">Fans</a>
+    <a class="ghost navLink" href="feed.html">Feed</a>
+
+    <a class="btn navLink" id="navProfile" href="profile.html" style="display:none;">Profile</a>
+    <a class="btn navLink" id="navFanDash" href="fan-dash.html" style="display:none;">Dashboard</a>
+    <a class="btn navLink" id="navCreatorDash" href="creator-dash.html" style="display:none;">Dashboard</a>
+    <button class="btn navLink" id="navLogout" type="button" style="display:none;">Log out</button>
   </div>
 </div>
-
-<script>
-  (function () {
-    const path = window.location.pathname.toLowerCase();
-    let current = "index";
-
-    if (path.includes("creators")) current = "creators";
-    else if (path.includes("fans")) current = "fans";
-    else if (path.includes("feed")) current = "feed";
-    else if (path.includes("index")) current = "index";
-
-    document.querySelectorAll("[data-marketing-link]").forEach(link => {
-      if (link.dataset.marketingLink === current) {
-        link.style.background = "rgba(255,255,255,.22)";
-        link.style.border = "1px solid rgba(255,255,255,.26)";
-      }
-    });
-  })();
-</script>
