@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <title>OnlyPaws — For Creators</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="stylesheet" href="styles/styles.css" />
+
   <style>
     :root{
       --bg1:#6B4EFF;
@@ -15,7 +18,9 @@
       --btn:#ffffff;
       --btnText:#6B4EFF;
     }
+
     *{box-sizing:border-box}
+
     body{
       margin:0;
       font-family: Arial, sans-serif;
@@ -26,60 +31,64 @@
         linear-gradient(135deg, var(--bg1), var(--bg2));
       min-height:100vh;
     }
-    .wrap{max-width:1040px;margin:0 auto;padding:28px 18px 70px;}
 
-    .nav{
-      display:flex;align-items:center;justify-content:space-between;gap:14px;
-      margin-bottom:28px;
-    }
-    .brand{
-      display:flex;align-items:center;gap:12px;
-      text-decoration:none;color:white;font-weight:900;
-      letter-spacing:.2px;
-      user-select:none;
-    }
-    .brandLogo{
-      width:62px;height:62px;border-radius:14px;
-      background: rgba(255,255,255,.16);
-      border:1px solid rgba(255,255,255,.18);
-      display:flex;align-items:center;justify-content:center;
-      overflow:hidden;
-    }
-    .brandLogo img{width:46px;height:46px;object-fit:contain;}
-    .brandText{font-size:1.1rem;}
-    .pill{
-      padding:8px 14px;border-radius:999px;
-      background: rgba(255,255,255,.12);
-      border:1px solid rgba(255,255,255,.18);
-      font-size:13px;color:rgba(255,255,255,.85);
-      white-space:nowrap;
+    .wrap{
+      max-width:1040px;
+      margin:0 auto;
+      padding:28px 18px 70px;
     }
 
     .hero{
       display:grid;
-      grid-template-columns: 1.1fr .9fr;
+      grid-template-columns:1.1fr .9fr;
       gap:16px;
       align-items:stretch;
+      margin-top:18px;
     }
-    @media (max-width: 920px){ .hero{grid-template-columns:1fr;} }
+
+    @media (max-width: 920px){
+      .hero{grid-template-columns:1fr;}
+    }
 
     .panel{
-      border-radius:22px;padding:26px;
-      background: var(--card);
+      border-radius:22px;
+      padding:26px;
+      background:var(--card);
       border:1px solid var(--stroke);
-      backdrop-filter: blur(10px);
+      backdrop-filter:blur(10px);
       box-shadow:0 20px 45px rgba(0,0,0,.25);
     }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:8px 14px;
+      border-radius:999px;
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      font-size:13px;
+      color:rgba(255,255,255,.88);
+      white-space:nowrap;
+    }
+
     h1{
-      margin:10px 0 10px;
-      font-size: clamp(2.1rem, 4vw, 2.8rem);
+      margin:12px 0 10px;
+      font-size:clamp(2.1rem, 4vw, 2.8rem);
       line-height:1.05;
       letter-spacing:-0.6px;
     }
+
+    .sectionTitle{
+      margin:0 0 10px;
+      font-size:1.6rem;
+      line-height:1.15;
+    }
+
     .sub{
       margin:0;
       color:var(--muted);
-      font-size:1.08rem;
+      font-size:1.05rem;
       line-height:1.55;
       max-width:60ch;
     }
@@ -92,54 +101,79 @@
       font-size:14px;
       line-height:1.5;
     }
+
     .listItem{
-      background: rgba(255,255,255,.10);
+      background:rgba(255,255,255,.10);
       border:1px solid rgba(255,255,255,.16);
       border-radius:16px;
       padding:12px 14px;
     }
 
-    .btnRow{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px;align-items:center;}
-    .btn{
-      display:inline-flex;align-items:center;justify-content:center;
-      padding:12px 16px;border-radius:999px;
-      background: var(--btn); color: var(--btnText);
-      text-decoration:none; font-weight:900;
-      box-shadow:0 14px 30px rgba(0,0,0,.22);
-      transition: transform .18s ease, opacity .18s ease;
-      border:none;
-      cursor:pointer;
-      white-space:nowrap;
+    .btnRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:18px;
+      align-items:center;
     }
-    .btn:hover{transform: translateY(-1px) scale(1.02)}
+
+    .btn,
     .ghost{
-      display:inline-flex;align-items:center;justify-content:center;
-      padding:12px 16px;border-radius:999px;
-      background: rgba(255,255,255,.12);
-      border:1px solid rgba(255,255,255,.18);
-      color: white;
-      text-decoration:none; font-weight:800;
-      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:12px 16px;
+      border-radius:999px;
+      text-decoration:none;
+      font-weight:900;
       white-space:nowrap;
+      transition:transform .18s ease, opacity .18s ease, background .18s ease;
+      cursor:pointer;
+      font-size:14px;
+    }
+
+    .btn{
+      background:var(--btn);
+      color:var(--btnText);
+      border:none;
+      box-shadow:0 14px 30px rgba(0,0,0,.22);
+    }
+
+    .btn:hover,
+    .ghost:hover{
+      transform:translateY(-1px) scale(1.02);
+    }
+
+    .ghost{
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      color:#fff;
     }
 
     .authBox{
       margin-top:18px;
       padding:16px;
       border-radius:18px;
-      background: rgba(255,255,255,.08);
+      background:rgba(255,255,255,.08);
       border:1px solid rgba(255,255,255,.16);
     }
+
     .authBox input{
       width:100%;
       padding:12px;
       border-radius:14px;
       border:1px solid rgba(255,255,255,.18);
-      background: rgba(255,255,255,.12);
+      background:rgba(255,255,255,.12);
       color:white;
       outline:none;
       margin-top:10px;
+      font-size:14px;
     }
+
+    .authBox input::placeholder{
+      color:rgba(255,255,255,.65);
+    }
+
     .authMsg{
       margin-top:10px;
       font-size:13px;
@@ -150,51 +184,11 @@
 
     .note{
       margin-top:16px;
-      color: rgba(255,255,255,.78);
+      color:rgba(255,255,255,.78);
       font-size:13px;
       line-height:1.5;
     }
 
-    /* ===== GLOBAL FOOTER ===== */
-
-    .globalFooter {
-      text-align: center;
-      padding: 30px 20px;
-      font-size: 14px;
-      opacity: 0.9;
-      line-height: 1.6;
-    }
-
-    .globalFooter .small {
-      margin-top: 6px;
-      font-size: 13px;
-      opacity: 0.8;
-    }
-
-    .globalFooter .footerLinks {
-      margin-top: 14px;
-    }
-
-    .globalFooter a {
-      color: rgba(255,255,255,0.9);
-      text-decoration: none;
-      opacity: 0.85;
-      transition: opacity 0.2s ease, text-decoration 0.2s ease;
-    }
-
-    .globalFooter a:hover {
-      text-decoration: underline;
-      opacity: 1;
-    }
-
-    .smallLegal{
-      display:inline-block;
-      margin-top:6px;
-      opacity:.85;
-      font-size:12px;
-    }
-
-    /* added: forgot/reset UI (minimal, matches your look) */
     .forgotRow{
       margin-top:12px;
       display:flex;
@@ -203,6 +197,7 @@
       gap:10px;
       flex-wrap:wrap;
     }
+
     .tinyLink{
       font-size:13px;
       color:rgba(255,255,255,.85);
@@ -212,55 +207,96 @@
       border:none;
       padding:0;
     }
+
     .resetBox{
       margin-top:12px;
       padding:12px 14px;
       border-radius:16px;
-      background: rgba(0,0,0,.14);
+      background:rgba(0,0,0,.14);
       border:1px solid rgba(255,255,255,.16);
       display:none;
     }
-    .resetBox .btnRow{margin-top:10px}
 
-    .support-image {
-      width: 100%;
-      margin-bottom: 16px;
+    .resetBox .btnRow{
+      margin-top:10px;
     }
 
-    .support-image img {
-      width: 100%;
-      max-height: 180px;
-      object-fit: cover;
-      border-radius: 16px;
-      display: block;
+    .supportCard{
+      margin-top:18px;
+      padding:16px;
+      border-radius:18px;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.16);
+    }
+
+    .supportCard img{
+      width:100%;
+      max-height:190px;
+      object-fit:cover;
+      border-radius:16px;
+      display:block;
+      margin-bottom:14px;
+    }
+
+    .supportCard h3{
+      margin:0 0 10px;
+      font-size:1.2rem;
+    }
+
+    .supportCard p{
+      margin:0;
+      color:rgba(255,255,255,.86);
+      line-height:1.6;
+      font-size:14px;
+    }
+
+    .planBox{
+      margin-top:16px;
+      padding:14px 16px;
+      border-radius:18px;
+      background:rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.16);
+    }
+
+    .planPrice{
+      margin-top:10px;
+      font-size:1.9rem;
+      font-weight:900;
+      line-height:1;
+    }
+
+    .planMini{
+      margin-top:8px;
+      color:rgba(255,255,255,.76);
+      font-size:13px;
+      line-height:1.5;
+    }
+
+    .footerWrap{
+      margin-top:28px;
     }
   </style>
 </head>
 
 <body>
   <div class="wrap">
-
-    <div class="nav">
-      <a href="index.html" class="brand">
-        <div class="brandLogo"><img src="logo.png" alt="OnlyPaws logo"></div>
-        <span class="brandText">OnlyPaws</span>
-      </a>
-      <div class="pill">For Creators</div>
-    </div>
+    <div id="header-placeholder"></div>
 
     <div class="hero">
       <div class="panel">
         <div class="pill">Publish pet content. Earn support.</div>
+
         <h1>Become a creator</h1>
+
         <p class="sub">
           Build your creator profile, showcase your pets, and monetize your content with subscriptions.
           Payments are handled securely through Stripe.
         </p>
 
         <div class="list">
-          <div class="listItem">📸 Post exclusive photos & videos</div>
+          <div class="listItem">📸 Post exclusive photos &amp; videos</div>
           <div class="listItem">🐾 Build a creator profile with your pets</div>
-          <div class="listItem">💳 Secure payouts & billing via Stripe</div>
+          <div class="listItem">💳 Secure payouts &amp; billing via Stripe</div>
           <div class="listItem">🔒 Pet-first content policy</div>
         </div>
 
@@ -285,6 +321,7 @@
               <div style="font-size:13px;color:rgba(255,255,255,.85);line-height:1.45;">
                 Send a password reset email to the address above.
               </div>
+
               <div class="btnRow">
                 <button type="button" class="btn" id="sendResetBtn">Send reset email</button>
                 <button type="button" class="ghost" id="cancelResetBtn">Cancel</button>
@@ -296,80 +333,73 @@
         </div>
 
         <div class="note">
-          After signup/login you’ll be redirected to your profile.
+          After signup or login you’ll be redirected to your creator area.
         </div>
       </div>
 
       <div class="panel">
-        <h2 style="margin:0 0 10px;">Creator Plan</h2>
+        <div class="pill">For creators</div>
+
+        <h2 class="sectionTitle" style="margin-top:12px;">Creator Plan</h2>
+
         <p class="sub" style="font-size:1rem;">
           Creator Plan costs €10/month and requires an active account.
-        </p>
-        Registration is required before purchasing.
+          Registration is required before purchasing.
         </p>
 
-        <div class="note">Cancel anytime • Secure payments via Stripe</div>
+        <div class="planBox">
+          <div style="font-size:14px;font-weight:800;">Monthly creator access</div>
+          <div class="planPrice">€10<span style="font-size:1rem;font-weight:700;">/month</span></div>
+          <div class="planMini">
+            Cancel anytime • Secure payments via Stripe
+          </div>
+        </div>
 
         <div class="btnRow" style="margin-top:16px;">
           <a class="ghost" href="faq-creators.html">Creator FAQ</a>
           <a class="ghost" href="fans.html">I’m a fan</a>
         </div>
 
-        <div class="card" style="margin-top:16px;">
-          <img src="onlypaws-creators.png" alt="Support OnlyPaws"
-               style="width:100%;border-radius:16px;margin-bottom:12px;">
+        <div class="supportCard">
+          <img src="assets/onlypaws-creators.png" alt="OnlyPaws creators" />
 
           <h3>Support Us 🐾</h3>
 
           <p>
             Love OnlyPaws and want to support the project?
-            Support Us.
             This is a recurring support contribution billed every 3 months.
             It does not unlock any features or memberships.
-
             It simply helps us keep OnlyPaws alive, improve the platform,
             and take care of our furry friends 💜
           </p>
 
-          <a class="btn primary"
-             href="https://buy.stripe.com/4gM14ocjm5qec9w04n5wI05"
-             target="_blank" rel="noopener">
-             Support OnlyPaws 🐾
-          </a>
+          <div class="btnRow" style="margin-top:14px;">
+            <a
+              class="btn"
+              href="https://buy.stripe.com/4gM14ocjm5qec9w04n5wI05"
+              target="_blank"
+              rel="noopener"
+            >
+              Support OnlyPaws 🐾
+            </a>
+          </div>
         </div>
       </div>
     </div>
 
-    <footer class="globalFooter">
-      <div class="footerTop">
-        © 2026 OnlyPaws • Built with toe beans energy 🐾
-      </div>
-
-      <div class="small">
-        OnlyPaws is an independent digital platform. Features may evolve over time.
-      </div>
-
-      <div class="footerLinks">
-        <a href="content-policy.html">Content Policy</a>
-        &nbsp;·&nbsp;
-        <a href="privacy-policy.html">Privacy Policy</a>
-        &nbsp;·&nbsp;
-        <a href="terms.html">Terms of Service</a>
-        &nbsp;·&nbsp;
-        <a href="mailto:onlypawssupp@gmail.com">Contact Us</a>
-      </div>
-    </footer>
-
+    <div class="footerWrap" id="footer-placeholder"></div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="supabase.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/partials.js"></script>
 
   <script>
     const form = document.getElementById("creator-auth-form");
     const msg = document.getElementById("creatorMsg");
     const emailEl = document.getElementById("creator-email");
-    const passEl  = document.getElementById("creator-password");
+    const passEl = document.getElementById("creator-password");
     const loginBtn = document.getElementById("creatorLoginBtn");
     const signupBtn = document.getElementById("creatorSignupBtn");
 
@@ -378,40 +408,41 @@
     const sendResetBtn = document.getElementById("sendResetBtn");
     const cancelResetBtn = document.getElementById("cancelResetBtn");
 
-    function setMsg(t){ msg.textContent = t || ""; }
+    function setMsg(text) {
+      msg.textContent = text || "";
+    }
 
-    // Default after auth: FEED (evita loading infinito)
-    function getNextPath(){
+    function getNextPath() {
       const next = new URLSearchParams(window.location.search).get("next");
-      if(next === "profile") return "profile.html";
-      if(next === "feed") return "feed.html";
-      if(next && next.endsWith(".html")) return next;
+      if (next === "profile") return "profile.html";
+      if (next === "feed") return "feed.html";
+      if (next && next.endsWith(".html")) return next;
       return "feed.html";
     }
 
-    function setBusy(b){
-      signupBtn.disabled = b;
-      loginBtn.disabled = b;
-      emailEl.disabled = b;
-      passEl.disabled = b;
-      forgotBtn.disabled = b;
-      sendResetBtn.disabled = b;
-      cancelResetBtn.disabled = b;
+    function setBusy(isBusy) {
+      signupBtn.disabled = isBusy;
+      loginBtn.disabled = isBusy;
+      emailEl.disabled = isBusy;
+      passEl.disabled = isBusy;
+      forgotBtn.disabled = isBusy;
+      sendResetBtn.disabled = isBusy;
+      cancelResetBtn.disabled = isBusy;
     }
 
-    function showResetBox(show){
+    function showResetBox(show) {
       resetBox.style.display = show ? "block" : "none";
     }
 
     if (typeof onlypawsClient === "undefined") {
-      setMsg("❌ onlypawsClient not found.\nCheck supabase.js path + script order.");
+      setMsg("❌ onlypawsClient not found. Check supabase.js path + script order.");
       console.error("onlypawsClient is undefined.");
     }
 
-    // creators.html setta solo identity (profiles.role) + wallet.
     async function bootstrapCreatorIdentity() {
       const { data: sData, error: sErr } = await onlypawsClient.auth.getSession();
       if (sErr) throw sErr;
+
       const user = sData?.session?.user;
       if (!user?.id) throw new Error("No user session");
 
@@ -420,26 +451,33 @@
 
       const pRes = await onlypawsClient
         .from("profiles")
-        .upsert({ user_id: uid, role: "creator", updated_at: now }, { onConflict: "user_id" })
+        .upsert(
+          { user_id: uid, role: "creator", updated_at: now },
+          { onConflict: "user_id" }
+        )
         .select()
         .maybeSingle();
+
       if (pRes.error) throw pRes.error;
 
       const wRes = await onlypawsClient
         .from("wallets")
-        .upsert({ profile_id: uid }, { onConflict: "profile_id" })
+        .upsert(
+          { profile_id: uid },
+          { onConflict: "profile_id" }
+        )
         .select()
         .maybeSingle();
+
       if (wRes.error) throw wRes.error;
 
       return { profile: pRes.data, wallet: wRes.data };
     }
 
-    function redirectAfterAuth(){
+    function redirectAfterAuth() {
       window.location.href = getNextPath();
     }
 
-    // On page load: se c'è già sessione, vai diretto (senza bootstrap)
     (async () => {
       try {
         const { data: s } = await onlypawsClient.auth.getSession();
@@ -449,7 +487,6 @@
       }
     })();
 
-    // Forgot password (UI)
     forgotBtn.addEventListener("click", () => {
       showResetBox(true);
       setMsg("");
@@ -460,12 +497,13 @@
       setMsg("");
     });
 
-    // Send reset email
     sendResetBtn.addEventListener("click", async () => {
       setBusy(true);
-      try{
+
+      try {
         const email = (emailEl.value || "").trim();
-        if(!email){
+
+        if (!email) {
           setMsg("Please enter your email first.");
           return;
         }
@@ -473,9 +511,10 @@
         const redirectTo = window.location.origin + "/reset-password.html";
 
         setMsg("Sending reset email…");
+
         const { error } = await onlypawsClient.auth.resetPasswordForEmail(email, { redirectTo });
 
-        if(error){
+        if (error) {
           setMsg("❌ " + error.message);
           return;
         }
@@ -489,30 +528,34 @@
       }
     });
 
-    // ✅ FIX: signup button actually triggers the form submit handler
-    // (login stays submit as requested)
     signupBtn.addEventListener("click", (e) => {
       e.preventDefault();
+
       if (typeof form.requestSubmit === "function") {
         form.requestSubmit();
       } else {
-        // fallback for older browsers
         form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
       }
     });
 
-    // SIGN UP (submit handler)
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       setMsg("Creating your creator account…");
       setBusy(true);
 
-      try{
+      try {
         const email = (emailEl.value || "").trim();
         const password = passEl.value || "";
 
-        if(!email){ setMsg("Please enter your email."); return; }
-        if(password.length < 6){ setMsg("Password must be at least 6 characters."); return; }
+        if (!email) {
+          setMsg("Please enter your email.");
+          return;
+        }
+
+        if (password.length < 6) {
+          setMsg("Password must be at least 6 characters.");
+          return;
+        }
 
         const { data, error } = await onlypawsClient.auth.signUp({
           email,
@@ -523,12 +566,12 @@
           }
         });
 
-        if(error){
+        if (error) {
           setMsg("❌ " + error.message);
           return;
         }
 
-        if(data?.session){
+        if (data?.session) {
           await bootstrapCreatorIdentity();
           window.location.href = "profile.html";
           return;
@@ -542,27 +585,33 @@
       }
     });
 
-    // LOG IN (kept as submit button; we intercept click)
     loginBtn.addEventListener("click", async (e) => {
       e.preventDefault();
       setMsg("Logging in…");
       setBusy(true);
 
-      try{
+      try {
         const email = (emailEl.value || "").trim();
         const password = passEl.value || "";
 
-        if(!email){ setMsg("Please enter your email."); return; }
-        if(!password){ setMsg("Please enter your password."); return; }
+        if (!email) {
+          setMsg("Please enter your email.");
+          return;
+        }
+
+        if (!password) {
+          setMsg("Please enter your password.");
+          return;
+        }
 
         const { data, error } = await onlypawsClient.auth.signInWithPassword({ email, password });
 
-        if(error){
+        if (error) {
           setMsg("❌ " + error.message);
           return;
         }
 
-        if(data?.session){
+        if (data?.session) {
           await bootstrapCreatorIdentity();
           window.location.href = "feed.html";
           return;
@@ -574,6 +623,5 @@
       }
     });
   </script>
-
 </body>
 </html>
