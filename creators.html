@@ -403,9 +403,13 @@
   <script src="js/support-us.js"></script>
 
   <script>
-    loadMarketingLayout();
-
     window.addEventListener("DOMContentLoaded", async () => {
+      await loadMarketingLayout();
+
+      if (typeof initNav === "function") {
+        await initNav();
+      }
+
       if (typeof initSupportUsButton === "function") {
         await initSupportUsButton({
           buttonId: "supportUsBtn",
