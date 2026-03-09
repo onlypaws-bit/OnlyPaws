@@ -100,6 +100,7 @@ body{
   align-items:center;
   justify-content:center;
   min-width:88px;
+  white-space:nowrap;
 }
 
 .marketingTextLink{
@@ -114,6 +115,7 @@ body{
   font-weight:800;
   background:transparent;
   border:1px solid transparent;
+  white-space:nowrap;
   transition:
     background .18s ease,
     border-color .18s ease,
@@ -129,6 +131,7 @@ body{
   transform:translateY(-1px);
 }
 
+/* opzionale: non serve se rimuovi il link corrente, ma lo lasciamo */
 .activeMarketingTextLink{
   background:rgba(255,255,255,.14);
   border:1px solid rgba(255,255,255,.18);
@@ -199,6 +202,7 @@ h2{
   font-weight:900;
   border:none;
   cursor:pointer;
+  white-space:nowrap;
   transition:
     transform .18s ease,
     opacity .18s ease,
@@ -221,6 +225,7 @@ h2{
   color:white;
   text-decoration:none;
   font-weight:800;
+  white-space:nowrap;
   transition:
     transform .18s ease,
     opacity .18s ease,
