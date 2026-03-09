@@ -1,4 +1,4 @@
-<div class="nav marketingNav cleanMarketingNav">
+<div class="nav marketingNav">
   <a href="index.html" class="brand">
     <div class="brandLogo">
       <img src="assets/logo.png" alt="OnlyPaws logo">
@@ -6,11 +6,10 @@
     <span class="brandText">OnlyPaws</span>
   </a>
 
-  <div class="navRight marketingLinks cleanMarketingLinks">
+  <div class="navRight marketingLinks">
     <a class="marketingTextLink" href="index.html" data-page="index">Home</a>
     <a class="marketingTextLink" href="creators.html" data-page="creators">Creators</a>
     <a class="marketingTextLink" href="fans.html" data-page="fans">Fans</a>
-    <a class="marketingTextLink" href="feed.html" data-page="feed">Feed</a>
 
     <a class="btn navLink" id="navProfile" href="profile.html" style="display:none;">Profile</a>
     <a class="btn navLink" id="navFanDash" href="fan-dash.html" style="display:none;">Dashboard</a>
@@ -20,22 +19,18 @@
 </div>
 
 <script>
-(function () {
+  (function () {
+    const path = window.location.pathname.toLowerCase();
+    let current = "index";
 
-  const path = window.location.pathname.toLowerCase();
-  let current = "index";
+    if (path.includes("creators")) current = "creators";
+    else if (path.includes("fans")) current = "fans";
+    else if (path.includes("index") || path.endsWith("/")) current = "index";
 
-  if (path.includes("creators")) current = "creators";
-  else if (path.includes("fans")) current = "fans";
-  else if (path.includes("index") || path.endsWith("/")) current = "index";
-
-  document.querySelectorAll("[data-page]").forEach(link => {
-
-    if (link.dataset.page === current) {
-      link.style.display = "none";
-    }
-
-  });
-
-})();
+    document.querySelectorAll("[data-page]").forEach(link => {
+      if (link.dataset.page === current) {
+        link.remove();
+      }
+    });
+  })();
 </script>
