@@ -17,20 +17,3 @@
     <button class="btn navLink" id="navLogout" type="button" style="display:none;">Log out</button>
   </div>
 </div>
-
-<script>
-  (function () {
-    const path = window.location.pathname.toLowerCase();
-    let current = "index";
-
-    if (path.includes("creators")) current = "creators";
-    else if (path.includes("fans")) current = "fans";
-    else if (path.includes("index") || path.endsWith("/")) current = "index";
-
-    document.querySelectorAll("[data-page]").forEach(link => {
-      if (link.dataset.page === current) {
-        link.remove();
-      }
-    });
-  })();
-</script>
