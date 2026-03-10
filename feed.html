@@ -16,7 +16,9 @@
       --btnText:#6B4EFF;
       --shadow: rgba(0,0,0,.25);
     }
+
     *{box-sizing:border-box}
+
     body{
       margin:0;
       font-family: Arial, sans-serif;
@@ -27,187 +29,350 @@
         linear-gradient(135deg, var(--bg1), var(--bg2));
       min-height:100vh;
     }
-    .wrap{max-width:1040px;margin:0 auto;padding:28px 18px 70px;}
 
-    .nav{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px;}
-    .brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:white;font-weight:900;letter-spacing:.2px;user-select:none;}
+    .wrap{
+      max-width:1040px;
+      margin:0 auto;
+      padding:28px 18px 70px;
+    }
+
+    .nav{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+      margin-bottom:18px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      text-decoration:none;
+      color:white;
+      font-weight:900;
+      letter-spacing:.2px;
+      user-select:none;
+    }
+
     .brandLogo{
-      width:62px;height:62px;border-radius:14px;background:rgba(255,255,255,.16);
-      border:1px solid rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;overflow:hidden;
+      width:62px;
+      height:62px;
+      border-radius:14px;
+      background:rgba(255,255,255,.16);
+      border:1px solid rgba(255,255,255,.18);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      overflow:hidden;
       transition: transform .18s ease;
     }
-    .brand:hover .brandLogo{transform: translateY(-1px) scale(1.02);}
-    .brandLogo img{width:46px;height:46px;object-fit:contain;}
-    .brandText{font-size:1.1rem;}
 
-    .navRight{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
-    .navBtn{
-      display:inline-flex;align-items:center;justify-content:center;
-      padding:10px 14px;border-radius:999px;background:rgba(255,255,255,.12);
-      border:1px solid rgba(255,255,255,.18);color:white;text-decoration:none;font-weight:900;
-      cursor:pointer; user-select:none; transition: transform .16s ease, background .16s ease, border-color .16s ease;
-      font-size:13px; white-space:nowrap;
+    .brand:hover .brandLogo{
+      transform: translateY(-1px) scale(1.02);
     }
-    .navBtn:hover{transform: translateY(-1px); background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.22);}
-    .navBtn.primary{background:var(--btn);border:none;color:var(--btnText);box-shadow:0 14px 30px rgba(0,0,0,.20);}
-    .navBtn.primary:hover{transform: translateY(-1px) scale(1.01);}
-    .navBtn:active{transform: translateY(0px) scale(.99);}
+
+    .brandLogo img{
+      width:46px;
+      height:46px;
+      object-fit:contain;
+    }
+
+    .brandText{
+      font-size:1.1rem;
+    }
+
+    .navRight{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .navBtn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:10px 14px;
+      border-radius:999px;
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      color:white;
+      text-decoration:none;
+      font-weight:900;
+      cursor:pointer;
+      user-select:none;
+      transition: transform .16s ease, background .16s ease, border-color .16s ease;
+      font-size:13px;
+      white-space:nowrap;
+    }
+
+    .navBtn:hover{
+      transform: translateY(-1px);
+      background: rgba(255,255,255,.14);
+      border-color: rgba(255,255,255,.22);
+    }
+
+    .navBtn.primary{
+      background:var(--btn);
+      border:none;
+      color:var(--btnText);
+      box-shadow:0 14px 30px rgba(0,0,0,.20);
+    }
+
+    .navBtn.primary:hover{
+      transform: translateY(-1px) scale(1.01);
+    }
+
+    .navBtn:active{
+      transform: translateY(0px) scale(.99);
+    }
 
     .panel{
-      border-radius:22px;padding:22px;background:var(--card);
-      border:1px solid var(--stroke);backdrop-filter: blur(10px);
+      border-radius:22px;
+      padding:22px;
+      background:var(--card);
+      border:1px solid var(--stroke);
+      backdrop-filter: blur(10px);
       box-shadow:0 20px 45px var(--shadow);
     }
 
     h1{
       margin:10px 0 10px;
       font-size: clamp(2rem, 4vw, 2.6rem);
-      line-height:1.05; letter-spacing:-0.6px;
+      line-height:1.05;
+      letter-spacing:-0.6px;
     }
-    .sub{margin:0;color:var(--muted);font-size:1.05rem;line-height:1.55;max-width:65ch;}
 
-    .searchRow{margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+    .sub{
+      margin:0;
+      color:var(--muted);
+      font-size:1.05rem;
+      line-height:1.55;
+      max-width:65ch;
+    }
+
+    .searchRow{
+      margin-top:10px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
     .search{
-      flex:1;min-width:240px;padding:12px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.18);
-      background:rgba(255,255,255,.12);color:white;outline:none;
+      flex:1;
+      min-width:240px;
+      padding:12px 14px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(255,255,255,.12);
+      color:white;
+      outline:none;
     }
-    .search::placeholder{color: rgba(255,255,255,.65);}
 
-    .subtleLine{margin-top:12px;color:rgba(255,255,255,.70);font-size:13px;}
-    .subtleLine a{color:rgba(255,255,255,.85);text-decoration:underline;}
+    .search::placeholder{
+      color: rgba(255,255,255,.65);
+    }
+
+    .subtleLine{
+      margin-top:12px;
+      color:rgba(255,255,255,.70);
+      font-size:13px;
+    }
+
+    .subtleLine a{
+      color:rgba(255,255,255,.85);
+      text-decoration:underline;
+    }
 
     .pill{
-      display:inline-flex;gap:8px;align-items:center;
-      padding:10px 14px;border-radius:999px;
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding:10px 14px;
+      border-radius:999px;
       background: rgba(255,255,255,.12);
       border:1px solid rgba(255,255,255,.18);
-      font-size:13px;color:rgba(255,255,255,.85);
-      white-space:nowrap;
-    }
-    .pill{
-      display:inline-flex;gap:8px;align-items:center;
-      padding:10px 14px;border-radius:999px;
-      background: rgba(255,255,255,.12);
-      border:1px solid rgba(255,255,255,.18);
-      font-size:13px;color:rgba(255,255,255,.85);
+      font-size:13px;
+      color:rgba(255,255,255,.85);
       white-space:nowrap;
     }
 
-    .postItem{display:block;}
-    .postCreatorRow{margin-top:12px;margin-bottom:10px;display:flex;justify-content:flex-start;}
-    .postCreatorPill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;background: rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);font-size:13px;color:rgba(255,255,255,.88);text-decoration:none;max-width:100%;}
-    .postCreatorPill:hover{background: rgba(255,255,255,.16);border-color: rgba(255,255,255,.24);}
-    .postCreatorPill:active{transform: translateY(1px);}
-    .postCreatorPill:focus-visible{outline:2px solid rgba(255,255,255,.55);outline-offset:2px;}
+    .hint{
+      color:rgba(255,255,255,.78);
+      font-size:13px;
+      line-height:1.4;
+      margin-top:12px;
+    }
 
-    .hint{color:rgba(255,255,255,.78);font-size:13px;line-height:1.4;margin-top:12px;}
+    .creatorList{
+      margin-top:14px;
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
 
-    /* Creators */
-    .creatorList{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-    @media (max-width: 920px){ .creatorList{grid-template-columns:1fr;} }
+    @media (max-width: 920px){
+      .creatorList{grid-template-columns:1fr;}
+    }
 
-    .creatorLink{text-decoration:none;color:inherit;display:block;border-radius:18px;outline:none;}
+    .creatorLink{
+      text-decoration:none;
+      color:inherit;
+      display:block;
+      border-radius:18px;
+      outline:none;
+    }
+
     .creatorCard{
-      border-radius:18px;padding:14px;background:rgba(255,255,255,.10);
+      border-radius:18px;
+      padding:14px;
+      background:rgba(255,255,255,.10);
       border:1px solid rgba(255,255,255,.16);
-      display:flex;gap:12px;align-items:center;
+      display:flex;
+      gap:12px;
+      align-items:center;
       transition: transform .16s ease, background .16s ease, border-color .16s ease;
     }
-    .creatorLink:hover .creatorCard{transform: translateY(-1px);background: rgba(255,255,255,.13);border-color: rgba(255,255,255,.22);}
-    .creatorLink:active .creatorCard{transform: translateY(0px) scale(.995);}
-    .creatorLink:focus-visible .creatorCard{outline:2px solid rgba(255,255,255,.55);outline-offset:3px;}
+
+    .creatorLink:hover .creatorCard{
+      transform: translateY(-1px);
+      background: rgba(255,255,255,.13);
+      border-color: rgba(255,255,255,.22);
+    }
+
+    .creatorLink:active .creatorCard{
+      transform: translateY(0px) scale(.995);
+    }
+
+    .creatorLink:focus-visible .creatorCard{
+      outline:2px solid rgba(255,255,255,.55);
+      outline-offset:3px;
+    }
 
     .avatar{
-      width:48px;height:48px;border-radius:16px;
+      width:48px;
+      height:48px;
+      border-radius:16px;
       background: rgba(0,0,0,.18);
       border:1px solid rgba(255,255,255,.14);
-      display:flex;align-items:center;justify-content:center;
-      flex:0 0 auto;font-size:20px;overflow:hidden;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      flex:0 0 auto;
+      font-size:20px;
+      overflow:hidden;
     }
-    .avatar img{width:100%;height:100%;object-fit:cover;display:block;}
-    .creatorCard b{display:block}
-    .creatorCard span{display:block;color:rgba(255,255,255,.78);font-size:13px;margin-top:2px;}
 
-    /* Posts */
-    .postsHeader{margin-top:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
-    .postsHeader h2{margin:0;font-size:1.15rem;}
-    .posts{margin-top:12px;display:grid;grid-template-columns:1fr;gap:12px;}
+    .avatar img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+
+    .creatorCard b{display:block}
+    .creatorCard span{
+      display:block;
+      color:rgba(255,255,255,.78);
+      font-size:13px;
+      margin-top:2px;
+    }
+
+    .postsHeader{
+      margin-top:16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    .postsHeader h2{
+      margin:0;
+      font-size:1.15rem;
+    }
+
+    .posts{
+      margin-top:12px;
+      display:grid;
+      grid-template-columns:1fr;
+      gap:12px;
+    }
+
     .postCard{
-      border-radius:22px;padding:18px;background:rgba(255,255,255,.10);
+      border-radius:22px;
+      padding:18px;
+      background:rgba(255,255,255,.10);
       border:1px solid rgba(255,255,255,.16);
       transition: transform .16s ease, background .16s ease, border-color .16s ease;
     }
-    .postCard:hover{transform: translateY(-1px);background: rgba(255,255,255,.12);border-color: rgba(255,255,255,.22);}
-    .postTop{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+
+    .postCard:hover{
+      transform: translateY(-1px);
+      background: rgba(255,255,255,.12);
+      border-color: rgba(255,255,255,.22);
+    }
+
+    .postTop{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
     .badge{
-      display:inline-flex;align-items:center;gap:8px;
-      padding:8px 12px;border-radius:999px;background:rgba(0,0,0,.18);
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      border-radius:999px;
+      background:rgba(0,0,0,.18);
       border:1px solid rgba(255,255,255,.16);
-      font-size:12px;font-weight:900;white-space:nowrap;
-    }
-    .postCard h3{margin:10px 0 8px;font-size:1.15rem;}
-    .postCard p{margin:0;color:rgba(255,255,255,.86);line-height:1.55;white-space:pre-wrap;}
-
-    .mediaWrap{
-      margin-top:12px;border-radius:18px;overflow:hidden;border:1px solid rgba(255,255,255,.14);
-      background:rgba(0,0,0,.18);position:relative;
-    }
-    .mediaWrap img,.mediaWrap video{width:100%;display:block;max-height:460px;object-fit:cover;}
-
-    /* ===== GLOBAL FOOTER ===== */
-
-    .globalFooter {
-      text-align: center;
-      padding: 30px 20px;
-      font-size: 14px;
-      opacity: 0.9;
-      line-height: 1.6;
+      font-size:12px;
+      font-weight:900;
+      white-space:nowrap;
     }
 
-    /* Seconda frase descrittiva */
-    .globalFooter .small {
-      margin-top: 6px;
-      font-size: 13px;
-      opacity: 0.8;
+    .postCard h3{
+      margin:10px 0 8px;
+      font-size:1.15rem;
     }
 
-    /* Spazio tra frase e link */
-    .globalFooter .footerLinks {
-      margin-top: 14px;
-    }
-
-    /* Link footer */
-    .globalFooter a {
-      color: rgba(255,255,255,0.9);
-      text-decoration: none;
-      opacity: 0.85;
-      transition: opacity 0.2s ease, text-decoration 0.2s ease;
-    }
-
-    /* Hover */
-    .globalFooter a:hover {
-      text-decoration: underline;
-      opacity: 1;
-    }
-    .smallLegal{display:inline-block;margin-top:6px;opacity:.85;font-size:12px;}
-
-    /* Debug pill */
-    .debug{
-      margin-top:12px;
-      border-radius:16px;
-      padding:12px 14px;
-      background: rgba(0,0,0,.22);
-      border: 1px solid rgba(255,255,255,.16);
-      color: rgba(255,255,255,.88);
-      font-size: 13px;
-      line-height: 1.45;
-      display:none;
+    .postCard p{
+      margin:0;
+      color:rgba(255,255,255,.86);
+      line-height:1.55;
       white-space:pre-wrap;
     }
+
+    .mediaWrap{
+      margin-top:12px;
+      border-radius:18px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.14);
+      background:rgba(0,0,0,.18);
+      position:relative;
+    }
+
+    .mediaWrap img,
+    .mediaWrap video{
+      width:100%;
+      display:block;
+      max-height:460px;
+      object-fit:cover;
+    }
+
     .lockOverlay{
-      position:absolute; inset:0;
-      display:flex; align-items:center; justify-content:center;
-      gap:10px; flex-direction:column;
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      flex-direction:column;
       background: rgba(0,0,0,.45);
       backdrop-filter: blur(2px);
       padding:18px;
@@ -220,29 +385,75 @@
       border: none;
     }
 
-    .blurred img, .blurred video{
+    .blurred img,
+    .blurred video{
       filter: blur(18px);
       transform: scale(1.03);
     }
 
-    /* Clickable post wrapper */
-    .postLinkWrap{ border-radius:22px; }
-    .postLinkWrap:focus-visible{ outline:2px solid rgba(255,255,255,.55); outline-offset:4px; }
+    .debug{
+      margin-top:12px;
+      border-radius:16px;
+      padding:12px 14px;
+      background: rgba(0,0,0,.22);
+      border: 1px solid rgba(255,255,255,.16);
+      color: rgba(255,255,255,.88);
+      font-size: 13px;
+      line-height: 1.45;
+      display:none;
+      white-space:pre-wrap;
+    }
 
-    /* Media modal (lightbox) */
+    .globalFooter{
+      text-align: center;
+      padding: 30px 20px;
+      font-size: 14px;
+      opacity: 0.9;
+      line-height: 1.6;
+    }
+
+    .globalFooter .small{
+      margin-top: 6px;
+      font-size: 13px;
+      opacity: 0.8;
+    }
+
+    .globalFooter .footerLinks{
+      margin-top: 14px;
+    }
+
+    .globalFooter a{
+      color: rgba(255,255,255,0.9);
+      text-decoration: none;
+      opacity: 0.85;
+      transition: opacity 0.2s ease, text-decoration 0.2s ease;
+    }
+
+    .globalFooter a:hover{
+      text-decoration: underline;
+      opacity: 1;
+    }
+
     .mediaModal{
-      position:fixed; inset:0; z-index:9999;
-      display:none; align-items:center; justify-content:center;
+      position:fixed;
+      inset:0;
+      z-index:9999;
+      display:none;
+      align-items:center;
+      justify-content:center;
       background: rgba(0,0,0,.72);
       backdrop-filter: blur(2px);
-      padding: 18px;
+      padding:18px;
     }
-    .mediaModal.open{ display:flex; }
+
+    .mediaModal.open{
+      display:flex;
+    }
 
     .mediaModalInner{
-      max-width: 94vw;
-      max-height: 94vh;
-      border-radius: 18px;
+      max-width:94vw;
+      max-height:94vh;
+      border-radius:18px;
       overflow:hidden;
       border:1px solid rgba(255,255,255,.16);
       background: rgba(0,0,0,.35);
@@ -253,8 +464,8 @@
     .mediaModalInner img,
     .mediaModalInner video{
       display:block;
-      max-width: 94vw;
-      max-height: 94vh;
+      max-width:94vw;
+      max-height:94vh;
       width:auto;
       height:auto;
       object-fit: contain;
@@ -262,7 +473,9 @@
     }
 
     .mediaModalClose{
-      position:absolute; top:10px; right:10px;
+      position:absolute;
+      top:10px;
+      right:10px;
       border-radius:999px;
       padding:10px 12px;
       background: rgba(255,255,255,.14);
@@ -271,7 +484,10 @@
       font-weight:900;
       cursor:pointer;
     }
-    .mediaModalClose:hover{ background: rgba(255,255,255,.18); }
+
+    .mediaModalClose:hover{
+      background: rgba(255,255,255,.18);
+    }
   </style>
 </head>
 
@@ -286,13 +502,8 @@
 
       <div class="navRight">
         <a class="navBtn primary" id="navProfile" href="profile.html" style="display:none;">Profile</a>
-
-        <!-- FAN dashboard -->
         <a class="navBtn" id="navFanDash" href="fan-dash.html" style="display:none;">Dashboard</a>
-
-        <!-- CREATOR dashboard -->
         <a class="navBtn" id="navCreatorDash" href="creator-dash.html" style="display:none;">Dashboard</a>
-
         <button class="navBtn" id="navLogout" type="button" style="display:none;">Log out</button>
       </div>
     </div>
@@ -390,10 +601,6 @@
       return `creator-profile.html?u=${encodeURIComponent(username)}`;
     }
 
-    function postUrl(postId){
-      return `post.html?id=${encodeURIComponent(postId)}`;
-    }
-
     function avatarHtml(c){
       const url = (c?.avatar_url || "").trim();
       if(url){
@@ -408,10 +615,12 @@
         el.innerHTML = "";
         return;
       }
+
       el.innerHTML = list.map(c => {
         const name = c.display_name || c.username || "Creator";
         const uname = c.username || "username";
         const bio = c.bio || "";
+
         return `
           <a class="creatorLink" href="${creatorProfileUrl(uname)}" aria-label="Open ${esc(name)} profile">
             <div class="creatorCard">
@@ -453,17 +662,9 @@
       `;
     }
 
-    function wirePostCreatorPills(root){
-      (root || document).querySelectorAll(".postCreatorPill").forEach(a => {
-        const stop = (e) => { e.stopPropagation(); };
-        a.addEventListener("click", stop);
-        a.addEventListener("mousedown", stop);
-        a.addEventListener("touchstart", stop, {passive:true});
-      });
-    }
-
     function renderPosts(list){
       const postsEl = document.getElementById("posts");
+
       if(!list || list.length === 0){
         postsEl.innerHTML = `
           <div class="postCard">
@@ -474,50 +675,43 @@
         return;
       }
 
-      // Prefer reusable post-card renderer (adds Like button etc.)
       if(window.OnlyPawsPostCard?.renderPostCard){
         postsEl.innerHTML = list.map(p => {
           const uname = p?.profiles?.username || "creator";
           const locked = Boolean(p.is_locked);
-          const premium = (p.is_paid === true);
 
-          const cardHtml = window.OnlyPawsPostCard.renderPostCard({
-            id: p.id,
-            creator_username: uname,
-            title: p.title || "Post",
-            excerpt: locked ? (p.preview || "Locked content.") : (p.preview || p.content || ""),
-            price_cents: p.price_cents ?? null,
-            currency: p.currency || "eur",
-            is_locked: locked,
-
-            // media
-            media_url: p.media_url || null,
-            media_type: p.media_type || null,
-          });
-
-          const access = (!locked && premium) ? "unlocked" : (premium ? "premium" : "free");
-          return `<div class="postItem"><div class="postCreatorRow"><a class="postCreatorPill" href="${creatorProfileUrl(uname)}">@${esc(uname)}</a></div><div class="postLinkWrap" tabindex="0" data-post-id="${esc(p.id)}" data-creator="${esc(uname)}" data-premium="${premium ? "1" : "0"}" data-locked="${locked ? "1" : "0"}" data-access="${access}">${cardHtml}</div></div>`;
+          return window.OnlyPawsPostCard.renderPostCard({
+  id: p.id,
+  creator_username: uname,
+  creator_name: p?.profiles?.display_name || uname,
+  creator_avatar_url: p?.profiles?.avatar_url || "",
+  title: p.title || "",
+  excerpt: locked ? (p.preview || "Locked content.") : (p.preview || p.content || ""),
+  price_cents: p.price_cents ?? null,
+  currency: p.currency || "eur",
+  is_locked: locked,
+  media_url: p.media_url || null,
+  media_type: p.media_type || null,
+  created_at: p.created_at || null,
+});
         }).join("");
 
         window.OnlyPawsPostCard.initPostCards(postsEl);
-        patchUnlockedBadges(postsEl);
-        removeInnerUserIfPillExists(postsEl);
-        wirePostCreatorPills(document);
         return;
       }
 
-      // Fallback (no post-card.js loaded)
       postsEl.innerHTML = list.map(p => {
         const uname = p?.profiles?.username || "creator";
-        const who = `@${uname}`;
         const title = p.title || "Post";
-        const content = (p.is_locked ? (p.preview || "Locked content.") : (p.content || p.preview || ""));
+        const content = p.is_locked
+          ? (p.preview || "Locked content.")
+          : (p.content || p.preview || "");
         const paidBadge = p.is_paid ? "🔒 PREMIUM" : "🆓 FREE";
 
         return `
           <div class="postCard">
             <div class="postTop">
-              <a class="postCreatorPill" href="${creatorProfileUrl(uname)}" onclick="event.stopPropagation();">@${esc(uname)}</a>
+              <a class="navBtn" href="${creatorProfileUrl(uname)}">@${esc(uname)}</a>
               <div class="badge">${paidBadge}</div>
             </div>
             <h3>${esc(title)}</h3>
@@ -532,7 +726,11 @@
       const input = document.getElementById("searchInput");
       input.addEventListener("input", () => {
         const q = (input.value || "").trim().toLowerCase();
-        if(!q){ renderCreators(creatorsAll); return; }
+        if(!q){
+          renderCreators(creatorsAll);
+          return;
+        }
+
         renderCreators(creatorsAll.filter(c => {
           const name = (c.display_name || "").toLowerCase();
           const uname = (c.username || "").toLowerCase();
@@ -544,7 +742,7 @@
     async function hydrateNavLoggedOnly(){
       const profileBtn = document.getElementById("navProfile");
       const logoutBtn  = document.getElementById("navLogout");
-      const fanDash     = document.getElementById("navFanDash");
+      const fanDash    = document.getElementById("navFanDash");
       const creatorDash = document.getElementById("navCreatorDash");
 
       show(profileBtn, true);
@@ -638,7 +836,8 @@
 
       if(error){
         hint.textContent = "Could not load posts.";
-        setDebug((document.getElementById("debug").textContent ? document.getElementById("debug").textContent + "\n\n" : "") +
+        setDebug(
+          (document.getElementById("debug").textContent ? document.getElementById("debug").textContent + "\n\n" : "") +
           `Posts query failed:\n${error.message}\n(code: ${error.code || "?"})`
         );
         console.error(error);
@@ -648,7 +847,6 @@
 
       const posts = data || [];
 
-      // Logged out: lock private + premium
       if(!viewerId){
         const enriched = posts.map(p => {
           const locked = (p.is_public === false) || (p.is_paid === true);
@@ -659,7 +857,6 @@
         return;
       }
 
-      // creators to check: premium public posts, not mine
       const creatorIdsToCheck = [...new Set(
         posts
           .filter(p =>
@@ -671,7 +868,6 @@
           .map(p => p.creator_id)
       )];
 
-      // Map creator_id -> hasAccess
       const subMap = new Map();
       for(const cid of creatorIdsToCheck) subMap.set(cid, false);
 
@@ -694,7 +890,7 @@
             if(raw){
               if(typeof raw === "number" || /^\d+$/.test(String(raw))){
                 const n = Number(raw);
-                endMs = (n < 1e12) ? (n * 1000) : n; // seconds -> ms
+                endMs = (n < 1e12) ? (n * 1000) : n;
               }else{
                 endMs = new Date(raw).getTime();
               }
@@ -733,137 +929,15 @@
       hint.textContent = enriched.length ? "" : "No posts yet.";
     }
 
-    function patchUnlockedBadges(root){
-      try{
-        const wraps = root.querySelectorAll('.postLinkWrap[data-access="unlocked"]');
-        wraps.forEach(w => {
-          const badges = w.querySelectorAll(".badge");
-          if(!badges || !badges.length) return;
-          const b = badges[badges.length - 1];
-          const t = (b.textContent || "").trim().toUpperCase();
-          if(t.includes("FREE") || t.includes("🆓")){
-            b.textContent = "🔓 UNLOCKED";
-          }
-        });
-      }catch(e){}
-    }
-
-    // NEW: if pill exists above the post, remove any inner "@username" elements inside the card
-    function removeInnerUserIfPillExists(root){
-      try{
-        const items = (root || document).querySelectorAll(".postItem");
-        items.forEach(item => {
-          const hasPill = item.querySelector(".postCreatorPill");
-          if(!hasPill) return;
-
-          const wrap = item.querySelector(".postLinkWrap");
-          if(!wrap) return;
-
-          wrap.querySelectorAll("*").forEach(el => {
-            const txt = (el.textContent || "").trim();
-            if(/^@[a-zA-Z0-9_.]+$/.test(txt)){
-              el.remove();
-            }
-          });
-        });
-      }catch(e){}
-    }
-
-    /**
-     * Routing:
-     * - click on @username badge => creator profile
-     * - click anywhere else on the post card (including image) => post page
-     */
-    function setupPostClickRouting(){
-      const postsEl = document.getElementById("posts");
-      if(!postsEl) return;
-
-      function isCreatorClick(target){
-        // If user clicked media, keep post navigation
-        if(target.closest("img, video, .mediaWrap")) return false;
-
-        const wrap = target.closest(".postLinkWrap");
-        if(!wrap) return false;
-
-        // Try to detect a username/handle element inside the post card (works with post-card.js and fallback)
-        const handleEl =
-          target.closest('[data-username],[data-handle],[data-creator-username],[data-creator],.badge,.username,.handle,.author,.creator,[role="link"]');
-
-        const raw = (handleEl?.textContent || target.textContent || "").trim();
-
-        // Require an @handle in the clicked text
-        const m = raw.match(/@([a-zA-Z0-9_\.]+)/);
-        if(!m) return false;
-
-        // Prefer explicit dataset, otherwise fallback to wrapper data-creator, then parsed handle
-        let uname =
-          (handleEl?.getAttribute?.("data-username") || "") ||
-          (handleEl?.getAttribute?.("data-handle") || "") ||
-          (handleEl?.getAttribute?.("data-creator-username") || "") ||
-          "";
-
-        if(!uname) uname = wrap.getAttribute("data-creator") || "";
-        if(!uname) uname = m[1];
-
-        if(!uname) return false;
-
-        window.location.href = creatorProfileUrl(uname);
-        return true;
-      }
-
-      function goPost(wrap){
-        const postId = wrap?.getAttribute("data-post-id") || "";
-        if(postId){
-          window.location.href = postUrl(postId);
-          return;
-        }
-        const uname = wrap?.getAttribute("data-creator") || "";
-        if(uname) window.location.href = creatorProfileUrl(uname);
-      }
-
-      postsEl.addEventListener("click", (e) => {
-        const target = e.target;
-
-        // Don't hijack interactive controls
-        if(target.closest("a, button, input, textarea, select, label")) return;
-
-        // Username -> creator profile
-        if(isCreatorClick(target)){
-          e.preventDefault();
-          return;
-        }
-
-        // Otherwise -> post page
-        const wrap = target.closest(".postLinkWrap");
-        if(!wrap) return;
-
-        e.preventDefault();
-        goPost(wrap);
-      });
-
-      postsEl.addEventListener("keydown", (e) => {
-        if(e.key !== "Enter") return;
-        const target = e.target;
-
-        if(isCreatorClick(target)) return;
-
-        const wrap = target.closest(".postLinkWrap");
-        if(!wrap) return;
-
-        e.preventDefault();
-        goPost(wrap);
-      });
-    }
-
     async function boot(){
       setupSearch();
       setupLogout();
-      setupPostClickRouting();
 
       const { data, error } = await onlypawsClient.auth.getSession();
       if(error){
         setDebug(`Auth session error:\n${error.message}`);
       }
+
       const session = data?.session;
 
       if(!session){
@@ -883,7 +957,6 @@
     window.addEventListener('DOMContentLoaded', boot);
   </script>
 
-  <!-- Media modal (left here, not used by routing right now) -->
   <div id="mediaModal" class="mediaModal" aria-hidden="true">
     <div class="mediaModalInner" role="dialog" aria-modal="true" aria-label="Media preview">
       <button id="mediaModalClose" class="mediaModalClose" type="button">✕</button>
@@ -891,6 +964,5 @@
       <video id="mediaModalVid" controls playsinline style="display:none;"></video>
     </div>
   </div>
-
 </body>
 </html>
