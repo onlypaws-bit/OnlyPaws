@@ -236,6 +236,10 @@
             OnlyPaws is a playful platform built for pet creators and pet lovers.
           </p>
 
+          <div class="btnRow">
+            <a class="ghost" href="the-pack.html">Explore The Pack 🐾</a>
+          </div>
+
           <div class="cardsStack">
             <div class="card">
               <h2>For fans</h2>
@@ -314,6 +318,7 @@
 
       if (path.includes("creators")) current = "creators";
       else if (path.includes("fans")) current = "fans";
+      else if (path.includes("the-pack")) current = "the-pack";
       else if (path.includes("index") || path.endsWith("/")) current = "index";
 
       document.querySelectorAll("[data-page]").forEach(link => {
