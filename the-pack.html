@@ -615,18 +615,14 @@
         const pets = await fetchPetsByIds(petIds);
         console.log("the pack pets:", pets);
 
-        let creators = mergeProfilesAndPets(profiles, pets);
+        const creators = mergeProfilesAndPets(profiles, pets);
         console.log("the pack merged creators:", creators);
 
-        if (creators.length < 6) {
-          const fallback = fallbackCreators();
-          const missing = 6 - creators.length;
-          creators = [...creators, ...fallback.slice(0, missing)];
-        }
-
         if (!creators.length) {
-          statusEl.className = "emptyState";
-          statusEl.textContent = "No pets in The Pack yet — be the first to create one 🐾";
+          const fallback = fallbackCreators();
+          gridEl.innerHTML = fallback.map(createPetCard).join("");
+          statusEl.style.display = "none";
+          gridEl.style.display = "grid";
           return;
         }
 
