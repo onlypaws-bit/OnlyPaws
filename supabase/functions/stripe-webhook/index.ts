@@ -22,23 +22,116 @@ function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+function getCustomerId(
+  value: string | Stripe.Customer | Stripe.DeletedCustomer | null,
+): string | null {
+  if (!value) return null;
+  return typeof value === "string" ? value : value.id ?? null;
+}
+
+function getSubscriptionId(
+  value:
+    | string
+    | Stripe.Subscription
+    | null,
+): string | null {
+  if (!value) return null;
+  return typeof value === "string" ? value : value.id ?? null;
+}
+
+async function findSupportRecord(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  params: {
+    subscriptionId?: string | null;
+    customerId?: string | null;
+    userId?: string | null;
+    email?: string | null;
+  },
+) {
+  const { subscriptionId, customerId, userId, email } = params;
+
+  if (subscriptionId) {
+    const res = await supabaseAdmin
+      .from("support_us")
+      .select("*")
+      .eq("stripe_subscription_id", subscriptionId)
+      .maybeSingle();
+
+    if (res.error) throw res.error;
+    if (res.data) return res.data;
+  }
+
+  if (customerId) {
+    const res = await supabaseAdmin
+      .from("support_us")
+      .select("*")
+      .eq("stripe_customer_id", customerId)
+      .maybeSingle();
+
+    if (res.error) throw res.error;
+    if (res.data) return res.data;
+  }
+
+  if (userId) {
+    const res = await supabaseAdmin
+      .from("support_us")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (res.error) throw res.error;
+    if (res.data) return res.data;
+  }
+
+  if (email) {
+    const res = await supabaseAdmin
+      .from("support_us")
+      .select("*")
+      .eq("email", email)
+      .is("user_id", null)
+      .order("id", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (res.error) throw res.error;
+    if (res.data) return res.data;
+  }
+
+  return null;
+}
+
+async function insertSupportRecord(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  payload: Record<string, unknown>,
+) {
+  const { error } = await supabaseAdmin.from("support_us").insert(payload);
+  if (error) throw error;
+}
+
+async function updateSupportRecordById(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  id: number,
+  payload: Record<string, unknown>,
+) {
+  const { error } = await supabaseAdmin
+    .from("support_us")
+    .update(payload)
+    .eq("id", id);
+
+  if (error) throw error;
+}
+
 serve(async (req) => {
   if (req.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
 
   try {
-    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
     const stripeWebhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    if (
-      !stripeSecretKey ||
-      !stripeWebhookSecret ||
-      !supabaseUrl ||
-      !supabaseServiceRoleKey
-    ) {
+    if (!stripeWebhookSecret || !supabaseUrl || !supabaseServiceRoleKey) {
       console.error("Missing required environment variables");
       return new Response("Server misconfigured", { status: 500 });
     }
@@ -70,62 +163,56 @@ serve(async (req) => {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
 
-      if (session.mode === "subscription") {
-        const userId = session.metadata?.user_id;
-        const kind = session.metadata?.kind;
+      if (session.mode !== "subscription") {
+        return jsonResponse({ received: true, ignored: true, reason: "not_subscription" });
+      }
 
-        if (userId && kind === "support_us") {
-          const existing = await supabaseAdmin
-            .from("support_us")
-            .select("last_event_id")
-            .eq("user_id", userId)
-            .maybeSingle();
+      const kind = session.metadata?.kind;
+      if (kind !== "support_us") {
+        return jsonResponse({ received: true, ignored: true, reason: "not_support_us" });
+      }
 
-          if (existing.error) {
-            console.error("Error reading support_us for dedupe:", existing.error);
-            return new Response("DB read error", { status: 500 });
-          }
+      const userId = session.metadata?.user_id ?? null;
+      const subscriptionId = getSubscriptionId(session.subscription);
+      const customerId = getCustomerId(session.customer);
+      const email =
+        session.customer_details?.email?.trim().toLowerCase() ??
+        session.customer_email?.trim().toLowerCase() ??
+        null;
 
-          if (existing.data?.last_event_id === event.id) {
-            return jsonResponse({ received: true, duplicate: true });
-          }
+      const existing = await findSupportRecord(supabaseAdmin, {
+        subscriptionId,
+        customerId,
+        userId,
+        email,
+      });
 
-          const subscriptionId =
-            typeof session.subscription === "string"
-              ? session.subscription
-              : session.subscription?.id ?? null;
+      if (existing?.last_event_id === event.id) {
+        return jsonResponse({ received: true, duplicate: true });
+      }
 
-          const customerId =
-            typeof session.customer === "string"
-              ? session.customer
-              : session.customer?.id ?? null;
+      const payload = {
+        user_id: userId,
+        email,
+        stripe_customer_id: customerId,
+        stripe_subscription_id: subscriptionId,
+        stripe_checkout_session_id: session.id,
+        status: "incomplete",
+        last_event_id: event.id,
+        last_event_type: event.type,
+        updated_at: new Date().toISOString(),
+      };
 
-          const { error } = await supabaseAdmin
-            .from("support_us")
-            .upsert(
-              {
-                user_id: userId,
-                stripe_customer_id: customerId,
-                stripe_subscription_id: subscriptionId,
-                stripe_checkout_session_id: session.id,
-                status: "incomplete",
-                last_event_id: event.id,
-                last_event_type: event.type,
-              },
-              { onConflict: "user_id" },
-            );
-
-          if (error) {
-            console.error("checkout.session.completed upsert error:", error);
-            return new Response("DB write error", { status: 500 });
-          }
-        }
+      if (existing?.id) {
+        await updateSupportRecordById(supabaseAdmin, existing.id, payload);
+      } else {
+        await insertSupportRecord(supabaseAdmin, payload);
       }
 
       return jsonResponse({ received: true });
     }
 
-    // -------- customer.subscription.* --------
+    // -------- customer.subscription.created / updated / deleted --------
     if (
       event.type === "customer.subscription.created" ||
       event.type === "customer.subscription.updated" ||
@@ -133,141 +220,123 @@ serve(async (req) => {
     ) {
       const subscription = event.data.object as Stripe.Subscription;
 
-      const userId = subscription.metadata?.user_id;
       const kind = subscription.metadata?.kind;
+      if (kind !== "support_us") {
+        return jsonResponse({ received: true, ignored: true, reason: "not_support_us" });
+      }
 
-      if (userId && kind === "support_us") {
-        const existing = await supabaseAdmin
-          .from("support_us")
-          .select("last_event_id")
-          .eq("user_id", userId)
-          .maybeSingle();
+      const userId = subscription.metadata?.user_id ?? null;
+      const customerId = getCustomerId(subscription.customer);
+      const subscriptionId = subscription.id;
 
-        if (existing.error) {
-          console.error("Error reading support_us for dedupe:", existing.error);
-          return new Response("DB read error", { status: 500 });
+      const firstItem = subscription.items.data[0];
+      const priceId = firstItem?.price?.id ?? null;
+
+      let email: string | null = null;
+      if (customerId) {
+        try {
+          const customer = await stripe.customers.retrieve(customerId);
+          if (!("deleted" in customer) || customer.deleted !== true) {
+            email = customer.email?.trim().toLowerCase() ?? null;
+          }
+        } catch (err) {
+          console.error("Failed retrieving customer for email:", err);
         }
+      }
 
-        if (existing.data?.last_event_id === event.id) {
-          return jsonResponse({ received: true, duplicate: true });
-        }
+      const existing = await findSupportRecord(supabaseAdmin, {
+        subscriptionId,
+        customerId,
+        userId,
+        email,
+      });
 
-        const firstItem = subscription.items.data[0];
-        const priceId = firstItem?.price?.id ?? null;
+      if (existing?.last_event_id === event.id) {
+        return jsonResponse({ received: true, duplicate: true });
+      }
 
-        const payload = {
-          user_id: userId,
-          stripe_customer_id:
-            typeof subscription.customer === "string"
-              ? subscription.customer
-              : subscription.customer?.id ?? null,
-          stripe_subscription_id: subscription.id,
-          stripe_price_id: priceId,
-          status: subscription.status,
-          cancel_at_period_end: subscription.cancel_at_period_end ?? false,
-          current_period_start: toIsoOrNull(firstItem?.current_period_start),
-          current_period_end: toIsoOrNull(firstItem?.current_period_end),
-          last_event_id: event.id,
-          last_event_type: event.type,
-        };
+      const payload = {
+        user_id: existing?.user_id ?? userId,
+        email: existing?.email ?? email,
+        stripe_customer_id: customerId,
+        stripe_subscription_id: subscriptionId,
+        stripe_price_id: priceId,
+        status: subscription.status,
+        cancel_at_period_end: subscription.cancel_at_period_end ?? false,
+        current_period_start: toIsoOrNull(firstItem?.current_period_start),
+        current_period_end: toIsoOrNull(firstItem?.current_period_end),
+        last_event_id: event.id,
+        last_event_type: event.type,
+        updated_at: new Date().toISOString(),
+      };
 
-        const { error } = await supabaseAdmin
-          .from("support_us")
-          .upsert(payload, { onConflict: "user_id" });
-
-        if (error) {
-          console.error("customer.subscription upsert error:", error);
-          return new Response("DB write error", { status: 500 });
-        }
+      if (existing?.id) {
+        await updateSupportRecordById(supabaseAdmin, existing.id, payload);
+      } else {
+        await insertSupportRecord(supabaseAdmin, payload);
       }
 
       return jsonResponse({ received: true });
     }
 
-    // -------- invoice.payment_failed (optional but useful) --------
+    // -------- invoice.payment_failed --------
     if (event.type === "invoice.payment_failed") {
       const invoice = event.data.object as Stripe.Invoice;
-      const subscriptionId =
-        typeof invoice.subscription === "string"
-          ? invoice.subscription
-          : invoice.subscription?.id ?? null;
+      const subscriptionId = getSubscriptionId(invoice.subscription);
 
-      if (subscriptionId) {
-        const { data: support, error: findError } = await supabaseAdmin
-          .from("support_us")
-          .select("user_id, last_event_id")
-          .eq("stripe_subscription_id", subscriptionId)
-          .maybeSingle();
-
-        if (findError) {
-          console.error("invoice.payment_failed read error:", findError);
-          return new Response("DB read error", { status: 500 });
-        }
-
-        if (support?.last_event_id === event.id) {
-          return jsonResponse({ received: true, duplicate: true });
-        }
-
-        if (support?.user_id) {
-          const { error } = await supabaseAdmin
-            .from("support_us")
-            .update({
-              status: "past_due",
-              last_event_id: event.id,
-              last_event_type: event.type,
-            })
-            .eq("user_id", support.user_id);
-
-          if (error) {
-            console.error("invoice.payment_failed update error:", error);
-            return new Response("DB write error", { status: 500 });
-          }
-        }
+      if (!subscriptionId) {
+        return jsonResponse({ received: true, ignored: true, reason: "no_subscription_id" });
       }
+
+      const existing = await findSupportRecord(supabaseAdmin, {
+        subscriptionId,
+      });
+
+      if (!existing) {
+        return jsonResponse({ received: true, ignored: true, reason: "support_not_found" });
+      }
+
+      if (existing.last_event_id === event.id) {
+        return jsonResponse({ received: true, duplicate: true });
+      }
+
+      await updateSupportRecordById(supabaseAdmin, existing.id, {
+        status: "past_due",
+        last_event_id: event.id,
+        last_event_type: event.type,
+        updated_at: new Date().toISOString(),
+      });
 
       return jsonResponse({ received: true });
     }
 
-    // -------- invoice.paid (optional but useful) --------
+    // -------- invoice.paid --------
     if (event.type === "invoice.paid") {
       const invoice = event.data.object as Stripe.Invoice;
-      const subscriptionId =
-        typeof invoice.subscription === "string"
-          ? invoice.subscription
-          : invoice.subscription?.id ?? null;
+      const subscriptionId = getSubscriptionId(invoice.subscription);
 
-      if (subscriptionId) {
-        const { data: support, error: findError } = await supabaseAdmin
-          .from("support_us")
-          .select("user_id, last_event_id")
-          .eq("stripe_subscription_id", subscriptionId)
-          .maybeSingle();
-
-        if (findError) {
-          console.error("invoice.paid read error:", findError);
-          return new Response("DB read error", { status: 500 });
-        }
-
-        if (support?.last_event_id === event.id) {
-          return jsonResponse({ received: true, duplicate: true });
-        }
-
-        if (support?.user_id) {
-          const { error } = await supabaseAdmin
-            .from("support_us")
-            .update({
-              status: "active",
-              last_event_id: event.id,
-              last_event_type: event.type,
-            })
-            .eq("user_id", support.user_id);
-
-          if (error) {
-            console.error("invoice.paid update error:", error);
-            return new Response("DB write error", { status: 500 });
-          }
-        }
+      if (!subscriptionId) {
+        return jsonResponse({ received: true, ignored: true, reason: "no_subscription_id" });
       }
+
+      const existing = await findSupportRecord(supabaseAdmin, {
+        subscriptionId,
+      });
+
+      if (!existing) {
+        return jsonResponse({ received: true, ignored: true, reason: "support_not_found" });
+      }
+
+      if (existing.last_event_id === event.id) {
+        return jsonResponse({ received: true, duplicate: true });
+      }
+
+      await updateSupportRecordById(supabaseAdmin, existing.id, {
+        status: "active",
+        last_event_id: event.id,
+        last_event_type: event.type,
+        updated_at: new Date().toISOString(),
+      });
 
       return jsonResponse({ received: true });
     }
