@@ -66,6 +66,7 @@ serve(async (req) => {
     const { data: support, error: supportError } = await supabaseAdmin
       .from("support_us")
       .select(`
+        id,
         user_id,
         stripe_subscription_id,
         status,
@@ -73,9 +74,17 @@ serve(async (req) => {
         current_period_end
       `)
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
-    if (supportError || !support) {
+    if (supportError) {
+      console.error("support_us read error:", supportError);
+      return new Response(JSON.stringify({ error: "Failed to read support subscription" }), {
+        status: 500,
+        headers: corsHeaders,
+      });
+    }
+
+    if (!support) {
       return new Response(JSON.stringify({ error: "Support subscription not found" }), {
         status: 404,
         headers: corsHeaders,
@@ -101,6 +110,7 @@ serve(async (req) => {
         JSON.stringify({
           ok: true,
           alreadyCanceled: true,
+          status: support.status,
           cancel_at_period_end: true,
           current_period_end: support.current_period_end,
         }),
@@ -118,15 +128,18 @@ serve(async (req) => {
       },
     );
 
+    const firstItem = subscription.items.data[0];
+
     const { error: updateError } = await supabaseAdmin
       .from("support_us")
       .update({
         status: subscription.status,
         cancel_at_period_end: subscription.cancel_at_period_end,
-        current_period_start: toIsoOrNull(subscription.items.data[0]?.current_period_start),
-        current_period_end: toIsoOrNull(subscription.items.data[0]?.current_period_end),
+        current_period_start: toIsoOrNull(firstItem?.current_period_start),
+        current_period_end: toIsoOrNull(firstItem?.current_period_end),
+        updated_at: new Date().toISOString(),
       })
-      .eq("user_id", user.id);
+      .eq("id", support.id);
 
     if (updateError) {
       console.error("support_us cancel update error:", updateError);
@@ -141,7 +154,7 @@ serve(async (req) => {
         ok: true,
         status: subscription.status,
         cancel_at_period_end: subscription.cancel_at_period_end,
-        current_period_end: toIsoOrNull(subscription.items.data[0]?.current_period_end),
+        current_period_end: toIsoOrNull(firstItem?.current_period_end),
       }),
       {
         status: 200,
