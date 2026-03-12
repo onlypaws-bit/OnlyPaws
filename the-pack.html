@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>The Pack — OnlyPaws</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="stylesheet" href="styles/styles.css" />
+
+  <style>
+    :root{
+      --bg1:#6B4EFF;
+      --bg2:#8B6CFF;
+      --text:#ffffff;
+      --muted:rgba(255,255,255,.85);
+      --stroke:rgba(255,255,255,.16);
+      --card:rgba(0,0,0,.16);
+      --btn:#ffffff;
+      --btnText:#6B4EFF;
+    }
+
+    *{box-sizing:border-box}
+
+    body{
+      margin:0;
+      font-family: Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 20% 10%, rgba(255,255,255,.18), transparent 55%),
+        radial-gradient(1000px 650px at 90% 30%, rgba(0,0,0,.22), transparent 55%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
+      min-height:100vh;
+    }
+
+    .pageShell{
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+    }
+
+    .wrap{
+      max-width:1040px;
+      margin:0 auto;
+      padding:0 18px 70px;
+      width:100%;
+    }
+
+    .hero{
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:16px;
+      align-items:stretch;
+      margin-top:6px;
+    }
+
+    @media (max-width: 920px){
+      .hero{grid-template-columns:1fr;}
+    }
+
+    .panel{
+      border-radius:22px;
+      padding:26px;
+      background:var(--card);
+      border:1px solid var(--stroke);
+      backdrop-filter:blur(10px);
+      box-shadow:0 20px 45px rgba(0,0,0,.25);
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:8px 14px;
+      border-radius:999px;
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      font-size:13px;
+      color:rgba(255,255,255,.88);
+      white-space:nowrap;
+    }
+
+    h1{
+      margin:12px 0 10px;
+      font-size:clamp(2.1rem, 4vw, 2.8rem);
+      line-height:1.05;
+      letter-spacing:-0.6px;
+    }
+
+    .sub{
+      margin:0;
+      color:var(--muted);
+      font-size:1.05rem;
+      line-height:1.55;
+      max-width:60ch;
+    }
+
+    .btnRow{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:18px;
+      align-items:center;
+    }
+
+    .btn,
+    .ghost{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:12px 16px;
+      border-radius:999px;
+      text-decoration:none;
+      font-weight:900;
+      white-space:nowrap;
+      transition:transform .18s ease, opacity .18s ease, background .18s ease;
+      cursor:pointer;
+      font-size:14px;
+    }
+
+    .btn{
+      background:var(--btn);
+      color:var(--btnText);
+      border:none;
+      box-shadow:0 14px 30px rgba(0,0,0,.22);
+    }
+
+    .btn:hover,
+    .ghost:hover,
+    .petCard:hover{
+      transform:translateY(-1px) scale(1.02);
+    }
+
+    .ghost{
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.18);
+      color:#fff;
+    }
+
+    .heroNote{
+      margin-top:16px;
+      border-radius:18px;
+      padding:16px;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.16);
+      color:rgba(255,255,255,.88);
+      font-size:14px;
+      line-height:1.6;
+    }
+
+    .previewPanel{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    .previewCard{
+      border-radius:18px;
+      padding:16px;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.16);
+    }
+
+    .previewCard h3{
+      margin:0 0 8px;
+      font-size:1.1rem;
+    }
+
+    .previewCard p{
+      margin:0;
+      color:rgba(255,255,255,.84);
+      line-height:1.6;
+      font-size:14px;
+    }
+
+    .section{
+      margin-top:18px;
+    }
+
+    .sectionTitle{
+      margin:0 0 8px;
+      font-size:1.65rem;
+      letter-spacing:-0.4px;
+    }
+
+    .sectionSub{
+      margin:0 0 16px;
+      color:var(--muted);
+      line-height:1.6;
+      font-size:15px;
+    }
+
+    .packGrid{
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      gap:16px;
+    }
+
+    @media (max-width: 920px){
+      .packGrid{grid-template-columns:repeat(2, minmax(0, 1fr));}
+    }
+
+    @media (max-width: 620px){
+      .packGrid{grid-template-columns:1fr;}
+    }
+
+    .petCard{
+      display:block;
+      text-decoration:none;
+      color:inherit;
+      border-radius:22px;
+      padding:14px;
+      background:rgba(255,255,255,.09);
+      border:1px solid var(--stroke);
+      transition:transform .18s ease, opacity .18s ease, background .18s ease;
+    }
+
+    .petThumb{
+      width:100%;
+      aspect-ratio:1 / 1;
+      border-radius:18px;
+      overflow:hidden;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.12);
+      margin-bottom:12px;
+    }
+
+    .petThumb img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+
+    .petTop{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:8px;
+    }
+
+    .petName{
+      margin:0;
+      font-size:1.08rem;
+      line-height:1.2;
+    }
+
+    .petTag{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      background:rgba(255,255,255,.12);
+      border:1px solid rgba(255,255,255,.16);
+      color:rgba(255,255,255,.9);
+      white-space:nowrap;
+    }
+
+    .petMeta{
+      color:rgba(255,255,255,.78);
+      font-size:13px;
+      line-height:1.5;
+      margin-bottom:8px;
+    }
+
+    .petBio{
+      margin:0;
+      color:rgba(255,255,255,.86);
+      font-size:14px;
+      line-height:1.6;
+      min-height:44px;
+    }
+
+    .petFooter{
+      margin-top:12px;
+      font-size:13px;
+      color:rgba(255,255,255,.78);
+    }
+
+    .ctaPanel{
+      margin-top:18px;
+      border-radius:22px;
+      padding:22px;
+      background:rgba(0,0,0,.14);
+      border:1px solid var(--stroke);
+      text-align:center;
+    }
+
+    .ctaPanel h2{
+      margin:0 0 10px;
+      font-size:1.45rem;
+    }
+
+    .ctaPanel p{
+      margin:0;
+      color:rgba(255,255,255,.86);
+      line-height:1.65;
+      font-size:14px;
+      max-width:700px;
+      margin-inline:auto;
+    }
+
+    .footerWrap{
+      margin-top:28px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="pageShell">
+    <div class="wrap">
+      <div id="header-placeholder"></div>
+
+      <div class="hero">
+        <div class="panel">
+          <div class="pill">meet the creators of onlypaws 🐾</div>
+
+          <h1>The Pack</h1>
+
+          <p class="sub">
+            Explore some of the pets on OnlyPaws before signing up.
+            Discover adorable creators, open their profiles, and get a feel for the platform.
+          </p>
+
+          <div class="btnRow">
+            <a class="btn" href="fans.html">Join as a fan →</a>
+            <a class="ghost" href="creators.html">Create your pet page</a>
+          </div>
+
+          <div class="heroNote">
+            The Pack is a public preview of OnlyPaws. You can browse featured pets here first,
+            then sign up if you want to follow creators, support them, or build a page for your own pet.
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="previewPanel">
+            <div class="previewCard">
+              <h3>What you can do here</h3>
+              <p>
+                Browse featured pets, discover their vibes, and see what OnlyPaws is all about
+                without hitting a login wall first.
+              </p>
+            </div>
+
+            <div class="previewCard">
+              <h3>What happens after signup</h3>
+              <p>
+                Fans can follow creators and support their favorite animals.
+                Creators can build a page for their pet, share posts, and grow their own community.
+              </p>
+            </div>
+
+            <div class="previewCard">
+              <h3>Why The Pack exists</h3>
+              <p>
+                Because a pet platform should actually show pets first.
+                Cute faces now, account creation later.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="panel">
+          <h2 class="sectionTitle">Featured pets</h2>
+          <p class="sectionSub">
+            A few of the faces currently hanging around OnlyPaws.
+          </p>
+
+          <div class="packGrid">
+            <a class="petCard" href="fans.html">
+              <div class="petThumb">
+                <img src="assets/onlypaws-index.png" alt="Lola the dog" />
+              </div>
+              <div class="petTop">
+                <h3 class="petName">Lola</h3>
+                <span class="petTag">dog</span>
+              </div>
+              <div class="petMeta">golden chaos • ball chaser</div>
+              <p class="petBio">
+                professional tail wagger. part-time cuddle machine. full-time icon.
+              </p>
+              <div class="petFooter">view profile after signup →</div>
+            </a>
+
+            <a class="petCard" href="fans.html">
+              <div class="petThumb">
+                <img src="assets/onlypaws-index.png" alt="Pablito the dog" />
+              </div>
+              <div class="petTop">
+                <h3 class="petName">Pablito</h3>
+                <span class="petTag">dog</span>
+              </div>
+              <div class="petMeta">tiny menace • snack enthusiast</div>
+              <p class="petBio">
+                emotionally powered by treats, attention, and suspiciously loud zoomies.
+              </p>
+              <div class="petFooter">view profile after signup →</div>
+            </a>
+
+            <a class="petCard" href="fans.html">
+              <div class="petThumb">
+                <img src="assets/onlypaws-index.png" alt="Mochi the cat" />
+              </div>
+              <div class="petTop">
+                <h3 class="petName">Mochi</h3>
+                <span class="petTag">cat</span>
+              </div>
+              <div class="petMeta">nap expert • couch queen</div>
+              <p class="petBio">
+                sleeps 19 hours a day and still acts like she pays the rent.
+              </p>
+              <div class="petFooter">view profile after signup →</div>
+            </a>
+
+            <a class="petCard" href="fans.html">
+              <div class="petThumb">
+                <img src="assets/onlypaws-index.png" alt="Kiwi the parrot" />
+              </div>
+              <div class="petTop">
+                <h3 class="petName">Kiwi</h3>
+                <span class="petTag">parrot</span>
+              </div>
+              <div class="petMeta">loud legend • feathered gossip</div>
+              <p class="petBio">
+                repeats everything, judges everyone, and still somehow gets away with it.
+              </p>
+              <div class="petFooter">view profile after signup →</div>
+            </a>
+
+            <a class="petCard" href="fans.html">
+              <div class="petThumb">
+                <img src="assets/onlypaws-index.png" alt="Potato the bunny" />
+              </div>
+              <div class="petTop">
+                <h3 class="petName">Potato</h3>
+                <span class="petTag">bunny</span>
+              </div>
+              <div class="petMeta">soft menace • certified muncher</div>
+              <p class="petBio">
+                looks innocent, destroys cables, and vanishes whenever cleanup starts.
+              </p>
+              <div class="petFooter">view profile after signup →</div>
+            </a>
+
+            <a class="petCard" href="fans.html">
+              <div class="petThumb">
+                <img src="assets/onlypaws-index.png" alt="Orbit the gecko" />
+              </div>
+              <div class="petTop">
+                <h3 class="petName">Orbit</h3>
+                <span class="petTag">gecko</span>
+              </div>
+              <div class="petMeta">tiny dragon • wall supervisor</div>
+              <p class="petBio">
+                does absolutely nothing for hours and still somehow looks incredibly busy.
+              </p>
+              <div class="petFooter">view profile after signup →</div>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="ctaPanel">
+        <h2>Want your pet in The Pack?</h2>
+        <p>
+          Create a page for your pet, share their photos and updates, and let people discover them on OnlyPaws.
+        </p>
+
+        <div class="btnRow" style="justify-content:center;">
+          <a class="btn" href="creators.html">Create a pet page →</a>
+          <a class="ghost" href="fans.html">Join as a fan</a>
+        </div>
+      </div>
+
+      <div class="footerWrap" id="footer-placeholder"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase.js"></script>
+  <script src="js/nav.js"></script>
+  <script src="js/partials.js"></script>
+
+  <script>
+    function hideCurrentMarketingLink() {
+      const path = window.location.pathname.toLowerCase();
+      let current = "the-pack";
+
+      if (path.includes("creators")) current = "creators";
+      else if (path.includes("fans")) current = "fans";
+      else if (path.includes("index") || path.endsWith("/")) current = "index";
+      else if (path.includes("the-pack")) current = "the-pack";
+
+      document.querySelectorAll("[data-page]").forEach(link => {
+        if (link.dataset.page === current) {
+          link.remove();
+        }
+      });
+    }
+
+    window.addEventListener("DOMContentLoaded", async () => {
+      await loadMarketingLayout();
+      hideCurrentMarketingLink();
+
+      if (typeof initNav === "function") {
+        await initNav();
+      }
+    });
+  </script>
+</body>
+</html>
