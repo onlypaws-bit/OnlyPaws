@@ -2,7 +2,6 @@ window.initSupportUsButton = async function initSupportUsButton(options = {}) {
   const {
     buttonId = "supportUsBtn",
     messageId = "supportUsMsg",
-    loginRedirect = "fans.html?support=1",
     successPath = "/thank-you.html",
     cancelPath = window.location.pathname || "/",
     supportLabel = "Support OnlyPaws 🐾",
@@ -62,7 +61,7 @@ window.initSupportUsButton = async function initSupportUsButton(options = {}) {
     setMsg("Canceling...");
 
     try {
-      const { data, error } = await onlypawsClient.functions.invoke("support-us-cancel");
+      const { error } = await onlypawsClient.functions.invoke("support-us-cancel");
 
       if (error) {
         setMsg("❌ " + (error.message || "Unable to cancel support."));
@@ -84,7 +83,7 @@ window.initSupportUsButton = async function initSupportUsButton(options = {}) {
     setMsg("Resuming...");
 
     try {
-      const { data, error } = await onlypawsClient.functions.invoke("support-us-resume");
+      const { error } = await onlypawsClient.functions.invoke("support-us-resume");
 
       if (error) {
         setMsg("❌ " + (error.message || "Unable to resume support."));
@@ -101,15 +100,15 @@ window.initSupportUsButton = async function initSupportUsButton(options = {}) {
     }
   }
 
+  setButton(supportLabel, false);
+
   try {
     const { data: sessionData } = await onlypawsClient.auth.getSession();
     const user = sessionData?.session?.user;
 
+    // Guest users can support without logging in.
     if (!user) {
-      setButton(supportLabel, false);
-      btn.onclick = () => {
-        window.location.href = loginRedirect;
-      };
+      btn.onclick = goCheckout;
       return;
     }
 
@@ -122,13 +121,11 @@ window.initSupportUsButton = async function initSupportUsButton(options = {}) {
     if (error) {
       console.error("support_us read error:", error);
       setMsg("Could not load support status.");
-      setButton(supportLabel, false);
       btn.onclick = goCheckout;
       return;
     }
 
     if (!support) {
-      setButton(supportLabel, false);
       btn.onclick = goCheckout;
       return;
     }
@@ -151,7 +148,6 @@ window.initSupportUsButton = async function initSupportUsButton(options = {}) {
       return;
     }
 
-    setButton(supportLabel, false);
     btn.onclick = goCheckout;
   } catch (err) {
     console.error("initSupportUsButton error:", err);
