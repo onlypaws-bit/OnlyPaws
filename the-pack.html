@@ -222,6 +222,10 @@
       background:rgba(255,255,255,.08);
       border:1px solid rgba(255,255,255,.12);
       margin-bottom:12px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:40px;
     }
 
     .petThumb img{
@@ -256,6 +260,7 @@
       border:1px solid rgba(255,255,255,.16);
       color:rgba(255,255,255,.9);
       white-space:nowrap;
+      text-transform:lowercase;
     }
 
     .petMeta{
@@ -305,6 +310,18 @@
     .footerWrap{
       margin-top:28px;
     }
+
+    .loadingState,
+    .emptyState,
+    .errorState{
+      border-radius:18px;
+      padding:18px;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.14);
+      color:rgba(255,255,255,.88);
+      font-size:14px;
+      line-height:1.6;
+    }
   </style>
 </head>
 
@@ -330,8 +347,8 @@
           </div>
 
           <div class="heroNote">
-            The Pack is a public preview of OnlyPaws. You can browse featured pets here first,
-            then sign up if you want to follow creators, support them, or build a page for your own pet.
+            The Pack is a public preview of OnlyPaws. Browse featured pets first, then sign up if you
+            want to follow creators, support them, or build a page for your own pet.
           </div>
         </div>
 
@@ -371,97 +388,8 @@
             A few of the faces currently hanging around OnlyPaws.
           </p>
 
-          <div class="packGrid">
-            <a class="petCard" href="fans.html">
-              <div class="petThumb">
-                <img src="assets/onlypaws-index.png" alt="Lola the dog" />
-              </div>
-              <div class="petTop">
-                <h3 class="petName">Lola</h3>
-                <span class="petTag">dog</span>
-              </div>
-              <div class="petMeta">golden chaos • ball chaser</div>
-              <p class="petBio">
-                professional tail wagger. part-time cuddle machine. full-time icon.
-              </p>
-              <div class="petFooter">view profile after signup →</div>
-            </a>
-
-            <a class="petCard" href="fans.html">
-              <div class="petThumb">
-                <img src="assets/onlypaws-index.png" alt="Pablito the dog" />
-              </div>
-              <div class="petTop">
-                <h3 class="petName">Pablito</h3>
-                <span class="petTag">dog</span>
-              </div>
-              <div class="petMeta">tiny menace • snack enthusiast</div>
-              <p class="petBio">
-                emotionally powered by treats, attention, and suspiciously loud zoomies.
-              </p>
-              <div class="petFooter">view profile after signup →</div>
-            </a>
-
-            <a class="petCard" href="fans.html">
-              <div class="petThumb">
-                <img src="assets/onlypaws-index.png" alt="Mochi the cat" />
-              </div>
-              <div class="petTop">
-                <h3 class="petName">Mochi</h3>
-                <span class="petTag">cat</span>
-              </div>
-              <div class="petMeta">nap expert • couch queen</div>
-              <p class="petBio">
-                sleeps 19 hours a day and still acts like she pays the rent.
-              </p>
-              <div class="petFooter">view profile after signup →</div>
-            </a>
-
-            <a class="petCard" href="fans.html">
-              <div class="petThumb">
-                <img src="assets/onlypaws-index.png" alt="Kiwi the parrot" />
-              </div>
-              <div class="petTop">
-                <h3 class="petName">Kiwi</h3>
-                <span class="petTag">parrot</span>
-              </div>
-              <div class="petMeta">loud legend • feathered gossip</div>
-              <p class="petBio">
-                repeats everything, judges everyone, and still somehow gets away with it.
-              </p>
-              <div class="petFooter">view profile after signup →</div>
-            </a>
-
-            <a class="petCard" href="fans.html">
-              <div class="petThumb">
-                <img src="assets/onlypaws-index.png" alt="Potato the bunny" />
-              </div>
-              <div class="petTop">
-                <h3 class="petName">Potato</h3>
-                <span class="petTag">bunny</span>
-              </div>
-              <div class="petMeta">soft menace • certified muncher</div>
-              <p class="petBio">
-                looks innocent, destroys cables, and vanishes whenever cleanup starts.
-              </p>
-              <div class="petFooter">view profile after signup →</div>
-            </a>
-
-            <a class="petCard" href="fans.html">
-              <div class="petThumb">
-                <img src="assets/onlypaws-index.png" alt="Orbit the gecko" />
-              </div>
-              <div class="petTop">
-                <h3 class="petName">Orbit</h3>
-                <span class="petTag">gecko</span>
-              </div>
-              <div class="petMeta">tiny dragon • wall supervisor</div>
-              <p class="petBio">
-                does absolutely nothing for hours and still somehow looks incredibly busy.
-              </p>
-              <div class="petFooter">view profile after signup →</div>
-            </a>
-          </div>
+          <div id="packStatus" class="loadingState">Loading The Pack...</div>
+          <div id="packGrid" class="packGrid" style="display:none;"></div>
         </div>
       </div>
 
@@ -503,6 +431,201 @@
       });
     }
 
+    function escapeHtml(str = "") {
+      return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function speciesEmoji(species = "") {
+      const s = String(species).toLowerCase().trim();
+      if (s.includes("dog")) return "🐶";
+      if (s.includes("cat")) return "🐱";
+      if (s.includes("parrot") || s.includes("bird")) return "🦜";
+      if (s.includes("rabbit") || s.includes("bunny")) return "🐰";
+      if (s.includes("gecko") || s.includes("lizard")) return "🦎";
+      if (s.includes("hamster")) return "🐹";
+      if (s.includes("snake")) return "🐍";
+      if (s.includes("turtle")) return "🐢";
+      if (s.includes("fish")) return "🐠";
+      return "🐾";
+    }
+
+    function truncateText(text = "", max = 110) {
+      const clean = String(text).trim();
+      if (!clean) return "";
+      if (clean.length <= max) return clean;
+      return `${clean.slice(0, max).trim()}…`;
+    }
+
+    function normalizeCreator(row) {
+      const pet = row.pet || {};
+
+      const petName = pet.name?.trim();
+      const species = pet.species?.trim() || "pet";
+      const breed = pet.breed?.trim();
+      const petBio = pet.bio?.trim();
+      const petAvatar = pet.avatar_url || null;
+
+      const displayName = row.display_name?.trim();
+      const username = row.username?.trim();
+      const creatorBio = row.bio?.trim();
+      const creatorAvatar = row.avatar_url || null;
+
+      const cardName = petName || displayName || username || "unnamed pet";
+      const cardTag = species || "pet";
+
+      let metaParts = [];
+      if (breed) metaParts.push(breed);
+      if (username) metaParts.push(`@${username}`);
+      if (!metaParts.length && displayName && displayName !== cardName) {
+        metaParts.push(displayName);
+      }
+
+      const meta = metaParts.join(" • ") || "pet creator";
+      const bio =
+        truncateText(petBio || creatorBio || "one of the adorable creators hanging around onlypaws.", 120);
+
+      const avatar = petAvatar || creatorAvatar;
+      const slug = username || row.user_id || null;
+
+      return {
+        name: cardName,
+        tag: cardTag,
+        meta,
+        bio,
+        avatar,
+        slug
+      };
+    }
+
+    function fallbackCreators() {
+      return [
+        {
+          name: "Lola",
+          tag: "dog",
+          meta: "good girl • @lola",
+          bio: "professional tail wagger. part-time cuddle machine. full-time icon.",
+          avatar: null,
+          slug: "lola"
+        },
+        {
+          name: "Pablito",
+          tag: "dog",
+          meta: "tiny menace • @pablito",
+          bio: "emotionally powered by treats, attention, and suspiciously loud zoomies.",
+          avatar: null,
+          slug: "pablito"
+        },
+        {
+          name: "Your pet here",
+          tag: "pet",
+          meta: "future icon",
+          bio: "create a page for your pet and become part of the pack.",
+          avatar: null,
+          slug: null
+        }
+      ];
+    }
+
+    function cardHref(creator) {
+      if (creator.slug) {
+        return `fans.html?creator=${encodeURIComponent(creator.slug)}`;
+      }
+      return "fans.html";
+    }
+
+    function createPetCard(creator) {
+      const thumbMarkup = creator.avatar
+        ? `<img src="${escapeHtml(creator.avatar)}" alt="${escapeHtml(creator.name)}" loading="lazy" />`
+        : `<span aria-hidden="true">${speciesEmoji(creator.tag)}</span>`;
+
+      return `
+        <a class="petCard" href="${cardHref(creator)}">
+          <div class="petThumb">
+            ${thumbMarkup}
+          </div>
+
+          <div class="petTop">
+            <h3 class="petName">${escapeHtml(creator.name)}</h3>
+            <span class="petTag">${escapeHtml(creator.tag)}</span>
+          </div>
+
+          <div class="petMeta">${escapeHtml(creator.meta)}</div>
+          <p class="petBio">${escapeHtml(creator.bio)}</p>
+
+          <div class="petFooter">view profile after signup →</div>
+        </a>
+      `;
+    }
+
+    async function fetchCreators() {
+      const { data, error } = await onlypawsClient
+        .from("profiles")
+        .select(`
+          user_id,
+          username,
+          display_name,
+          bio,
+          avatar_url,
+          role,
+          created_at,
+          pet (
+            id,
+            name,
+            species,
+            breed,
+            bio,
+            avatar_url,
+            created_at
+          )
+        `)
+        .eq("role", "creator")
+        .not("pet", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(12);
+
+      if (error) throw error;
+      return data || [];
+    }
+
+    async function loadPack() {
+      const statusEl = document.getElementById("packStatus");
+      const gridEl = document.getElementById("packGrid");
+
+      try {
+        const rows = await fetchCreators();
+        let creators = rows.map(normalizeCreator);
+
+        if (creators.length < 6) {
+          const fallback = fallbackCreators();
+          const missing = 6 - creators.length;
+          creators = [...creators, ...fallback.slice(0, missing)];
+        }
+
+        if (!creators.length) {
+          statusEl.className = "emptyState";
+          statusEl.textContent = "No pets in The Pack yet — be the first to create one 🐾";
+          return;
+        }
+
+        gridEl.innerHTML = creators.map(createPetCard).join("");
+        statusEl.style.display = "none";
+        gridEl.style.display = "grid";
+      } catch (error) {
+        console.error("failed to load the pack:", error);
+
+        const creators = fallbackCreators();
+        gridEl.innerHTML = creators.map(createPetCard).join("");
+        statusEl.className = "errorState";
+        statusEl.textContent = "Could not load live creators right now, so here is a preview of The Pack instead.";
+        gridEl.style.display = "grid";
+      }
+    }
+
     window.addEventListener("DOMContentLoaded", async () => {
       await loadMarketingLayout();
       hideCurrentMarketingLink();
@@ -510,6 +633,8 @@
       if (typeof initNav === "function") {
         await initNav();
       }
+
+      await loadPack();
     });
   </script>
 </body>
